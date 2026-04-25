@@ -63,9 +63,13 @@
             <span class="material-icons text-lg">rocket_launch</span>
             <span class="nav-text">Starter</span>
           </a>
-          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="manage-vpn">
-            <span class="material-icons text-lg">vpn_key</span>
-            <span class="nav-text">Manage VPN</span>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="company-prereqs">
+            <span class="material-icons text-lg">business</span>
+            <span class="nav-text">Company Prerequisites</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="user-prereqs">
+            <span class="material-icons text-lg">person</span>
+            <span class="nav-text">User Prerequisites</span>
           </a>
         </div>
       </div>
@@ -171,9 +175,14 @@
         <!-- Rendered by starter.js -->
       </div>
 
-      <!-- Manage VPN Page -->
-      <div id="page-manage-vpn" class="page-content" style="display: none;">
-        <!-- Rendered by manage-vpn.js -->
+      <!-- Company Prerequisites Page -->
+      <div id="page-company-prereqs" class="page-content" style="display: none;">
+        <!-- Rendered by company-prereqs.js -->
+      </div>
+
+      <!-- User Prerequisites Page -->
+      <div id="page-user-prereqs" class="page-content" style="display: none;">
+        <!-- Rendered by user-prereqs.js -->
       </div>
 
     </div>
@@ -256,10 +265,15 @@
           subtitle: 'Your blank canvas',
           render: renderStarterPage
         },
-        'manage-vpn': {
-          title: 'Manage VPN',
-          subtitle: 'VPN configuration and management',
-          render: renderManageVpnPage
+        'company-prereqs': {
+          title: 'Company Prerequisites',
+          subtitle: 'Company-level validation checks',
+          render: renderCompanyPrereqsPage
+        },
+        'user-prereqs': {
+          title: 'User Prerequisites',
+          subtitle: 'User-level validation checks',
+          render: renderUserPrereqsPage
         }
       };
 
@@ -425,7 +439,9 @@
 
       {{ PAGE_STARTER }}
 
-      {{ PAGE_MANAGE_VPN }}
+      {{ PAGE_COMPANY_PREREQS }}
+
+      {{ PAGE_USER_PREREQS }}
 
       // ============================================
       // BOOT

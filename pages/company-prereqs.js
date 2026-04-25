@@ -1,17 +1,17 @@
 // ============================================
-// MANAGE VPN PAGE
+// COMPANY PREREQUISITES PAGE
 // ============================================
 
-function renderManageVpnPage() {
-  const container = document.getElementById('page-manage-vpn');
+function renderCompanyPrereqsPage() {
+  const container = document.getElementById('page-company-prereqs');
   container.innerHTML = '';
 
   // ---- Checklist header ----
   const header = document.createElement('div');
   header.className = 'card p-8 mb-8';
   header.innerHTML = `
-    <h2 class="text-xl font-semibold text-rewst-black mb-2">VPN Configuration Checklist</h2>
-    <p class="text-rewst-gray mb-6">Running workflow validation checks...</p>
+    <h2 class="text-xl font-semibold text-rewst-black mb-2">Company Prerequisites</h2>
+    <p class="text-rewst-gray mb-6">Running company-level validation checks...</p>
   `;
   container.appendChild(header);
 
@@ -49,34 +49,46 @@ function renderManageVpnPage() {
   // ---- Run workflow and check results ----
   (async () => {
     try {
-      const result = await rewst.runWorkflowSmart('019dc183-516c-7a50-bf66-3705e87e3fda');
-      debugLog('Workflow result:', result);
+      // Run company prerequisites workflow
+      const companyPrereqsResult = await rewst.runWorkflowSmart('019dc183-516c-7a50-bf66-3705e87e3fda');
+      debugLog('Company Prereqs result:', companyPrereqsResult);
 
-      // Set result to the output object of the original result for easier access
-      if (result && result.output) {
-        Object.keys(result.output).forEach(key => {
-          result[key] = result.output[key];
-        });
-      }
+      // Extract output if nested
+      const companyPrereqsData = companyPrereqsResult?.output || companyPrereqsResult;
 
-      // Check each item
-      checks.forEach(check => {
-        const hasData = result && result[check.id];
-        const element = checkElements[check.id];
-        const statusIcon = hasData ? 'check_circle' : 'cancel';
-        const statusClass = hasData ? 'text-green-500' : 'text-red-500';
-        const statusText = hasData ? 'Passed' : 'Failed';
+      // Check ca_name and ad_domain
+      const caCheck = companyPrereqsData?.ca_name;
+      const adCheck = companyPrereqsData?.ad_domain;
 
-        element.innerHTML = `
-          <div class="${statusClass}">
-            <span class="material-icons">${statusIcon}</span>
-          </div>
-          <div class="flex-1">
-            <p class="text-rewst-dark-gray font-medium">${check.label}</p>
-            <p class="text-sm text-rewst-gray">${statusText}${hasData ? ` - Data: ${result[check.id]}` : ''}</p>
-          </div>
-        `;
-      });
+      const element1 = checkElements['ca_name'];
+      const statusIcon1 = caCheck ? 'check_circle' : 'cancel';
+      const statusClass1 = caCheck ? 'text-green-500' : 'text-red-500';
+      const statusText1 = caCheck ? 'Passed' : 'Failed';
+
+      element1.innerHTML = `
+        <div class="${statusClass1}">
+          <span class="material-icons">${statusIcon1}</span>
+        </div>
+        <div class="flex-1">
+          <p class="text-rewst-dark-gray font-medium">CA Name</p>
+          <p class="text-sm text-rewst-gray">${statusText1}${caCheck ? ` - Data: ${caCheck}` : ''}</p>
+        </div>
+      `;
+
+      const element2 = checkElements['ad_domain'];
+      const statusIcon2 = adCheck ? 'check_circle' : 'cancel';
+      const statusClass2 = adCheck ? 'text-green-500' : 'text-red-500';
+      const statusText2 = adCheck ? 'Passed' : 'Failed';
+
+      element2.innerHTML = `
+        <div class="${statusClass2}">
+          <span class="material-icons">${statusIcon2}</span>
+        </div>
+        <div class="flex-1">
+          <p class="text-rewst-dark-gray font-medium">AD Domain</p>
+          <p class="text-sm text-rewst-gray">${statusText2}${adCheck ? ` - Data: ${adCheck}` : ''}</p>
+        </div>
+      `;
     } catch (error) {
       debugError('Workflow error:', error);
 
@@ -98,4 +110,3 @@ function renderManageVpnPage() {
     }
   })();
 }
-

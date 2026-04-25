@@ -20,7 +20,8 @@ const MARKERS = {
   '{{ DOM_BUILDER }}': 'src/rewst-dom-builder.js',
   '{{ PAGE_COMPONENTS }}': 'pages/components.js',
   '{{ PAGE_STARTER }}': 'pages/starter.js',
-  '{{ PAGE_MANAGE_VPN }}': 'pages/manage-vpn.js',
+  '{{ PAGE_COMPANY_PREREQS }}': 'pages/company-prereqs.js',
+  '{{ PAGE_USER_PREREQS }}': 'pages/user-prereqs.js',
 };
 
 console.log('Building app...\n');
