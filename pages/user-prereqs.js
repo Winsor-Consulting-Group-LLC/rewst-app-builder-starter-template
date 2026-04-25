@@ -20,7 +20,7 @@ function renderUserPrereqsPage() {
   checklistContainer.className = 'space-y-3';
   container.appendChild(checklistContainer);
 
-  // ---- Create checklist item with loading state ----
+  // ---- Create checklist items with loading state ----
   const checkItem = document.createElement('div');
   checkItem.className = 'card p-4 flex items-center gap-3';
   checkItem.id = 'check-cwm-config';
@@ -37,15 +37,29 @@ function renderUserPrereqsPage() {
   `;
   checklistContainer.appendChild(checkItem);
 
+  const computerOnlineCheckItem = document.createElement('div');
+  computerOnlineCheckItem.className = 'card p-4 flex items-center gap-3';
+  computerOnlineCheckItem.id = 'check-computer-online';
+  computerOnlineCheckItem.innerHTML = `
+    <div class="text-rewst-gray">
+      <div class="animate-spin">
+        <span class="material-icons">hourglass_empty</span>
+      </div>
+    </div>
+    <div class="flex-1">
+      <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+      <p class="text-sm text-rewst-gray">Validating...</p>
+    </div>
+  `;
+  checklistContainer.appendChild(computerOnlineCheckItem);
+
   // ---- Run workflow and check results ----
   (async () => {
     try {
       // Get current user email
       let userEmail = null;
       try {
-        // // Try to get email from rewst object
-        // userEmail = rewst.user?.email || rewst.currentUser?.email || window.rewstUserEmail;
-        const usernameResult = await rewst.runWorkflow('019dc1f6-fc2c-7ec7-8c4a-19d722755c30');
+        const usernameResult = await rewst.runWorkflowSmart('019dc1f6-fc2c-7ec7-8c4a-19d722755c30');
         userEmail = usernameResult.output.username;
         if (!userEmail) {
           debugWarn('Could not find user email in rewst object');
@@ -62,6 +76,15 @@ function renderUserPrereqsPage() {
             <p class="text-sm text-red-500">Error: Could not determine current user email</p>
           </div>
         `;
+        computerOnlineCheckItem.innerHTML = `
+          <div class="text-red-500">
+            <span class="material-icons">error</span>
+          </div>
+          <div class="flex-1">
+            <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+            <p class="text-sm text-red-500">Skipped - CWM Configuration check failed</p>
+          </div>
+        `;
         RewstDOM.showError('Failed to get user email');
         return;
       }
@@ -69,7 +92,7 @@ function renderUserPrereqsPage() {
       debugLog('Current user email:', userEmail);
 
       // Run user prerequisites workflow with email input
-      const userPrereqsResult = await rewst.runWorkflow('018c459c-206f-780c-94bc-46f98bbb5933', { user_principal_name: userEmail });
+      const userPrereqsResult = await rewst.runWorkflowSmart('018c459c-206f-780c-94bc-46f98bbb5933', { user_principal_name: userEmail });
       debugLog('User Prereqs result:', userPrereqsResult);
 
       const userPrereqsData = userPrereqsResult?.output || userPrereqsResult;
@@ -79,8 +102,10 @@ function renderUserPrereqsPage() {
 
       // Validate configurations
       const validConfigs = cwmConfigs.filter(config =>
-        config && typeof config === 'object' && config.name && config.id
+        config && typeof config === 'object' && config.name && config.id && config.deviceIdentifier
       );
+
+      let selectedConfig = null;
 
       if (validConfigs.length === 0) {
         // No valid configurations found
@@ -93,19 +118,64 @@ function renderUserPrereqsPage() {
             <p class="text-sm text-red-500">Failed - No valid configurations found</p>
           </div>
         `;
+        computerOnlineCheckItem.innerHTML = `
+          <div class="text-red-500">
+            <span class="material-icons">error</span>
+          </div>
+          <div class="flex-1">
+            <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+            <p class="text-sm text-red-500">Skipped - No valid CWM configuration</p>
+          </div>
+        `;
       } else if (validConfigs.length === 1) {
         // Single configuration - pass
+        selectedConfig = validConfigs[0];
         checkItem.innerHTML = `
           <div class="text-green-500">
             <span class="material-icons">check_circle</span>
           </div>
           <div class="flex-1">
             <p class="text-rewst-dark-gray font-medium">CWM Configuration</p>
-            <p class="text-sm text-rewst-gray">Passed - Selected: ${validConfigs[0].name}</p>
+            <p class="text-sm text-rewst-gray">Passed - Selected: ${selectedConfig.name}</p>
           </div>
         `;
+
+        // Run computer online check with the device identifier
+        try {
+          const computerOnlineResult = await rewst.runWorkflow('019dc20b-e6e1-750e-abcd-9814d0c592b6', { cwa_computer_id: selectedConfig.deviceIdentifier });
+          debugLog('Computer Online result:', computerOnlineResult);
+
+          const onlineValue = computerOnlineResult.output.online;
+          const isOnline = !!onlineValue; // Check if value exists
+
+          const statusIcon = isOnline ? 'check_circle' : 'cancel';
+          const statusClass = isOnline ? 'text-green-500' : 'text-red-500';
+          const statusText = isOnline ? 'Passed' : 'Failed';
+
+          computerOnlineCheckItem.innerHTML = `
+            <div class="${statusClass}">
+              <span class="material-icons">${statusIcon}</span>
+            </div>
+            <div class="flex-1">
+              <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+              <p class="text-sm text-rewst-gray">${statusText}${isOnline ? ` - Status: ${onlineValue}` : ''}</p>
+            </div>
+          `;
+        } catch (err) {
+          debugError('Computer online check error:', err);
+          computerOnlineCheckItem.innerHTML = `
+            <div class="text-red-500">
+              <span class="material-icons">error</span>
+            </div>
+            <div class="flex-1">
+              <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+              <p class="text-sm text-red-500">Error: ${err.message || 'Failed to check computer status'}</p>
+            </div>
+          `;
+        }
       } else {
         // Multiple configurations - show dropdown
+        selectedConfig = validConfigs[0]; // Default to first
         checkItem.innerHTML = '';
         checkItem.className = 'card p-4 flex items-start gap-3';
 
@@ -143,6 +213,40 @@ function renderUserPrereqsPage() {
 
         contentDiv.appendChild(dropdown);
         checkItem.appendChild(contentDiv);
+
+        // Run computer online check with the default selected device identifier
+        try {
+          const computerOnlineResult = await rewst.runWorkflowSmart('019dc20b-e6e1-750e-abcd-9814d0c592b6', { cwa_computer_id: selectedConfig.deviceIdentifier });
+          debugLog('Computer Online result:', computerOnlineResult);
+
+          const onlineValue = computerOnlineResult?.output?.online;
+          const isOnline = !!onlineValue; // Check if value exists
+
+          const statusIcon = isOnline ? 'check_circle' : 'cancel';
+          const statusClass = isOnline ? 'text-green-500' : 'text-red-500';
+          const statusText = isOnline ? 'Passed' : 'Failed';
+
+          computerOnlineCheckItem.innerHTML = `
+            <div class="${statusClass}">
+              <span class="material-icons">${statusIcon}</span>
+            </div>
+            <div class="flex-1">
+              <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+              <p class="text-sm text-rewst-gray">${statusText}${isOnline ? ` - Status: ${onlineValue}` : ''}</p>
+            </div>
+          `;
+        } catch (err) {
+          debugError('Computer online check error:', err);
+          computerOnlineCheckItem.innerHTML = `
+            <div class="text-red-500">
+              <span class="material-icons">error</span>
+            </div>
+            <div class="flex-1">
+              <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+              <p class="text-sm text-red-500">Error: ${err.message || 'Failed to check computer status'}</p>
+            </div>
+          `;
+        }
       }
     } catch (error) {
       debugError('Workflow error:', error);
@@ -154,6 +258,16 @@ function renderUserPrereqsPage() {
         <div class="flex-1">
           <p class="text-rewst-dark-gray font-medium">CWM Configuration</p>
           <p class="text-sm text-red-500">Error: ${error.message || 'Workflow execution failed'}</p>
+        </div>
+      `;
+
+      computerOnlineCheckItem.innerHTML = `
+        <div class="text-red-500">
+          <span class="material-icons">error</span>
+        </div>
+        <div class="flex-1">
+          <p class="text-rewst-dark-gray font-medium">Computer Online</p>
+          <p class="text-sm text-red-500">Skipped - CWM Configuration check failed</p>
         </div>
       `;
 
