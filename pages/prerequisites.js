@@ -68,6 +68,18 @@ function renderPrerequisitesPage() {
   const computerOnlineCheckItem = createCheckCard('check-computer-online', 'Computer Online');
   checklistContainer.appendChild(computerOnlineCheckItem);
 
+  // ---- Computer checks section ----
+  const computerSectionHeader = document.createElement('div');
+  computerSectionHeader.className = 'mt-6 mb-3';
+  computerSectionHeader.innerHTML = '<h3 class="text-lg font-semibold text-rewst-dark-gray">Computer Prerequisites</h3>';
+  checklistContainer.appendChild(computerSectionHeader);
+
+  const validMachineCertCheckItem = createCheckCard('check-valid-machine-cert', 'Valid machine certificate installed');
+  checklistContainer.appendChild(validMachineCertCheckItem);
+
+  const remoteDomainReachableCheckItem = createCheckCard('check-remote-domain-reachable', 'Remote domain reachable');
+  checklistContainer.appendChild(remoteDomainReachableCheckItem);
+
   // ---- Continue button ----
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'mt-8 flex justify-center';
@@ -91,7 +103,9 @@ function renderPrerequisitesPage() {
     ad_domain: false,
     email_verification: false,
     cwm_config: false,
-    computer_online: false
+    computer_online: false,
+    valid_machine_cert_installed: false,
+    remote_domain_reachable: false
   };
 
   const MAX_CHECK_ATTEMPTS = 3; // Initial run + 2 retries
@@ -104,7 +118,9 @@ function renderPrerequisitesPage() {
     ad_domain: '',
     email_verification: '',
     cwm_config: '',
-    computer_online: ''
+    computer_online: '',
+    valid_machine_cert_installed: '',
+    remote_domain_reachable: ''
   };
 
   function getCachedPrereqs() {
@@ -146,7 +162,15 @@ function renderPrerequisitesPage() {
     const details = cache?.checkResultDetails;
     if (!states || !details) return false;
 
-    const requiredKeys = ['ca_name', 'ad_domain', 'email_verification', 'cwm_config', 'computer_online'];
+    const requiredKeys = [
+      'ca_name',
+      'ad_domain',
+      'email_verification',
+      'cwm_config',
+      'computer_online',
+      'valid_machine_cert_installed',
+      'remote_domain_reachable'
+    ];
     const allPassed = requiredKeys.every(key => states[key] === true);
     if (!allPassed) return false;
 
@@ -174,6 +198,18 @@ function renderPrerequisitesPage() {
     renderCheckResult(emailVerificationCheckItem, true, 'Email verification', checkResultDetails.email_verification);
     renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
     renderCheckResult(computerOnlineCheckItem, true, 'Computer Online', checkResultDetails.computer_online);
+    renderCheckResult(
+      validMachineCertCheckItem,
+      true,
+      'Valid machine certificate installed',
+      checkResultDetails.valid_machine_cert_installed
+    );
+    renderCheckResult(
+      remoteDomainReachableCheckItem,
+      true,
+      'Remote domain reachable',
+      checkResultDetails.remote_domain_reachable
+    );
     updateButtonState();
     return true;
   }
@@ -503,8 +539,190 @@ function renderPrerequisitesPage() {
       clearCachedPrereqs();
       renderCheckResult(computerOnlineCheckItem, false, 'Computer Online', checkResultDetails.computer_online, runComputerOnlineCheck);
     } finally {
+      if (checkStates.computer_online) {
+        await runComputerPrerequisitesChecks();
+      } else {
+        clearComputerPrereqStateAndRenderBlocked();
+      }
       updateButtonState();
     }
+  }
+
+  function parsePositiveInteger(value) {
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && value > 0 ? value : null;
+    }
+
+    if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+      const parsed = Number(value.trim());
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    return null;
+  }
+
+  function evaluateComputerPrereqs(result) {
+    const data = result?.output?.prereq_info || result || {};
+
+    const validCertCountRaw = data?.ValidCertCount;
+    const validCertCount = Number(validCertCountRaw);
+    const certPassed = Number.isFinite(validCertCount) && validCertCount >= 1;
+
+    const responseTimeRaw = data?.DomainTest?.ResponseTime;
+    const responseTime = parsePositiveInteger(responseTimeRaw);
+    const responseTimePassed = responseTime !== null && responseTime < 10000;
+
+    return {
+      certPassed,
+      responseTimePassed,
+      validCertCountRaw,
+      responseTimeRaw,
+      responseTime
+    };
+  }
+
+  function clearComputerPrereqStateAndRenderBlocked() {
+    checkStates.valid_machine_cert_installed = false;
+    checkStates.remote_domain_reachable = false;
+    checkResultDetails.valid_machine_cert_installed = 'Waiting for Computer Online to pass';
+    checkResultDetails.remote_domain_reachable = 'Waiting for Computer Online to pass';
+
+    renderCheckResult(
+      validMachineCertCheckItem,
+      false,
+      'Valid machine certificate installed',
+      checkResultDetails.valid_machine_cert_installed,
+      runComputerPrerequisitesChecks
+    );
+    renderCheckResult(
+      remoteDomainReachableCheckItem,
+      false,
+      'Remote domain reachable',
+      checkResultDetails.remote_domain_reachable,
+      runComputerPrerequisitesChecks
+    );
+    clearCachedPrereqs();
+  }
+
+  function renderComputerPrereqResults(evaluation, attemptInfo = null) {
+    checkStates.valid_machine_cert_installed = evaluation.certPassed;
+    checkStates.remote_domain_reachable = evaluation.responseTimePassed;
+
+    const certDetails = evaluation.certPassed
+      ? `ValidCertCount: ${evaluation.validCertCountRaw}`
+      : `ValidCertCount must be 1 or higher (received: ${evaluation.validCertCountRaw ?? 'none'})`;
+
+    const domainDetails = evaluation.responseTimePassed
+      ? `ResponseTime: ${evaluation.responseTime}ms`
+      : `ResponseTime must be a positive integer under 10000 (received: ${evaluation.responseTimeRaw ?? 'none'})`;
+
+    const failureSuffix = attemptInfo ? ` after ${attemptInfo.attempts} attempts` : '';
+
+    checkResultDetails.valid_machine_cert_installed = evaluation.certPassed
+      ? certDetails
+      : certDetails + failureSuffix;
+    checkResultDetails.remote_domain_reachable = evaluation.responseTimePassed
+      ? domainDetails
+      : domainDetails + failureSuffix;
+
+    renderCheckResult(
+      validMachineCertCheckItem,
+      evaluation.certPassed,
+      'Valid machine certificate installed',
+      checkResultDetails.valid_machine_cert_installed,
+      runComputerPrerequisitesChecks
+    );
+    renderCheckResult(
+      remoteDomainReachableCheckItem,
+      evaluation.responseTimePassed,
+      'Remote domain reachable',
+      checkResultDetails.remote_domain_reachable,
+      runComputerPrerequisitesChecks
+    );
+  }
+
+  async function runComputerPrerequisitesChecks() {
+    if (!checkStates.computer_online) {
+      clearComputerPrereqStateAndRenderBlocked();
+      updateButtonState();
+      return;
+    }
+
+    setCheckLoading(validMachineCertCheckItem, 'Valid machine certificate installed');
+    setCheckLoading(remoteDomainReachableCheckItem, 'Remote domain reachable');
+    checkResultDetails.valid_machine_cert_installed = '';
+    checkResultDetails.remote_domain_reachable = '';
+
+    if (!selectedConfig || !selectedConfig.deviceIdentifier) {
+      checkStates.valid_machine_cert_installed = false;
+      checkStates.remote_domain_reachable = false;
+      checkResultDetails.valid_machine_cert_installed = 'Missing CWA ID from selected configuration';
+      checkResultDetails.remote_domain_reachable = 'Missing CWA ID from selected configuration';
+
+      renderCheckResult(
+        validMachineCertCheckItem,
+        false,
+        'Valid machine certificate installed',
+        checkResultDetails.valid_machine_cert_installed,
+        runComputerPrerequisitesChecks
+      );
+      renderCheckResult(
+        remoteDomainReachableCheckItem,
+        false,
+        'Remote domain reachable',
+        checkResultDetails.remote_domain_reachable,
+        runComputerPrerequisitesChecks
+      );
+      clearCachedPrereqs();
+      updateButtonState();
+      return;
+    }
+
+    const attemptResult = await runWithRetries(
+      () => rewst.runWorkflowSmart('019dc156-1670-7384-94d4-fb6dc03ae4ed', { in_cwa_id: selectedConfig.deviceIdentifier }),
+      (result) => {
+        const evaluation = evaluateComputerPrereqs(result);
+        return evaluation.certPassed && evaluation.responseTimePassed;
+      }
+    );
+
+    if (attemptResult.ok) {
+      const evaluation = evaluateComputerPrereqs(attemptResult.result);
+      renderComputerPrereqResults(evaluation);
+      updateButtonState();
+      return;
+    }
+
+    if (attemptResult.error && !attemptResult.result) {
+      const errorDetails = `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`;
+      checkStates.valid_machine_cert_installed = false;
+      checkStates.remote_domain_reachable = false;
+      checkResultDetails.valid_machine_cert_installed = errorDetails;
+      checkResultDetails.remote_domain_reachable = errorDetails;
+
+      renderCheckResult(
+        validMachineCertCheckItem,
+        false,
+        'Valid machine certificate installed',
+        errorDetails,
+        runComputerPrerequisitesChecks
+      );
+      renderCheckResult(
+        remoteDomainReachableCheckItem,
+        false,
+        'Remote domain reachable',
+        errorDetails,
+        runComputerPrerequisitesChecks
+      );
+      clearCachedPrereqs();
+      updateButtonState();
+      return;
+    }
+
+    const evaluation = evaluateComputerPrereqs(attemptResult.result);
+    renderComputerPrereqResults(evaluation, attemptResult);
+    clearCachedPrereqs();
+    updateButtonState();
   }
 
   // ---- Run workflow and check results ----
