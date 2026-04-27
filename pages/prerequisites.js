@@ -272,6 +272,12 @@ function renderPrerequisitesPage() {
   async function runCwmConfigurationCheck() {
     setCheckLoading(cwmCheckItem, 'CWM Configuration');
     selectedConfig = null;
+    window.selectedConfig = null;
+    try {
+      sessionStorage.removeItem('selectedConfig');
+    } catch (e) {
+      // Ignore storage errors.
+    }
 
     try {
       if (!checkStates.email_verification) {
@@ -312,16 +318,34 @@ function renderPrerequisitesPage() {
         renderCheckResult(cwmCheckItem, false, 'CWM Configuration', details, runCwmConfigurationCheck);
       } else if (validConfigs.length === 1) {
         selectedConfig = validConfigs[0];
+        window.selectedConfig = selectedConfig;
+        try {
+          sessionStorage.setItem('selectedConfig', JSON.stringify(selectedConfig));
+        } catch (e) {
+          // Ignore storage errors.
+        }
         checkStates.cwm_config = true;
         renderCheckResult(cwmCheckItem, true, 'CWM Configuration', `Selected: ${selectedConfig.name}`);
       } else {
         selectedConfig = validConfigs[0];
+        window.selectedConfig = selectedConfig;
+        try {
+          sessionStorage.setItem('selectedConfig', JSON.stringify(selectedConfig));
+        } catch (e) {
+          // Ignore storage errors.
+        }
         checkStates.cwm_config = true;
         renderCheckResult(cwmCheckItem, true, 'CWM Configuration', `Multiple found, selected: ${selectedConfig.name}`);
       }
     } catch (error) {
       checkStates.cwm_config = false;
       currentUserEmail = null;
+      window.selectedConfig = null;
+      try {
+        sessionStorage.removeItem('selectedConfig');
+      } catch (e) {
+        // Ignore storage errors.
+      }
       renderCheckResult(cwmCheckItem, false, 'CWM Configuration', error.message || 'Workflow execution failed', runCwmConfigurationCheck);
     } finally {
       updateButtonState();
