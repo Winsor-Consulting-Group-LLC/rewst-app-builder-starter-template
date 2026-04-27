@@ -1,17 +1,17 @@
 // ============================================
-// USER PREREQUISITES PAGE
+// PREREQUISITES PAGE (Company + User)
 // ============================================
 
-function renderUserPrereqsPage() {
-  const container = document.getElementById('page-user-prereqs');
+function renderPrerequisitesPage() {
+  const container = document.getElementById('page-prerequisites');
   container.innerHTML = '';
 
-  // ---- Checklist header ----
+  // ---- Main header ----
   const header = document.createElement('div');
   header.className = 'card p-8 mb-8';
   header.innerHTML = `
-    <h2 class="text-xl font-semibold text-rewst-black mb-2">User Prerequisites</h2>
-    <p class="text-rewst-gray mb-6">Running user-level validation checks...</p>
+    <h2 class="text-xl font-semibold text-rewst-black mb-2">Prerequisites</h2>
+    <p class="text-rewst-gray mb-6">Running validation checks...</p>
   `;
   container.appendChild(header);
 
@@ -20,11 +20,49 @@ function renderUserPrereqsPage() {
   checklistContainer.className = 'space-y-3';
   container.appendChild(checklistContainer);
 
-  // ---- Create checklist items with loading state ----
-  const checkItem = document.createElement('div');
-  checkItem.className = 'card p-4 flex items-center gap-3';
-  checkItem.id = 'check-cwm-config';
-  checkItem.innerHTML = `
+  // ---- Company checks section ----
+  const companySectionHeader = document.createElement('div');
+  companySectionHeader.className = 'mt-6 mb-3';
+  companySectionHeader.innerHTML = '<h3 class="text-lg font-semibold text-rewst-dark-gray">Company Prerequisites</h3>';
+  checklistContainer.appendChild(companySectionHeader);
+
+  // Company check items
+  const companyChecks = [
+    { id: 'ca_name', label: 'CA Name' },
+    { id: 'ad_domain', label: 'AD Domain' }
+  ];
+
+  const companyCheckElements = {};
+  companyChecks.forEach(check => {
+    const checkItem = document.createElement('div');
+    checkItem.className = 'card p-4 flex items-center gap-3';
+    checkItem.id = `check-${check.id}`;
+    checkItem.innerHTML = `
+      <div class="text-rewst-gray">
+        <div class="animate-spin">
+          <span class="material-icons">hourglass_empty</span>
+        </div>
+      </div>
+      <div class="flex-1">
+        <p class="text-rewst-dark-gray font-medium">${check.label}</p>
+        <p class="text-sm text-rewst-gray">Validating...</p>
+      </div>
+    `;
+    checklistContainer.appendChild(checkItem);
+    companyCheckElements[check.id] = checkItem;
+  });
+
+  // ---- User checks section ----
+  const userSectionHeader = document.createElement('div');
+  userSectionHeader.className = 'mt-6 mb-3';
+  userSectionHeader.innerHTML = '<h3 class="text-lg font-semibold text-rewst-dark-gray">User Prerequisites</h3>';
+  checklistContainer.appendChild(userSectionHeader);
+
+  // User check items
+  const cwmCheckItem = document.createElement('div');
+  cwmCheckItem.className = 'card p-4 flex items-center gap-3';
+  cwmCheckItem.id = 'check-cwm-config';
+  cwmCheckItem.innerHTML = `
     <div class="text-rewst-gray">
       <div class="animate-spin">
         <span class="material-icons">hourglass_empty</span>
@@ -35,7 +73,7 @@ function renderUserPrereqsPage() {
       <p class="text-sm text-rewst-gray">Validating...</p>
     </div>
   `;
-  checklistContainer.appendChild(checkItem);
+  checklistContainer.appendChild(cwmCheckItem);
 
   const computerOnlineCheckItem = document.createElement('div');
   computerOnlineCheckItem.className = 'card p-4 flex items-center gap-3';
@@ -56,6 +94,76 @@ function renderUserPrereqsPage() {
   // ---- Run workflow and check results ----
   (async () => {
     try {
+      // ===== STEP 1: Run Company Prerequisites =====
+      debugLog('Starting company prerequisites checks...');
+      
+      try {
+        const companyPrereqsResult = await rewst.runWorkflowSmart('019dc183-516c-7a50-bf66-3705e87e3fda');
+        debugLog('Company Prereqs result:', companyPrereqsResult);
+
+        const companyPrereqsData = companyPrereqsResult?.output || companyPrereqsResult;
+
+        // Check ca_name and ad_domain
+        const caCheck = companyPrereqsData?.ca_name;
+        const adCheck = companyPrereqsData?.ad_domain;
+
+        // Update CA Name check
+        const caElement = companyCheckElements['ca_name'];
+        const caStatusIcon = caCheck ? 'check_circle' : 'cancel';
+        const caStatusClass = caCheck ? 'text-green-500' : 'text-red-500';
+        const caStatusText = caCheck ? 'Passed' : 'Failed';
+
+        caElement.innerHTML = `
+          <div class="${caStatusClass}">
+            <span class="material-icons">${caStatusIcon}</span>
+          </div>
+          <div class="flex-1">
+            <p class="text-rewst-dark-gray font-medium">CA Name</p>
+            <p class="text-sm text-rewst-gray">${caStatusText}${caCheck ? ` - Data: ${caCheck}` : ''}</p>
+          </div>
+        `;
+
+        // Update AD Domain check
+        const adElement = companyCheckElements['ad_domain'];
+        const adStatusIcon = adCheck ? 'check_circle' : 'cancel';
+        const adStatusClass = adCheck ? 'text-green-500' : 'text-red-500';
+        const adStatusText = adCheck ? 'Passed' : 'Failed';
+
+        adElement.innerHTML = `
+          <div class="${adStatusClass}">
+            <span class="material-icons">${adStatusIcon}</span>
+          </div>
+          <div class="flex-1">
+            <p class="text-rewst-dark-gray font-medium">AD Domain</p>
+            <p class="text-sm text-rewst-gray">${adStatusText}${adCheck ? ` - Data: ${adCheck}` : ''}</p>
+          </div>
+        `;
+
+        debugLog('Company checks completed');
+      } catch (companyError) {
+        debugError('Company Workflow error:', companyError);
+
+        // Mark company checks as failed
+        companyChecks.forEach(check => {
+          const element = companyCheckElements[check.id];
+          element.innerHTML = `
+            <div class="text-red-500">
+              <span class="material-icons">error</span>
+            </div>
+            <div class="flex-1">
+              <p class="text-rewst-dark-gray font-medium">${check.label}</p>
+              <p class="text-sm text-red-500">Error: ${companyError.message || 'Workflow execution failed'}</p>
+            </div>
+          `;
+        });
+
+        RewstDOM.showError('Failed to run company prerequisites');
+        throw companyError;
+      }
+
+      // ===== STEP 2: Run User Prerequisites =====
+      debugLog('Starting user prerequisites checks...');
+      
       // Get current user email
       let userEmail = null;
       try {
@@ -67,7 +175,7 @@ function renderUserPrereqsPage() {
         }
       } catch (err) {
         debugError('Failed to get user email:', err);
-        checkItem.innerHTML = `
+        cwmCheckItem.innerHTML = `
           <div class="text-red-500">
             <span class="material-icons">error</span>
           </div>
@@ -86,7 +194,7 @@ function renderUserPrereqsPage() {
           </div>
         `;
         RewstDOM.showError('Failed to get user email');
-        return;
+        throw err;
       }
 
       debugLog('Current user email:', userEmail);
@@ -109,7 +217,7 @@ function renderUserPrereqsPage() {
 
       if (validConfigs.length === 0) {
         // No valid configurations found
-        checkItem.innerHTML = `
+        cwmCheckItem.innerHTML = `
           <div class="text-red-500">
             <span class="material-icons">cancel</span>
           </div>
@@ -130,7 +238,7 @@ function renderUserPrereqsPage() {
       } else if (validConfigs.length === 1) {
         // Single configuration - pass
         selectedConfig = validConfigs[0];
-        checkItem.innerHTML = `
+        cwmCheckItem.innerHTML = `
           <div class="text-green-500">
             <span class="material-icons">check_circle</span>
           </div>
@@ -142,11 +250,11 @@ function renderUserPrereqsPage() {
 
         // Run computer online check with the device identifier
         try {
-          const computerOnlineResult = await rewst.runWorkflow('019dc20b-e6e1-750e-abcd-9814d0c592b6', { cwa_computer_id: selectedConfig.deviceIdentifier });
+          const computerOnlineResult = await rewst.runWorkflowSmart('019dc20b-e6e1-750e-abcd-9814d0c592b6', { cwa_computer_id: selectedConfig.deviceIdentifier });
           debugLog('Computer Online result:', computerOnlineResult);
 
-          const onlineValue = computerOnlineResult.output.online;
-          const isOnline = !!onlineValue; // Check if value exists
+          const onlineValue = computerOnlineResult?.output?.online;
+          const isOnline = !!onlineValue;
 
           const statusIcon = isOnline ? 'check_circle' : 'cancel';
           const statusClass = isOnline ? 'text-green-500' : 'text-red-500';
@@ -176,14 +284,14 @@ function renderUserPrereqsPage() {
       } else {
         // Multiple configurations - show dropdown
         selectedConfig = validConfigs[0]; // Default to first
-        checkItem.innerHTML = '';
-        checkItem.className = 'card p-4 flex items-start gap-3';
+        cwmCheckItem.innerHTML = '';
+        cwmCheckItem.className = 'card p-4 flex items-start gap-3';
 
         // Info icon
         const iconDiv = document.createElement('div');
         iconDiv.className = 'text-orange-500 pt-1 flex-shrink-0';
         iconDiv.innerHTML = '<span class="material-icons">info</span>';
-        checkItem.appendChild(iconDiv);
+        cwmCheckItem.appendChild(iconDiv);
 
         // Content
         const contentDiv = document.createElement('div');
@@ -212,7 +320,7 @@ function renderUserPrereqsPage() {
         });
 
         contentDiv.appendChild(dropdown);
-        checkItem.appendChild(contentDiv);
+        cwmCheckItem.appendChild(contentDiv);
 
         // Run computer online check with the default selected device identifier
         try {
@@ -220,7 +328,7 @@ function renderUserPrereqsPage() {
           debugLog('Computer Online result:', computerOnlineResult);
 
           const onlineValue = computerOnlineResult?.output?.online;
-          const isOnline = !!onlineValue; // Check if value exists
+          const isOnline = !!onlineValue;
 
           const statusIcon = isOnline ? 'check_circle' : 'cancel';
           const statusClass = isOnline ? 'text-green-500' : 'text-red-500';
@@ -249,29 +357,8 @@ function renderUserPrereqsPage() {
         }
       }
     } catch (error) {
-      debugError('Workflow error:', error);
-
-      checkItem.innerHTML = `
-        <div class="text-red-500">
-          <span class="material-icons">error</span>
-        </div>
-        <div class="flex-1">
-          <p class="text-rewst-dark-gray font-medium">CWM Configuration</p>
-          <p class="text-sm text-red-500">Error: ${error.message || 'Workflow execution failed'}</p>
-        </div>
-      `;
-
-      computerOnlineCheckItem.innerHTML = `
-        <div class="text-red-500">
-          <span class="material-icons">error</span>
-        </div>
-        <div class="flex-1">
-          <p class="text-rewst-dark-gray font-medium">Computer Online</p>
-          <p class="text-sm text-red-500">Skipped - CWM Configuration check failed</p>
-        </div>
-      `;
-
-      RewstDOM.showError('Failed to run workflow validation');
+      debugError('Prerequisites workflow error:', error);
+      RewstDOM.showError('Failed to run prerequisites validation');
     }
   })();
 }
