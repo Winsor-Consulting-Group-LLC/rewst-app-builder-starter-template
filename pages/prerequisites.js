@@ -123,6 +123,16 @@ function renderPrerequisitesPage() {
     remote_domain_reachable: ''
   };
 
+  const workflowIds = window.WORKFLOW_IDS || {};
+
+  function getWorkflowId(key) {
+    const id = workflowIds[key];
+    if (!id) {
+      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
+    }
+    return id;
+  }
+
   function getCachedPrereqs() {
     try {
       const raw = sessionStorage.getItem(PREREQS_CACHE_KEY);
@@ -293,7 +303,7 @@ function renderPrerequisitesPage() {
     if (currentUserEmail) return currentUserEmail;
 
     const attemptResult = await runWithRetries(
-      () => rewst.runWorkflowSmart('019dc1f6-fc2c-7ec7-8c4a-19d722755c30'),
+      () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL')),
       (usernameResult) => !!usernameResult?.output?.username
     );
 
@@ -339,7 +349,7 @@ function renderPrerequisitesPage() {
 
     try {
       const attemptResult = await runWithRetries(
-        () => rewst.runWorkflowSmart('019dc183-516c-7a50-bf66-3705e87e3fda'),
+        () => rewst.runWorkflowSmart(getWorkflowId('COMPANY_PREREQUISITES')),
         (result) => {
           const data = result?.output || result;
           return !!data?.ca_name;
@@ -372,7 +382,7 @@ function renderPrerequisitesPage() {
 
     try {
       const attemptResult = await runWithRetries(
-        () => rewst.runWorkflowSmart('019dc183-516c-7a50-bf66-3705e87e3fda'),
+        () => rewst.runWorkflowSmart(getWorkflowId('COMPANY_PREREQUISITES')),
         (result) => {
           const data = result?.output || result;
           return !!data?.ad_domain;
@@ -434,7 +444,7 @@ function renderPrerequisitesPage() {
       };
 
       const attemptResult = await runWithRetries(
-        () => rewst.runWorkflowSmart('018c459c-206f-780c-94bc-46f98bbb5933', {
+        () => rewst.runWorkflowSmart(getWorkflowId('CWM_CONFIGURATIONS'), {
           user_principal_name: userEmail
         }),
         (result) => getValidConfigs(result).length > 0
@@ -508,7 +518,7 @@ function renderPrerequisitesPage() {
       }
 
       const attemptResult = await runWithRetries(
-        () => rewst.runWorkflowSmart('019dc20b-e6e1-750e-abcd-9814d0c592b6', {
+        () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
           cwa_computer_id: selectedConfig.deviceIdentifier
         }),
         (result) => !!result?.output?.online
@@ -679,7 +689,7 @@ function renderPrerequisitesPage() {
     }
 
     const attemptResult = await runWithRetries(
-      () => rewst.runWorkflowSmart('019dc156-1670-7384-94d4-fb6dc03ae4ed', { in_cwa_id: selectedConfig.deviceIdentifier }),
+      () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }),
       (result) => {
         const evaluation = evaluateComputerPrereqs(result);
         return evaluation.certPassed && evaluation.responseTimePassed;

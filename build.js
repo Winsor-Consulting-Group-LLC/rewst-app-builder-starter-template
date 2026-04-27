@@ -12,17 +12,26 @@ const path = require('path');
 const REPO_ROOT = __dirname;
 const TEMPLATE_PATH = path.join(REPO_ROOT, 'dashboard-spa-main-template.html');
 const OUTPUT_PATH = path.join(REPO_ROOT, 'dist/dashboard-spa-main-compiled.html');
+const WORKFLOW_IDS_LOCAL_PATH = path.join(REPO_ROOT, 'src/workflow-ids.local.js');
+const WORKFLOW_IDS_FALLBACK_PATH = path.join(REPO_ROOT, 'src/workflow-ids.example.js');
+const WORKFLOW_IDS_SOURCE = fs.existsSync(WORKFLOW_IDS_LOCAL_PATH)
+  ? 'src/workflow-ids.local.js'
+  : 'src/workflow-ids.example.js';
 
 // Markers in template and their corresponding source files
 const MARKERS = {
   '{{ CSS_THEME }}': 'src/rewst-override-tailwind.css',
   '{{ GRAPHQL_LIB }}': 'src/zip-graphql-js-lib-v2-optimized.js',
   '{{ DOM_BUILDER }}': 'src/rewst-dom-builder.js',
+  '{{ WORKFLOW_IDS }}': WORKFLOW_IDS_SOURCE,
   '{{ PAGE_PREREQUISITES }}': 'pages/prerequisites.js',
   '{{ PAGE_VPNSETUP }}': 'pages/vpnsetup.js',
 };
 
 console.log('Building app...\n');
+if (!fs.existsSync(WORKFLOW_IDS_LOCAL_PATH)) {
+  console.log('  Note: src/workflow-ids.local.js not found; using src/workflow-ids.example.js');
+}
 
 // Check template exists
 if (!fs.existsSync(TEMPLATE_PATH)) {
