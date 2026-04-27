@@ -277,6 +277,10 @@ function renderPrerequisitesPage() {
     if (allPassed) {
       persistPrereqsIfPassed();
     }
+
+    if (typeof window.setVpnSetupNavEnabled === 'function') {
+      window.setVpnSetupNavEnabled(allPassed);
+    }
   }
 
   async function runWithRetries(task, isSuccess) {

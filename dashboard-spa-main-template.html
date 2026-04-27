@@ -59,7 +59,7 @@
             <span class="material-icons text-lg">checklist</span>
             <span class="nav-text">Prerequisites</span>
           </a>
-          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="vpnsetup">
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray opacity-50 cursor-not-allowed" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
             <span class="material-icons text-lg">vpn_lock</span>
             <span class="nav-text">VPN Setup</span>
           </a>
@@ -273,17 +273,69 @@
       // ============================================
       const navLinks = document.querySelectorAll('.sidebar-item');
       const pageContainers = document.querySelectorAll('.page-content');
+      const vpnSetupNavLink = document.querySelector('.sidebar-item[data-page="vpnsetup"]');
+
+      function arePrerequisitesCompleteFromCache() {
+        try {
+          const raw = sessionStorage.getItem('prerequisitesChecksCacheV1');
+          if (!raw) return false;
+          const cache = JSON.parse(raw);
+          const states = cache?.checkStates;
+          if (!states) return false;
+
+          const requiredKeys = [
+            'ca_name',
+            'ad_domain',
+            'email_verification',
+            'cwm_config',
+            'computer_online',
+            'valid_machine_cert_installed',
+            'remote_domain_reachable'
+          ];
+
+          return requiredKeys.every(key => states[key] === true);
+        } catch (error) {
+          debugWarn('Failed to parse prerequisites cache for nav state:', error);
+          return false;
+        }
+      }
+
+      function setVpnSetupNavEnabled(enabled) {
+        if (!vpnSetupNavLink) return;
+
+        vpnSetupNavLink.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        vpnSetupNavLink.title = enabled
+          ? 'VPN Setup'
+          : 'Complete all prerequisites to unlock VPN Setup';
+        vpnSetupNavLink.classList.toggle('opacity-50', !enabled);
+        vpnSetupNavLink.classList.toggle('cursor-not-allowed', !enabled);
+      }
+
+      window.setVpnSetupNavEnabled = setVpnSetupNavEnabled;
+      setVpnSetupNavEnabled(arePrerequisitesCompleteFromCache());
 
       navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
           const pageName = link.dataset.page;
+
+          if (pageName === 'vpnsetup' && !arePrerequisitesCompleteFromCache()) {
+            RewstDOM.showWarning('Complete all prerequisite checks before opening VPN Setup.');
+            return;
+          }
+
           switchPage(pageName);
         });
       });
 
       function switchPage(pageName) {
         if (!pages[pageName]) return;
+
+        if (pageName === 'vpnsetup' && !arePrerequisitesCompleteFromCache()) {
+          setVpnSetupNavEnabled(false);
+          RewstDOM.showWarning('Complete all prerequisite checks before opening VPN Setup.');
+          return;
+        }
 
         currentPage = pageName;
 
@@ -391,6 +443,7 @@
         }
 
         window.selectedConfig = null;
+        setVpnSetupNavEnabled(false);
 
         RewstDOM.showInfo('Session cache reset. Re-running prerequisites checks...');
         switchPage('prerequisites');
