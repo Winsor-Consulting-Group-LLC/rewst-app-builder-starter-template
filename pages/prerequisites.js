@@ -12,13 +12,6 @@ function renderPrerequisitesPage() {
     return card;
   }
 
-  // ---- Main header ----
-  const header = createCardContainer(`
-    <h2 class="text-xl font-semibold text-rewst-black mb-2">Prerequisites</h2>
-    <p id="prereqs-running-status" class="text-rewst-gray mb-6" style="display: none;">Running validation checks...</p>
-  `, 'card p-8 mb-8');
-  container.appendChild(header);
-
   // ---- Checklist items container ----
   const checklistContainer = document.createElement('div');
   checklistContainer.className = 'space-y-3';
@@ -105,23 +98,6 @@ function renderPrerequisitesPage() {
 
   let currentUserEmail = null;
   let selectedConfig = null;
-  let activeCheckRuns = 0;
-  const runningStatus = header.querySelector('#prereqs-running-status');
-
-  function beginCheckRun(statusText = 'Running validation checks...') {
-    activeCheckRuns += 1;
-    if (runningStatus) {
-      runningStatus.textContent = statusText;
-      runningStatus.style.display = 'block';
-    }
-  }
-
-  function endCheckRun() {
-    activeCheckRuns = Math.max(0, activeCheckRuns - 1);
-    if (runningStatus && activeCheckRuns === 0) {
-      runningStatus.style.display = 'none';
-    }
-  }
 
   function setCheckLoading(element, label) {
     element.innerHTML = `
@@ -213,7 +189,6 @@ function renderPrerequisitesPage() {
 
   async function runEmailVerificationCheck() {
     setCheckLoading(emailVerificationCheckItem, 'Email verification');
-    beginCheckRun();
 
     try {
       const email = await ensureUserEmail();
@@ -231,14 +206,12 @@ function renderPrerequisitesPage() {
       );
     } finally {
       updateButtonState();
-      endCheckRun();
     }
   }
 
   async function runCaNameCheck() {
     const element = companyCheckElements['ca_name'];
     setCheckLoading(element, 'CA Name');
-    beginCheckRun();
 
     try {
       const attemptResult = await runWithRetries(
@@ -263,14 +236,12 @@ function renderPrerequisitesPage() {
       }
     } finally {
       updateButtonState();
-      endCheckRun();
     }
   }
 
   async function runAdDomainCheck() {
     const element = companyCheckElements['ad_domain'];
     setCheckLoading(element, 'AD Domain');
-    beginCheckRun();
 
     try {
       const attemptResult = await runWithRetries(
@@ -295,14 +266,12 @@ function renderPrerequisitesPage() {
       }
     } finally {
       updateButtonState();
-      endCheckRun();
     }
   }
 
   async function runCwmConfigurationCheck() {
     setCheckLoading(cwmCheckItem, 'CWM Configuration');
     selectedConfig = null;
-    beginCheckRun();
 
     try {
       if (!checkStates.email_verification) {
@@ -356,13 +325,11 @@ function renderPrerequisitesPage() {
       renderCheckResult(cwmCheckItem, false, 'CWM Configuration', error.message || 'Workflow execution failed', runCwmConfigurationCheck);
     } finally {
       updateButtonState();
-      endCheckRun();
     }
   }
 
   async function runComputerOnlineCheck() {
     setCheckLoading(computerOnlineCheckItem, 'Computer Online');
-    beginCheckRun();
 
     try {
       if (!selectedConfig || !selectedConfig.deviceIdentifier) {
@@ -406,7 +373,6 @@ function renderPrerequisitesPage() {
       renderCheckResult(computerOnlineCheckItem, false, 'Computer Online', error.message || 'Workflow execution failed', runComputerOnlineCheck);
     } finally {
       updateButtonState();
-      endCheckRun();
     }
   }
 
