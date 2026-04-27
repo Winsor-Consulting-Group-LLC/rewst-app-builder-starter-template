@@ -21,6 +21,7 @@ const MARKERS = {
   '{{ PAGE_COMPONENTS }}': 'pages/components.js',
   '{{ PAGE_STARTER }}': 'pages/starter.js',
   '{{ PAGE_PREREQUISITES }}': 'pages/prerequisites.js',
+  '{{ PAGE_VPNSETUP }}': 'pages/vpnsetup.js',
 };
 
 console.log('Building app...\n');
