@@ -138,7 +138,7 @@
           <div id="refresh-button-container">
             <button id="refresh-btn" class="btn-primary flex items-center gap-2">
               <span class="material-icons">refresh</span>
-              <span class="btn-text">Refresh</span>
+              <span class="btn-text">Re-check all</span>
             </button>
           </div>
 
@@ -380,9 +380,20 @@
       // REFRESH BUTTON
       // ============================================
       document.getElementById('refresh-btn').addEventListener('click', () => {
-        debugLog('Refresh clicked');
-        RewstDOM.showInfo('Refresh triggered — wire up your data reload here');
-        // Add your refresh/reload logic here
+        debugLog('Refresh clicked - resetting prerequisite session cache');
+
+        try {
+          sessionStorage.removeItem('prerequisitesChecksCacheV1');
+          sessionStorage.removeItem('vpnSetupChecksCacheV1');
+          sessionStorage.removeItem('selectedConfig');
+        } catch (error) {
+          debugWarn('Failed to clear one or more session cache keys:', error);
+        }
+
+        window.selectedConfig = null;
+
+        RewstDOM.showInfo('Session cache reset. Re-running prerequisites checks...');
+        switchPage('prerequisites');
       });
 
       // ============================================
