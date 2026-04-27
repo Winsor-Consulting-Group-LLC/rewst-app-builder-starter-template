@@ -67,6 +67,10 @@
             <span class="material-icons text-lg">checklist</span>
             <span class="nav-text">Prerequisites</span>
           </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="vpnsetup">
+            <span class="material-icons text-lg">vpn_lock</span>
+            <span class="nav-text">VPN Setup</span>
+          </a>
         </div>
       </div>
 
@@ -176,6 +180,11 @@
         <!-- Rendered by prerequisites.js -->
       </div>
 
+      <!-- VPN Setup Page -->
+      <div id="page-vpnsetup" class="page-content" style="display: none;">
+        <!-- Rendered by vpnsetup.js -->
+      </div>
+
     </div>
 
   </div>
@@ -260,6 +269,11 @@
           title: 'Prerequisites',
           subtitle: 'Company and user-level validation checks',
           render: renderPrerequisitesPage
+        },
+        vpnsetup: {
+          title: 'VPN Setup',
+          subtitle: 'VPN configuration and setup',
+          render: renderVpnSetupPage
         }
       };
 
@@ -426,6 +440,8 @@
       {{ PAGE_STARTER }}
 
       {{ PAGE_PREREQUISITES }}
+
+      {{ PAGE_VPNSETUP }}
 
       // ============================================
       // BOOT
