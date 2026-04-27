@@ -124,6 +124,14 @@ function renderPrerequisitesPage() {
   };
 
   const workflowIds = window.WORKFLOW_IDS || {};
+  const REQUIRED_PASSING_KEYS = [
+    'ca_name',
+    'ad_domain',
+    'email_verification',
+    'cwm_config',
+    'computer_online',
+    'valid_machine_cert_installed'
+  ];
 
   function getWorkflowId(key) {
     const id = workflowIds[key];
@@ -173,16 +181,12 @@ function renderPrerequisitesPage() {
     if (!states || !details) return false;
 
     const requiredKeys = [
-      'ca_name',
-      'ad_domain',
-      'email_verification',
-      'cwm_config',
-      'computer_online',
-      'valid_machine_cert_installed',
+      ...REQUIRED_PASSING_KEYS,
       'remote_domain_reachable'
     ];
     const allPassed = requiredKeys.every(key => states[key] === true);
-    if (!allPassed) return false;
+    const unlockPassed = REQUIRED_PASSING_KEYS.every(key => states[key] === true);
+    if (!(allPassed || unlockPassed)) return false;
 
     requiredKeys.forEach(key => {
       checkStates[key] = true;
@@ -238,10 +242,11 @@ function renderPrerequisitesPage() {
     `;
   }
 
-  function renderCheckResult(element, passed, label, details = '', onRetry = null) {
-    const statusIcon = passed ? 'check_circle' : 'cancel';
-    const statusClass = passed ? 'text-green-500' : 'text-red-500';
-    const statusText = passed ? 'Passed' : 'Failed';
+  function renderCheckResult(element, passed, label, details = '', onRetry = null, options = {}) {
+    const statusType = options.statusType || (passed ? 'passed' : 'failed');
+    const statusIcon = statusType === 'passed' ? 'check_circle' : statusType === 'info' ? 'info' : 'cancel';
+    const statusClass = statusType === 'passed' ? 'text-green-500' : statusType === 'info' ? 'text-yellow-500' : 'text-red-500';
+    const statusText = options.statusText || (statusType === 'passed' ? 'Passed' : statusType === 'info' ? 'Info' : 'Failed');
     const showRetry = !passed && typeof onRetry === 'function';
 
     element.innerHTML = `
@@ -264,7 +269,7 @@ function renderPrerequisitesPage() {
   }
 
   function updateButtonState() {
-    const allPassed = Object.values(checkStates).every(state => state === true);
+    const allPassed = REQUIRED_PASSING_KEYS.every(key => checkStates[key] === true);
     continueButton.disabled = !allPassed;
     if (allPassed) {
       continueButton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -628,7 +633,7 @@ function renderPrerequisitesPage() {
 
     const domainDetails = evaluation.responseTimePassed
       ? `ResponseTime: ${evaluation.responseTime}ms`
-      : `ResponseTime must be a positive integer under 10000 (received: ${evaluation.responseTimeRaw ?? 'none'})`;
+      : `Domain not reachable right now (ResponseTime: ${evaluation.responseTimeRaw ?? 'none'}). This is informational and does not block VPN setup.`;
 
     const failureSuffix = attemptInfo ? ` after ${attemptInfo.attempts} attempts` : '';
 
@@ -651,7 +656,8 @@ function renderPrerequisitesPage() {
       evaluation.responseTimePassed,
       'Remote domain reachable',
       checkResultDetails.remote_domain_reachable,
-      runComputerPrerequisitesChecks
+      runComputerPrerequisitesChecks,
+      evaluation.responseTimePassed ? {} : { statusType: 'info', statusText: 'Informational' }
     );
   }
 
@@ -696,7 +702,7 @@ function renderPrerequisitesPage() {
       () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }),
       (result) => {
         const evaluation = evaluateComputerPrereqs(result);
-        return evaluation.certPassed && evaluation.responseTimePassed;
+        return evaluation.certPassed;
       }
     );
 
