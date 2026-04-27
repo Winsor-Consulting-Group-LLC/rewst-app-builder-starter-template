@@ -45,6 +45,36 @@ function renderVpnSetupPage() {
   };
 
   const MAX_CHECK_ATTEMPTS = 3; // Initial run + 2 retries
+  const VPN_CHECK_CACHE_KEY = 'vpnSetupChecksCacheV1';
+
+  function getCachedVpnChecks() {
+    try {
+      const raw = sessionStorage.getItem(VPN_CHECK_CACHE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearCachedVpnChecks() {
+    try {
+      sessionStorage.removeItem(VPN_CHECK_CACHE_KEY);
+    } catch (e) {
+      // Ignore storage errors.
+    }
+  }
+
+  function persistCachedVpnChecks(selectedCwaId, evaluation) {
+    try {
+      sessionStorage.setItem(VPN_CHECK_CACHE_KEY, JSON.stringify({
+        selectedCwaId,
+        evaluation
+      }));
+    } catch (e) {
+      // Ignore storage errors.
+    }
+  }
 
   function setCheckLoading(element, label) {
     element.innerHTML = `
@@ -184,14 +214,26 @@ function renderVpnSetupPage() {
     );
   }
 
-  async function runVpnChecks() {
-    setCheckLoading(certCheckItem, 'Valid machine certificate installed');
-    setCheckLoading(domainReachableCheckItem, 'Remote domain reachable');
+  function applyCachedVpnChecks(cache, selectedCwaId) {
+    if (!cache || !cache.evaluation || cache.selectedCwaId !== selectedCwaId) {
+      return false;
+    }
 
+    const evaluation = cache.evaluation;
+    if (!(evaluation.certPassed && evaluation.responseTimePassed)) {
+      return false;
+    }
+
+    renderFromEvaluation(evaluation);
+    return true;
+  }
+
+  async function runVpnChecks() {
     const selectedCwaId = getSelectedCwaId();
     if (!selectedCwaId) {
       checkStates.valid_machine_cert_installed = false;
       checkStates.remote_domain_reachable = false;
+      clearCachedVpnChecks();
 
       renderCheckResult(
         certCheckItem,
@@ -211,6 +253,15 @@ function renderVpnSetupPage() {
       return;
     }
 
+    const cached = getCachedVpnChecks();
+    if (applyCachedVpnChecks(cached, selectedCwaId)) {
+      debugLog('Loaded VPN setup checks from session cache');
+      return;
+    }
+
+    setCheckLoading(certCheckItem, 'Valid machine certificate installed');
+    setCheckLoading(domainReachableCheckItem, 'Remote domain reachable');
+
     const attemptResult = await runWithRetries(
       () => rewst.runWorkflowSmart('019dc156-1670-7384-94d4-fb6dc03ae4ed', { in_cwa_id: selectedCwaId }),
       (result) => {
@@ -220,7 +271,9 @@ function renderVpnSetupPage() {
     );
 
     if (attemptResult.ok) {
-      renderFromEvaluation(evaluateChecks(attemptResult.result));
+      const evaluation = evaluateChecks(attemptResult.result);
+      renderFromEvaluation(evaluation);
+      persistCachedVpnChecks(selectedCwaId, evaluation);
       return;
     }
 
@@ -244,10 +297,13 @@ function renderVpnSetupPage() {
         errorDetails,
         runVpnChecks
       );
+      clearCachedVpnChecks();
       return;
     }
 
-    renderFromEvaluation(evaluateChecks(attemptResult.result), attemptResult);
+    const evaluation = evaluateChecks(attemptResult.result);
+    renderFromEvaluation(evaluation, attemptResult);
+    clearCachedVpnChecks();
   }
 
   (async () => {

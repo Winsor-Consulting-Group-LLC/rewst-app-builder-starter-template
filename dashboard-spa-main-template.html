@@ -55,15 +55,7 @@
         </div>
 
         <div class="sub-nav ml-4 mt-1 space-y-1">
-          <a href="#" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="components">
-            <span class="material-icons text-lg">widgets</span>
-            <span class="nav-text">Components</span>
-          </a>
-          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="starter">
-            <span class="material-icons text-lg">rocket_launch</span>
-            <span class="nav-text">Starter</span>
-          </a>
-          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="prerequisites">
+          <a href="#" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="prerequisites">
             <span class="material-icons text-lg">checklist</span>
             <span class="nav-text">Prerequisites</span>
           </a>
@@ -127,8 +119,8 @@
     <div id="sticky-header" class="sticky-header py-4 px-8">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-semibold text-rewst-black transition-all">Components</h1>
-          <p class="header-subtitle text-sm text-rewst-gray">Kitchen sink of available UI components</p>
+          <h1 class="text-2xl font-semibold text-rewst-black transition-all">Prerequisites</h1>
+          <p class="header-subtitle text-sm text-rewst-gray">Company and user-level validation checks</p>
         </div>
         <div class="flex items-center gap-3">
 
@@ -165,18 +157,8 @@
     <!-- Page Content -->
     <div class="px-8 pb-8 pt-6">
 
-      <!-- Components Page (Kitchen Sink) -->
-      <div id="page-components" class="page-content">
-        <!-- Rendered by components.js -->
-      </div>
-
-      <!-- Starter Page -->
-      <div id="page-starter" class="page-content" style="display: none;">
-        <!-- Rendered by starter.js -->
-      </div>
-
       <!-- Prerequisites Page (Company + User) -->
-      <div id="page-prerequisites" class="page-content" style="display: none;">
+      <div id="page-prerequisites" class="page-content">
         <!-- Rendered by prerequisites.js -->
       </div>
 
@@ -255,16 +237,6 @@
       // PAGE CONFIGURATION
       // ============================================
       const pages = {
-        components: {
-          title: 'Components',
-          subtitle: 'Kitchen sink of available UI components',
-          render: renderComponentsPage
-        },
-        starter: {
-          title: 'Starter',
-          subtitle: 'Your blank canvas',
-          render: renderStarterPage
-        },
         prerequisites: {
           title: 'Prerequisites',
           subtitle: 'Company and user-level validation checks',
@@ -277,7 +249,7 @@
         }
       };
 
-      let currentPage = 'components';
+      let currentPage = 'prerequisites';
 
       // ============================================
       // SIDEBAR TOGGLE
@@ -434,10 +406,6 @@
       // ============================================
       // PAGE RENDER FUNCTIONS
       // ============================================
-
-      {{ PAGE_COMPONENTS }}
-
-      {{ PAGE_STARTER }}
 
       {{ PAGE_PREREQUISITES }}
 
