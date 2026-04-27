@@ -33,13 +33,11 @@ function renderPrerequisitesPage() {
   function createCheckCard(id, label) {
     const checkItem = createCardContainer(`
       <div class="text-rewst-gray">
-        <div class="animate-spin">
-          <span class="material-icons">hourglass_empty</span>
-        </div>
+        <span class="material-icons">schedule</span>
       </div>
       <div class="flex-1">
         <p class="text-rewst-dark-gray font-medium">${label}</p>
-        <p class="text-sm text-rewst-gray">Validating...</p>
+        <p class="text-sm text-rewst-gray">Pending - Waiting to start...</p>
       </div>
     `, 'card p-4 flex items-center gap-3');
 
@@ -109,6 +107,10 @@ function renderPrerequisitesPage() {
   };
 
   const MAX_CHECK_ATTEMPTS = 3; // Initial run + 2 retries
+  const RETRY_DELAY_MS = 600;
+  const COMPUTER_CHECK_MAX_WAIT_MS = 5 * 60 * 1000;
+  const COMPUTER_CHECK_RETRY_DELAY_MS = 5000;
+  const COMPUTER_CHECK_MAX_ATTEMPTS = 60;
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
 
   let currentUserEmail = null;
@@ -220,38 +222,72 @@ function renderPrerequisitesPage() {
     );
     renderCheckResult(
       remoteDomainReachableCheckItem,
-      true,
+      checkStates.remote_domain_reachable,
       'Remote domain reachable',
-      checkResultDetails.remote_domain_reachable
+      checkResultDetails.remote_domain_reachable,
+      null,
+      checkStates.remote_domain_reachable ? {} : { statusType: 'info', statusText: 'Informational' }
     );
     updateButtonState();
     return true;
   }
 
-  function setCheckLoading(element, label) {
-    element.innerHTML = `
-      <div class="text-rewst-gray">
-        <div class="animate-spin">
-          <span class="material-icons">hourglass_empty</span>
-        </div>
-      </div>
-      <div class="flex-1">
-        <p class="text-rewst-dark-gray font-medium">${label}</p>
-        <p class="text-sm text-rewst-gray">Validating...</p>
-      </div>
-    `;
+  function formatDuration(ms) {
+    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  }
+
+  function setCheckLoading(element, label, details = 'Validating...', statusText = 'Running') {
+    renderCheckResult(element, false, label, details, null, {
+      statusType: 'running',
+      statusText
+    });
+  }
+
+  function setCheckPending(element, label, details = 'Waiting on previous checks...') {
+    renderCheckResult(element, false, label, details, null, {
+      statusType: 'pending',
+      statusText: 'Pending'
+    });
   }
 
   function renderCheckResult(element, passed, label, details = '', onRetry = null, options = {}) {
     const statusType = options.statusType || (passed ? 'passed' : 'failed');
-    const statusIcon = statusType === 'passed' ? 'check_circle' : statusType === 'info' ? 'info' : 'cancel';
-    const statusClass = statusType === 'passed' ? 'text-green-500' : statusType === 'info' ? 'text-yellow-500' : 'text-red-500';
-    const statusText = options.statusText || (statusType === 'passed' ? 'Passed' : statusType === 'info' ? 'Info' : 'Failed');
+    const statusIcon = statusType === 'passed'
+      ? 'check_circle'
+      : statusType === 'info'
+        ? 'info'
+        : statusType === 'pending'
+          ? 'schedule'
+          : statusType === 'running'
+            ? 'sync'
+            : 'cancel';
+    const statusClass = statusType === 'passed'
+      ? 'text-green-500'
+      : statusType === 'info'
+        ? 'text-yellow-500'
+        : statusType === 'pending'
+          ? 'text-rewst-gray'
+          : statusType === 'running'
+            ? 'text-rewst-teal'
+            : 'text-red-500';
+    const statusText = options.statusText || (statusType === 'passed'
+      ? 'Passed'
+      : statusType === 'info'
+        ? 'Informational'
+        : statusType === 'pending'
+          ? 'Pending'
+          : statusType === 'running'
+            ? 'Running'
+            : 'Failed');
+    const iconAnimationClass = statusType === 'running' ? 'animate-spin' : '';
     const showRetry = !passed && typeof onRetry === 'function';
 
     element.innerHTML = `
       <div class="${statusClass}">
-        <span class="material-icons">${statusIcon}</span>
+        <span class="material-icons ${iconAnimationClass}">${statusIcon}</span>
       </div>
       <div class="flex-1">
         <p class="text-rewst-dark-gray font-medium">${label}</p>
@@ -288,24 +324,76 @@ function renderPrerequisitesPage() {
     }
   }
 
-  async function runWithRetries(task, isSuccess) {
+  async function runWithRetries(task, isSuccess, operationName = 'workflow', options = {}) {
+    const maxAttempts = options.maxAttempts || MAX_CHECK_ATTEMPTS;
+    const retryDelayMs = options.retryDelayMs || RETRY_DELAY_MS;
+    const maxTotalMs = options.maxTotalMs || null;
+    const onAttemptStart = typeof options.onAttemptStart === 'function' ? options.onAttemptStart : null;
+    const onRetryWait = typeof options.onRetryWait === 'function' ? options.onRetryWait : null;
+
     let lastResult = null;
     let lastError = null;
+    let attemptsMade = 0;
+    const startedAt = Date.now();
 
-    for (let attempt = 1; attempt <= MAX_CHECK_ATTEMPTS; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      attemptsMade = attempt;
+      const elapsedAtAttemptStart = Date.now() - startedAt;
+      if (onAttemptStart) {
+        onAttemptStart({
+          attempt,
+          maxAttempts,
+          elapsedMs: elapsedAtAttemptStart,
+          maxTotalMs
+        });
+      }
+
       try {
+        debugLog(`[Retry] ${operationName}: attempt ${attempt}/${maxAttempts}`);
         const result = await task();
         lastResult = result;
 
         if (isSuccess(result)) {
+          debugLog(`[Retry] ${operationName}: success on attempt ${attempt}/${maxAttempts}`);
           return { ok: true, result, attempts: attempt, error: null };
         }
+
+        debugWarn(`[Retry] ${operationName}: attempt ${attempt}/${maxAttempts} did not meet success criteria`);
       } catch (error) {
         lastError = error;
+        debugWarn(`[Retry] ${operationName}: attempt ${attempt}/${maxAttempts} threw error`, error);
+      }
+
+      const elapsedAfterAttempt = Date.now() - startedAt;
+      const timeBudgetAllowsRetry = !maxTotalMs || (elapsedAfterAttempt + retryDelayMs) <= maxTotalMs;
+
+      if (attempt < maxAttempts && timeBudgetAllowsRetry) {
+        if (onRetryWait) {
+          onRetryWait({
+            attempt,
+            maxAttempts,
+            delayMs: retryDelayMs,
+            elapsedMs: elapsedAfterAttempt,
+            maxTotalMs
+          });
+        }
+        debugLog(`[Retry] ${operationName}: waiting ${retryDelayMs}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      } else if (attempt < maxAttempts && !timeBudgetAllowsRetry) {
+        debugWarn(`[Retry] ${operationName}: stopping retries because ${maxTotalMs}ms max wait budget was reached`);
+        break;
       }
     }
 
-    return { ok: false, result: lastResult, attempts: MAX_CHECK_ATTEMPTS, error: lastError };
+    const elapsedMs = Date.now() - startedAt;
+    return {
+      ok: false,
+      result: lastResult,
+      attempts: attemptsMade,
+      error: lastError,
+      elapsedMs,
+      exhaustedTimeBudget: !!maxTotalMs && elapsedMs >= maxTotalMs
+    };
   }
 
   async function ensureUserEmail() {
@@ -313,7 +401,8 @@ function renderPrerequisitesPage() {
 
     const attemptResult = await runWithRetries(
       () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL')),
-      (usernameResult) => !!usernameResult?.output?.username
+      (usernameResult) => !!usernameResult?.output?.username,
+      'Email verification lookup'
     );
 
     const email = attemptResult.result?.output?.username;
@@ -326,7 +415,7 @@ function renderPrerequisitesPage() {
   }
 
   async function runEmailVerificationCheck() {
-    setCheckLoading(emailVerificationCheckItem, 'Email verification');
+    setCheckLoading(emailVerificationCheckItem, 'Email verification', 'Looking up your current account details...');
     checkResultDetails.email_verification = '';
 
     try {
@@ -353,7 +442,7 @@ function renderPrerequisitesPage() {
 
   async function runCaNameCheck() {
     const element = companyCheckElements['ca_name'];
-    setCheckLoading(element, 'CA Name');
+    setCheckLoading(element, 'CA Name', 'Fetching company configuration data...');
     checkResultDetails.ca_name = '';
 
     try {
@@ -362,7 +451,8 @@ function renderPrerequisitesPage() {
         (result) => {
           const data = result?.output || result;
           return !!data?.ca_name;
-        }
+        },
+        'Company prerequisite: CA Name'
       );
 
       if (attemptResult.ok) {
@@ -386,7 +476,7 @@ function renderPrerequisitesPage() {
 
   async function runAdDomainCheck() {
     const element = companyCheckElements['ad_domain'];
-    setCheckLoading(element, 'AD Domain');
+    setCheckLoading(element, 'AD Domain', 'Fetching company configuration data...');
     checkResultDetails.ad_domain = '';
 
     try {
@@ -395,7 +485,8 @@ function renderPrerequisitesPage() {
         (result) => {
           const data = result?.output || result;
           return !!data?.ad_domain;
-        }
+        },
+        'Company prerequisite: AD Domain'
       );
 
       if (attemptResult.ok) {
@@ -418,7 +509,7 @@ function renderPrerequisitesPage() {
   }
 
   async function runCwmConfigurationCheck() {
-    setCheckLoading(cwmCheckItem, 'CWM Configuration');
+    setCheckLoading(cwmCheckItem, 'CWM Configuration', 'Communicating with CWM to discover valid configurations...');
     checkResultDetails.cwm_config = '';
     selectedConfig = null;
     window.selectedConfig = null;
@@ -433,13 +524,7 @@ function renderPrerequisitesPage() {
       if (!checkStates.email_verification) {
         checkStates.cwm_config = false;
         checkResultDetails.cwm_config = 'Run Email verification first';
-        renderCheckResult(
-          cwmCheckItem,
-          false,
-          'CWM Configuration',
-          checkResultDetails.cwm_config,
-          runCwmConfigurationCheck
-        );
+        setCheckPending(cwmCheckItem, 'CWM Configuration', 'Waiting for Email verification to pass.');
         return;
       }
 
@@ -456,7 +541,8 @@ function renderPrerequisitesPage() {
         () => rewst.runWorkflowSmart(getWorkflowId('CWM_CONFIGURATIONS'), {
           user_principal_name: userEmail
         }),
-        (result) => getValidConfigs(result).length > 0
+        (result) => getValidConfigs(result).length > 0,
+        'User prerequisite: CWM Configuration'
       );
 
       const validConfigs = getValidConfigs(attemptResult.result);
@@ -508,7 +594,12 @@ function renderPrerequisitesPage() {
   }
 
   async function runComputerOnlineCheck() {
-    setCheckLoading(computerOnlineCheckItem, 'Computer Online');
+    setCheckLoading(
+      computerOnlineCheckItem,
+      'Computer Online',
+      'Communicating with your PC... This can take up to 5 minutes.',
+      'Communicating with your PC'
+    );
     checkResultDetails.computer_online = '';
 
     try {
@@ -530,7 +621,21 @@ function renderPrerequisitesPage() {
         () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
           cwa_computer_id: selectedConfig.deviceIdentifier
         }),
-        (result) => !!result?.output?.online
+        (result) => !!result?.output?.online,
+        'User prerequisite: Computer Online',
+        {
+          maxAttempts: COMPUTER_CHECK_MAX_ATTEMPTS,
+          retryDelayMs: COMPUTER_CHECK_RETRY_DELAY_MS,
+          maxTotalMs: COMPUTER_CHECK_MAX_WAIT_MS,
+          onAttemptStart: ({ attempt, maxAttempts }) => {
+            setCheckLoading(
+              computerOnlineCheckItem,
+              'Computer Online',
+              `Communicating with your PC... attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`,
+              'Communicating with your PC'
+            );
+          }
+        }
       );
 
       if (attemptResult.ok) {
@@ -548,7 +653,11 @@ function renderPrerequisitesPage() {
         checkStates.computer_online = false;
         checkResultDetails.computer_online = attemptResult.error
           ? `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`
-          : `Computer not online after ${attemptResult.attempts} attempts`;
+          : `Computer not online after ${attemptResult.attempts} attempts over ${formatDuration(attemptResult.elapsedMs || 0)}`;
+
+        if (attemptResult.exhaustedTimeBudget) {
+          checkResultDetails.computer_online += ' (reached 5 minute wait limit)';
+        }
         clearCachedPrereqs();
         renderCheckResult(computerOnlineCheckItem, false, 'Computer Online', checkResultDetails.computer_online, runComputerOnlineCheck);
       }
@@ -606,19 +715,15 @@ function renderPrerequisitesPage() {
     checkResultDetails.valid_machine_cert_installed = 'Waiting for Computer Online to pass';
     checkResultDetails.remote_domain_reachable = 'Waiting for Computer Online to pass';
 
-    renderCheckResult(
+    setCheckPending(
       validMachineCertCheckItem,
-      false,
       'Valid machine certificate installed',
-      checkResultDetails.valid_machine_cert_installed,
-      runComputerPrerequisitesChecks
+      checkResultDetails.valid_machine_cert_installed
     );
-    renderCheckResult(
+    setCheckPending(
       remoteDomainReachableCheckItem,
-      false,
       'Remote domain reachable',
-      checkResultDetails.remote_domain_reachable,
-      runComputerPrerequisitesChecks
+      checkResultDetails.remote_domain_reachable
     );
     clearCachedPrereqs();
   }
@@ -668,8 +773,18 @@ function renderPrerequisitesPage() {
       return;
     }
 
-    setCheckLoading(validMachineCertCheckItem, 'Valid machine certificate installed');
-    setCheckLoading(remoteDomainReachableCheckItem, 'Remote domain reachable');
+    setCheckLoading(
+      validMachineCertCheckItem,
+      'Valid machine certificate installed',
+      'Communicating with your PC... This can take up to 5 minutes.',
+      'Communicating with your PC'
+    );
+    setCheckLoading(
+      remoteDomainReachableCheckItem,
+      'Remote domain reachable',
+      'Communicating with your PC... This can take up to 5 minutes.',
+      'Communicating with your PC'
+    );
     checkResultDetails.valid_machine_cert_installed = '';
     checkResultDetails.remote_domain_reachable = '';
 
@@ -679,19 +794,15 @@ function renderPrerequisitesPage() {
       checkResultDetails.valid_machine_cert_installed = 'Missing CWA ID from selected configuration';
       checkResultDetails.remote_domain_reachable = 'Missing CWA ID from selected configuration';
 
-      renderCheckResult(
+      setCheckPending(
         validMachineCertCheckItem,
-        false,
         'Valid machine certificate installed',
-        checkResultDetails.valid_machine_cert_installed,
-        runComputerPrerequisitesChecks
+        checkResultDetails.valid_machine_cert_installed
       );
-      renderCheckResult(
+      setCheckPending(
         remoteDomainReachableCheckItem,
-        false,
         'Remote domain reachable',
-        checkResultDetails.remote_domain_reachable,
-        runComputerPrerequisitesChecks
+        checkResultDetails.remote_domain_reachable
       );
       clearCachedPrereqs();
       updateButtonState();
@@ -703,6 +814,17 @@ function renderPrerequisitesPage() {
       (result) => {
         const evaluation = evaluateComputerPrereqs(result);
         return evaluation.certPassed;
+      },
+      'Computer prerequisite checks',
+      {
+        maxAttempts: COMPUTER_CHECK_MAX_ATTEMPTS,
+        retryDelayMs: COMPUTER_CHECK_RETRY_DELAY_MS,
+        maxTotalMs: COMPUTER_CHECK_MAX_WAIT_MS,
+        onAttemptStart: ({ attempt, maxAttempts }) => {
+          const detail = `Communicating with your PC... attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`;
+          setCheckLoading(validMachineCertCheckItem, 'Valid machine certificate installed', detail, 'Communicating with your PC');
+          setCheckLoading(remoteDomainReachableCheckItem, 'Remote domain reachable', detail, 'Communicating with your PC');
+        }
       }
     );
 
@@ -714,7 +836,10 @@ function renderPrerequisitesPage() {
     }
 
     if (attemptResult.error && !attemptResult.result) {
-      const errorDetails = `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`;
+      let errorDetails = `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts over ${formatDuration(attemptResult.elapsedMs || 0)})`;
+      if (attemptResult.exhaustedTimeBudget) {
+        errorDetails += ' (reached 5 minute wait limit)';
+      }
       checkStates.valid_machine_cert_installed = false;
       checkStates.remote_domain_reachable = false;
       checkResultDetails.valid_machine_cert_installed = errorDetails;
@@ -748,6 +873,14 @@ function renderPrerequisitesPage() {
   // ---- Run workflow and check results ----
   (async () => {
     debugLog('Starting prerequisites checks...');
+
+    setCheckPending(companyCheckElements['ca_name'], 'CA Name', 'Queued to start.');
+    setCheckPending(companyCheckElements['ad_domain'], 'AD Domain', 'Waiting for CA Name to complete.');
+    setCheckPending(emailVerificationCheckItem, 'Email verification', 'Waiting for company checks to complete.');
+    setCheckPending(cwmCheckItem, 'CWM Configuration', 'Waiting for Email verification to pass.');
+    setCheckPending(computerOnlineCheckItem, 'Computer Online', 'Waiting for CWM Configuration to complete.');
+    setCheckPending(validMachineCertCheckItem, 'Valid machine certificate installed', 'Waiting for Computer Online to pass.');
+    setCheckPending(remoteDomainReachableCheckItem, 'Remote domain reachable', 'Waiting for Computer Online to pass.');
 
     const cached = getCachedPrereqs();
     if (applyCachedPrereqs(cached)) {
