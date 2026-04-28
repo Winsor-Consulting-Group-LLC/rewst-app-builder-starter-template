@@ -56,7 +56,7 @@ const RewstDOM = {
     if (!Array.isArray(data) || data.length === 0) {
       const empty = document.createElement('p');
       empty.textContent = 'No data available';
-      empty.className = 'text-gray-500 italic';
+      empty.className = 'rewst-empty-state';
       return empty;
     }
 
@@ -89,7 +89,7 @@ const RewstDOM = {
 
     // Create container - full width
     const container = document.createElement('div');
-    container.className = 'rewst-table-container w-full bg-white rounded-lg shadow-sm border border-gray-100 p-6';
+    container.className = 'rewst-table-container rewst-table-shell';
 
     // Store original data and current display data
     let displayData = [...data];
@@ -150,22 +150,22 @@ const RewstDOM = {
     // Add title if provided
     if (title) {
       const titleEl = document.createElement('h3');
-      titleEl.className = 'text-lg font-semibold text-rewst-black';
+      titleEl.className = 'rewst-table-title';
       titleEl.innerHTML = title; // Use innerHTML to support HTML/emojis/icons
       
       if (hasSearchOnly) {
         // Title on same row as search
         const titleRow = document.createElement('div');
-        titleRow.className = 'mb-4 flex justify-between items-center';
+        titleRow.className = 'rewst-table-title-row';
         titleRow.appendChild(titleEl);
         container.appendChild(titleRow);
       } else if (hasFiltersOrRefresh) {
         // Title above filters/refresh
-        titleEl.className += ' mb-3';
+        titleEl.classList.add('has-toolbar');
         container.appendChild(titleEl);
       } else {
         // Title alone above table
-        titleEl.className += ' mb-4';
+        titleEl.classList.add('is-standalone');
         container.appendChild(titleEl);
       }
     }
@@ -173,16 +173,16 @@ const RewstDOM = {
     // Create top bar with refresh button (left) and search (right)
     if (canRefresh || Object.keys(filters).length > 0 || searchable) {
       const topBar = document.createElement('div');
-      topBar.className = 'mb-4 flex justify-between items-center gap-3';
+      topBar.className = 'rewst-table-toolbar';
       
       // Left side: Refresh + Filters
       const leftSection = document.createElement('div');
-      leftSection.className = 'flex items-center gap-2';
+      leftSection.className = 'rewst-table-toolbar-left';
       
       // Refresh button on the left
       if (canRefresh) {
         const refreshBtn = document.createElement('button');
-        refreshBtn.className = 'material-icons bg-gray-50 text-rewst-teal hover:bg-gray-100 border border-gray-200 rounded-full p-2 transition-colors';
+        refreshBtn.className = 'material-icons rewst-table-refresh-btn';
         refreshBtn.textContent = 'refresh';
         refreshBtn.title = 'Refresh table data';
         refreshBtn.onclick = async () => {
@@ -191,11 +191,11 @@ const RewstDOM = {
           
           // Show loading state in table
           const loadingIndicator = document.createElement('div');
-          loadingIndicator.className = 'flex items-center justify-center p-12';
+          loadingIndicator.className = 'rewst-table-loading';
           loadingIndicator.innerHTML = `
-            <div class="text-center">
-              <div class="spinner mx-auto mb-3"></div>
-              <p class="text-rewst-gray">Refreshing data...</p>
+            <div class="rewst-table-loading-inner">
+              <div class="spinner rewst-table-loading-spinner"></div>
+              <p class="rewst-table-loading-text">Refreshing data...</p>
             </div>
           `;
           
@@ -293,12 +293,12 @@ const RewstDOM = {
           if (!dateFilter) return; // Skip if no date data
           
           const dateFilterWrapper = document.createElement('div');
-          dateFilterWrapper.className = 'flex items-center gap-2';
+          dateFilterWrapper.className = 'rewst-date-filter';
           
           // Label (optional)
           if (filterConfig.label) {
             const filterLabel = document.createElement('span');
-            filterLabel.className = 'text-sm font-medium text-gray-700';
+            filterLabel.className = 'rewst-date-filter-label';
             filterLabel.textContent = filterConfig.label; // No colon added
             dateFilterWrapper.appendChild(filterLabel);
           }
@@ -306,20 +306,20 @@ const RewstDOM = {
           // Start date input
           const startDateInput = document.createElement('input');
           startDateInput.type = 'date';
-          startDateInput.className = 'px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rewst-teal';
+          startDateInput.className = 'rewst-date-filter-input';
           startDateInput.value = dateFilter.minDate.toISOString().split('T')[0];
           startDateInput.min = dateFilter.minDate.toISOString().split('T')[0];
           startDateInput.max = dateFilter.maxDate.toISOString().split('T')[0];
           
           // "to" label
           const toLabel = document.createElement('span');
-          toLabel.className = 'text-sm text-gray-600';
+          toLabel.className = 'rewst-date-filter-to';
           toLabel.textContent = 'to';
           
           // End date input
           const endDateInput = document.createElement('input');
           endDateInput.type = 'date';
-          endDateInput.className = 'px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rewst-teal';
+          endDateInput.className = 'rewst-date-filter-input';
           endDateInput.value = dateFilter.maxDate.toISOString().split('T')[0];
           endDateInput.min = dateFilter.minDate.toISOString().split('T')[0];
           endDateInput.max = dateFilter.maxDate.toISOString().split('T')[0];
@@ -352,26 +352,26 @@ const RewstDOM = {
         } else {
           // REGULAR DROPDOWN FILTER (existing code)
           const filterChip = document.createElement('div');
-          filterChip.className = 'relative';
+          filterChip.className = 'rewst-filter-chip';
           
           // Filter button/chip
           const filterBtn = document.createElement('button');
-          filterBtn.className = 'flex items-center gap-1 px-3 py-1.5 text-sm font-medium border rounded-md transition-colors';
+          filterBtn.className = 'rewst-filter-btn';
           
           // Update button appearance based on active state
           const updateFilterBtn = () => {
             const isActive = activeFilters[col].size > 0;
             if (isActive) {
-              filterBtn.className = 'flex items-center gap-1 px-3 py-1.5 text-sm font-medium border-2 border-rewst-teal bg-rewst-light text-rewst-teal rounded-md transition-colors';
+              filterBtn.className = 'rewst-filter-btn is-active';
               filterBtn.innerHTML = `
                 <span class="filter-label">${filterConfig.label}: ${activeFilters[col].size} selected</span>
-                <span class="material-icons text-sm filter-clear-icon">close</span>
+                <span class="material-icons rewst-filter-icon filter-clear-icon">close</span>
               `;
             } else {
-              filterBtn.className = 'flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-md transition-colors';
+              filterBtn.className = 'rewst-filter-btn';
               filterBtn.innerHTML = `
                 <span class="filter-label">${filterConfig.label}</span>
-                <span class="material-icons text-sm">expand_more</span>
+                <span class="material-icons rewst-filter-icon">expand_more</span>
               `;
             }
           };
@@ -380,17 +380,17 @@ const RewstDOM = {
           
           // Dropdown menu
           const dropdown = document.createElement('div');
-          dropdown.className = 'hidden absolute z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg min-w-[200px] max-h-64 overflow-auto';
+          dropdown.className = 'rewst-filter-dropdown hidden';
           dropdown.dataset.filterDropdown = col; // Mark as filter dropdown
           
           // Individual options
           filterOptions[col].forEach(value => {
             const optionLabel = document.createElement('label');
-            optionLabel.className = 'flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer';
+            optionLabel.className = 'rewst-filter-option';
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            checkbox.className = 'rounded border-gray-300';
+            checkbox.className = 'rewst-filter-checkbox';
             checkbox.checked = activeFilters[col].has(value);
             
             checkbox.addEventListener('change', (e) => {
@@ -408,7 +408,7 @@ const RewstDOM = {
             });
             
             const optionText = document.createElement('span');
-            optionText.className = 'text-sm text-gray-700';
+            optionText.className = 'rewst-filter-option-text';
             optionText.textContent = String(value);
             
             optionLabel.appendChild(checkbox);
@@ -465,7 +465,7 @@ const RewstDOM = {
       // Clear All button (only show if filters exist)
       if (Object.keys(filters).length > 0) {
         const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'text-sm text-rewst-teal hover:text-rewst-teal-dark font-medium';
+        clearAllBtn.className = 'rewst-filter-clear-all';
         clearAllBtn.textContent = 'Clear All';
         clearAllBtn.onclick = () => {
           // Clear all dropdown filters
@@ -509,10 +509,10 @@ const RewstDOM = {
               filterBtns.forEach(btn => {
                 const btnText = btn.querySelector('.filter-label');
                 if (btnText && btnText.textContent.startsWith(filterConfig.label)) {
-                  btn.className = 'flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-md transition-colors';
+                  btn.className = 'rewst-filter-btn';
                   btn.innerHTML = `
                     <span class="filter-label">${filterConfig.label}</span>
-                    <span class="material-icons text-sm">expand_more</span>
+                    <span class="material-icons rewst-filter-icon">expand_more</span>
                   `;
                 }
               });
@@ -537,18 +537,18 @@ const RewstDOM = {
       // Right side: Search
       if (searchable) {
         const searchContainer = document.createElement('div');
-        searchContainer.className = 'relative w-64';
+        searchContainer.className = 'rewst-table-search';
 
         // Search icon (Material Icons)
         const searchIcon = document.createElement('span');
-        searchIcon.className = 'material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none';
+        searchIcon.className = 'material-icons rewst-table-search-icon';
         searchIcon.style.fontSize = '20px';
         searchIcon.textContent = 'search';
 
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'Search...';
-        searchInput.className = 'w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500';
+        searchInput.className = 'rewst-table-search-input';
         
         searchInput.addEventListener('input', (e) => {
           applyFiltersAndSearch(e.target.value);
@@ -562,7 +562,7 @@ const RewstDOM = {
         
         // If title exists and this is search-only layout, add search to title row
         if (title && hasSearchOnly) {
-          const titleRow = container.querySelector('.mb-4.flex');
+          const titleRow = container.querySelector('.rewst-table-title-row');
           if (titleRow) {
             titleRow.appendChild(searchContainer);
           }
@@ -656,12 +656,12 @@ const RewstDOM = {
 
     // Create table wrapper for overflow - full width
     const tableWrapper = document.createElement('div');
-    tableWrapper.className = 'overflow-x-auto w-full';
+    tableWrapper.className = 'rewst-table-wrap';
     container.appendChild(tableWrapper);
     
     // Create pagination controls container
     const paginationWrapper = document.createElement('div');
-    paginationWrapper.className = 'mt-4 flex justify-between items-center';
+    paginationWrapper.className = 'rewst-table-pagination';
     container.appendChild(paginationWrapper);
     
     // Apply initial filters and search, then apply default sort if specified
@@ -714,19 +714,19 @@ const RewstDOM = {
 
       // Create table - full width
       const table = document.createElement('table');
-      table.className = options.className || 'min-w-full w-full divide-y divide-gray-200';
+      table.className = options.className || 'rewst-data-table';
 
       // Create thead
       const thead = document.createElement('thead');
-      thead.className = 'bg-rewst-light';
+      thead.className = 'rewst-data-table-head';
       const headerRow = document.createElement('tr');
 
       columns.forEach(col => {
         const th = document.createElement('th');
-        th.className = 'px-6 py-3 text-left text-xs font-medium text-rewst-dark-gray uppercase tracking-wider';
+        th.className = 'rewst-data-table-th';
         
         if (sortable) {
-          th.className += ' cursor-pointer hover:bg-gray-100 select-none';
+          th.classList.add('is-sortable');
           th.style.position = 'relative';
           th.style.paddingRight = '2rem';
         }
@@ -738,14 +738,13 @@ const RewstDOM = {
         // Add sort indicator
         if (sortable) {
           const sortIndicator = document.createElement('span');
-          sortIndicator.className = 'absolute right-2 top-3';
+          sortIndicator.className = 'rewst-sort-indicator';
           
           if (sortColumn === col) {
             sortIndicator.textContent = sortDirection === 'asc' ? '↑' : '↓';
-            sortIndicator.className += ' text-rewst-teal font-bold';
+            sortIndicator.classList.add('is-active');
           } else {
             sortIndicator.textContent = '↕';
-            sortIndicator.className += ' text-rewst-gray';
           }
           
           th.appendChild(sortIndicator);
@@ -806,24 +805,24 @@ const RewstDOM = {
 
       // Create tbody
       const tbody = document.createElement('tbody');
-      tbody.className = 'bg-white divide-y divide-gray-200';
+      tbody.className = 'rewst-data-table-body';
 
       if (paginatedData.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = columns.length;
-        td.className = 'px-6 py-4 text-center text-gray-500 italic';
+        td.className = 'rewst-data-table-empty';
         td.textContent = 'No matching results';
         tr.appendChild(td);
         tbody.appendChild(tr);
       } else {
         paginatedData.forEach((row, idx) => {
           const tr = document.createElement('tr');
-          tr.className = idx % 2 === 0 ? 'bg-white hover:bg-teal-50 border-b border-gray-100' : 'bg-gray-50 hover:bg-teal-50 border-b border-gray-100';
+          tr.className = idx % 2 === 0 ? 'rewst-data-table-row is-even' : 'rewst-data-table-row is-odd';
 
           columns.forEach(col => {
             const td = document.createElement('td');
-            td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-900';
+            td.className = 'rewst-data-table-cell';
             
             // ALWAYS store the raw value for sorting FIRST
             const rawValue = row[col];
@@ -845,10 +844,10 @@ const RewstDOM = {
             // Handle different data types
             if (value === null || value === undefined) {
               td.textContent = '-';
-              td.className += ' text-gray-400';
+              td.classList.add('is-empty');
             } else if (typeof value === 'object') {
               td.textContent = JSON.stringify(value);
-              td.className = td.className.replace('whitespace-nowrap', 'whitespace-pre-wrap');
+              td.classList.add('is-object');
             } else {
               // Check if value contains HTML tags (for badges, etc.)
               if (typeof value === 'string' && value.includes('<')) {
@@ -884,7 +883,7 @@ const RewstDOM = {
       
       // Left side: Showing X-Y of Z results
       const infoText = document.createElement('div');
-      infoText.className = 'text-sm text-gray-600';
+      infoText.className = 'rewst-table-pagination-info';
       const startIdx = (currentPage - 1) * pageSize + 1;
       const endIdx = Math.min(currentPage * pageSize, displayData.length);
       infoText.textContent = `Showing ${startIdx}-${endIdx} of ${displayData.length} results`;
@@ -892,12 +891,12 @@ const RewstDOM = {
       
       // Center: Page navigation
       const navWrapper = document.createElement('div');
-      navWrapper.className = 'flex items-center gap-1';
+      navWrapper.className = 'rewst-table-pagination-nav';
       
       // Previous button
       const prevBtn = document.createElement('button');
-      prevBtn.className = 'px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors';
-      prevBtn.innerHTML = '<span class="material-icons" style="font-size: 18px;">chevron_left</span>';
+      prevBtn.className = 'rewst-page-btn rewst-page-btn-icon';
+      prevBtn.innerHTML = '<span class="material-icons rewst-page-btn-icon-glyph">chevron_left</span>';
       prevBtn.disabled = currentPage === 1;
       prevBtn.onclick = () => {
         if (currentPage > 1) {
@@ -945,9 +944,9 @@ const RewstDOM = {
         const isActive = page === currentPage;
         
         if (isActive) {
-          pageBtn.className = 'px-3 py-1 bg-rewst-teal text-white border border-rewst-teal rounded font-medium transition-colors';
+          pageBtn.className = 'rewst-page-btn is-active';
         } else {
-          pageBtn.className = 'px-3 py-1 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors';
+          pageBtn.className = 'rewst-page-btn';
         }
         
         pageBtn.textContent = page;
@@ -962,8 +961,8 @@ const RewstDOM = {
       
       // Next button
       const nextBtn = document.createElement('button');
-      nextBtn.className = 'px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors';
-      nextBtn.innerHTML = '<span class="material-icons" style="font-size: 18px;">chevron_right</span>';
+      nextBtn.className = 'rewst-page-btn rewst-page-btn-icon';
+      nextBtn.innerHTML = '<span class="material-icons rewst-page-btn-icon-glyph">chevron_right</span>';
       nextBtn.disabled = currentPage === totalPages;
       nextBtn.onclick = () => {
         if (currentPage < totalPages) {
@@ -979,14 +978,14 @@ const RewstDOM = {
       
       // Right side: Page size selector
       const pageSizeWrapper = document.createElement('div');
-      pageSizeWrapper.className = 'flex items-center gap-2';
+      pageSizeWrapper.className = 'rewst-table-page-size';
       
       const pageSizeLabel = document.createElement('span');
-      pageSizeLabel.className = 'text-sm text-gray-600';
+      pageSizeLabel.className = 'rewst-table-page-size-label';
       pageSizeLabel.textContent = 'Rows:';
       
       const pageSizeSelect = document.createElement('select');
-      pageSizeSelect.className = 'px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-400';
+      pageSizeSelect.className = 'rewst-table-page-size-select';
       
       paginationOptions.forEach(option => {
         const opt = document.createElement('option');
@@ -1071,10 +1070,10 @@ const RewstDOM = {
     }
 
     element.innerHTML = `
-        <div class="flex items-center justify-center p-8">
-          <div class="text-center">
-            <div class="spinner mx-auto mb-2"></div>
-            <p class="text-rewst-gray">${message}</p>
+        <div class="rewst-loading-state">
+          <div class="rewst-loading-state-inner">
+            <div class="spinner rewst-loading-state-spinner"></div>
+            <p class="rewst-loading-state-text">${message}</p>
           </div>
         </div>
       `;
@@ -1095,16 +1094,16 @@ const RewstDOM = {
     }
 
     element.innerHTML = `
-        <div class="card card-metric animate-pulse">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+        <div class="card card-metric rewst-skeleton-pulse">
+          <div class="rewst-skeleton-metric-header">
+            <div class="rewst-skeleton-metric-text-group">
+              <div class="rewst-skeleton-line rewst-skeleton-line-title"></div>
+              <div class="rewst-skeleton-line rewst-skeleton-line-subtitle"></div>
             </div>
-            <div class="bg-gray-200 rounded-full w-12 h-12"></div>
+            <div class="rewst-skeleton-avatar"></div>
           </div>
-          <div class="h-10 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+          <div class="rewst-skeleton-line rewst-skeleton-line-value"></div>
+          <div class="rewst-skeleton-line rewst-skeleton-line-detail"></div>
         </div>
       `;
   },
@@ -1125,9 +1124,9 @@ const RewstDOM = {
     }
 
     element.innerHTML = `
-        <div class="w-full bg-white rounded-lg shadow-sm border border-gray-100 p-6 animate-pulse">
-          <div class="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div class="bg-gray-200 rounded" style="height: ${height}"></div>
+        <div class="rewst-skeleton-shell rewst-skeleton-pulse">
+          <div class="rewst-skeleton-line rewst-skeleton-line-chart-title"></div>
+          <div class="rewst-skeleton-chart" style="height: ${height}"></div>
         </div>
       `;
   },
@@ -1148,16 +1147,16 @@ const RewstDOM = {
     }
 
     const rowsHTML = Array(rows).fill(0).map(() => `
-        <div class="flex gap-4 py-3 border-b border-gray-100">
-          <div class="h-4 bg-gray-200 rounded flex-1"></div>
-          <div class="h-4 bg-gray-200 rounded flex-1"></div>
-          <div class="h-4 bg-gray-200 rounded flex-1"></div>
+        <div class="rewst-skeleton-table-row">
+          <div class="rewst-skeleton-line rewst-skeleton-cell"></div>
+          <div class="rewst-skeleton-line rewst-skeleton-cell"></div>
+          <div class="rewst-skeleton-line rewst-skeleton-cell"></div>
         </div>
       `).join('');
 
     element.innerHTML = `
-        <div class="w-full bg-white rounded-lg shadow-sm border border-gray-100 p-6 animate-pulse">
-          <div class="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+        <div class="rewst-skeleton-shell rewst-skeleton-pulse">
+          <div class="rewst-skeleton-line rewst-skeleton-line-table-title"></div>
           ${rowsHTML}
         </div>
       `;
@@ -1179,17 +1178,17 @@ const RewstDOM = {
     }
 
     const fieldsHTML = Array(fields).fill(0).map(() => `
-        <div class="mb-6">
-          <div class="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-          <div class="h-10 bg-gray-200 rounded w-full"></div>
+        <div class="rewst-skeleton-form-field">
+          <div class="rewst-skeleton-line rewst-skeleton-form-label"></div>
+          <div class="rewst-skeleton-form-input"></div>
         </div>
       `).join('');
 
     element.innerHTML = `
-        <div class="w-full bg-white rounded-lg shadow-sm border border-gray-100 p-6 animate-pulse">
-          <div class="h-8 bg-gray-200 rounded w-1/2 mb-6"></div>
+        <div class="rewst-skeleton-shell rewst-skeleton-pulse">
+          <div class="rewst-skeleton-line rewst-skeleton-line-form-title"></div>
           ${fieldsHTML}
-          <div class="h-10 bg-gray-200 rounded w-32 mt-4"></div>
+          <div class="rewst-skeleton-form-button"></div>
         </div>
       `;
   },
@@ -1211,7 +1210,7 @@ const RewstDOM = {
     }
 
     element.innerHTML = `
-      <div class="bg-gray-200 rounded-lg animate-pulse" style="width: ${width}px; height: ${height}px;"></div>
+      <div class="rewst-skeleton-button rewst-skeleton-pulse" style="width: ${width}px; height: ${height}px;"></div>
     `;
   },
 
@@ -1308,9 +1307,9 @@ const RewstDOM = {
       const targetEl = typeof target === 'string' ? document.querySelector(target) : target;
       if (targetEl) {
         targetEl.innerHTML = `
-            <div class="text-center p-8 text-red-600">
-              <p class="font-medium mb-2">Failed to load workflow data</p>
-              <p class="text-sm text-gray-600">${error.message}</p>
+            <div class="rewst-error-state">
+              <p class="rewst-error-title">Failed to load workflow data</p>
+              <p class="rewst-error-detail">${error.message}</p>
             </div>
           `;
       }
@@ -1341,9 +1340,9 @@ const RewstDOM = {
       const targetEl = typeof target === 'string' ? document.querySelector(target) : target;
       if (targetEl) {
         targetEl.innerHTML = `
-            <div class="text-center p-8 text-red-600">
-              <p class="font-medium mb-2">Failed to load form</p>
-              <p class="text-sm text-gray-600">${error.message}</p>
+            <div class="rewst-error-state">
+              <p class="rewst-error-title">Failed to load form</p>
+              <p class="rewst-error-detail">${error.message}</p>
             </div>
           `;
       }
@@ -1407,9 +1406,9 @@ const RewstDOM = {
   _markdownToHtml(markdown) {
     return markdown
       // Headers
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mb-2">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-3">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-4">$1</h1>')
+      .replace(/^### (.*$)/gim, '<h3 class="rewst-md-h3">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="rewst-md-h2">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="rewst-md-h1">$1</h1>')
       // Bold
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       // Italic
@@ -1433,10 +1432,10 @@ const RewstDOM = {
     } = config;
   
     const wrapper = document.createElement('div');
-    wrapper.className = 'relative w-full';
+    wrapper.className = 'rewst-select-wrap';
   
     const select = document.createElement('select');
-    select.className = 'w-full px-3 py-2 pr-10 border-2 border-rewst-light-gray rounded-md focus:outline-none focus:ring-2 focus:ring-rewst-teal focus:border-rewst-teal bg-white text-sm text-rewst-dark-gray appearance-none cursor-pointer transition-colors hover:border-rewst-gray';
+    select.className = 'rewst-select-input';
     select.style.backgroundImage = "url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 12 12\\'%3E%3Cpath fill=\\'%23009490\\' d=\\'M6 9L1 4h10z\\'/%3E%3C/svg%3E')";
     select.style.backgroundRepeat = 'no-repeat';
     select.style.backgroundPosition = 'right 1rem center';
@@ -1487,17 +1486,17 @@ const RewstDOM = {
     } = config;
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'w-full relative';
+    wrapper.className = 'rewst-styled-select';
 
     let selectedValue = defaultValue;
 
     // Create display container (like tags container but shows single value)
     const displayContainer = document.createElement('div');
-    displayContainer.className = 'w-full min-h-[42px] px-3 py-2 border-2 border-rewst-light-gray rounded-md focus-within:ring-2 focus-within:ring-rewst-teal focus-within:border-rewst-teal flex items-center justify-between bg-white cursor-pointer hover:border-rewst-gray transition-colors';
+    displayContainer.className = 'rewst-styled-select-display';
 
     // Create dropdown menu
     const dropdownMenu = document.createElement('div');
-    dropdownMenu.className = 'hidden absolute z-10 w-full mt-1 bg-white border-2 border-rewst-light-gray rounded-md shadow-lg overflow-auto max-h-60';
+    dropdownMenu.className = 'rewst-styled-select-menu hidden';
 
     // Render selected value
     const renderDisplay = () => {
@@ -1505,8 +1504,8 @@ const RewstDOM = {
       const label = selectedOption ? selectedOption.label : placeholder;
       
       displayContainer.innerHTML = `
-        <span class="text-sm ${selectedOption ? 'text-rewst-dark-gray' : 'text-rewst-gray'}">${label}</span>
-        <span class="material-icons text-rewst-gray" style="font-size: 20px;">expand_more</span>
+        <span class="${selectedOption ? 'rewst-styled-select-text' : 'rewst-styled-select-placeholder'}">${label}</span>
+        <span class="material-icons rewst-styled-select-icon">expand_more</span>
       `;
     };
 
@@ -1519,9 +1518,7 @@ const RewstDOM = {
 
         const optionEl = document.createElement('button');
         optionEl.type = 'button';
-        optionEl.className = `w-full px-3 py-2 text-left transition-colors flex items-center justify-between ${
-          isSelected ? 'bg-rewst-light' : ''
-        }`;
+        optionEl.className = `rewst-styled-select-option${isSelected ? ' is-selected' : ''}`;
 
         optionEl.addEventListener('mouseenter', () => {
           optionEl.style.backgroundColor = 'var(--rewst-light-gray)';
@@ -1541,11 +1538,10 @@ const RewstDOM = {
 
         const labelSpan = document.createElement('span');
         labelSpan.textContent = option.label;
-        labelSpan.className = isSelected ? 'text-rewst-teal font-medium text-sm' : 'text-rewst-dark-gray text-sm';
+        labelSpan.className = isSelected ? 'rewst-styled-select-option-label is-selected' : 'rewst-styled-select-option-label';
 
         const checkIcon = document.createElement('span');
-        checkIcon.className = 'material-icons text-rewst-teal';
-        checkIcon.style.fontSize = '20px';
+        checkIcon.className = 'material-icons rewst-styled-select-check';
         checkIcon.textContent = 'check';
         checkIcon.style.visibility = isSelected ? 'visible' : 'hidden';
 
@@ -1604,18 +1600,18 @@ const RewstDOM = {
     } = config;
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'w-full relative';
+    wrapper.className = 'rewst-multiselect';
 
     // Store selected values
     const selectedValues = new Set(defaultValues);
 
     // Create tags container (acts as the clickable input)
     const tagsContainer = document.createElement('div');
-    tagsContainer.className = 'w-full min-h-[42px] px-3 py-2 border-2 border-rewst-light-gray rounded-md focus-within:ring-2 focus-within:ring-rewst-teal focus-within:border-rewst-teal flex flex-wrap gap-2 items-center bg-white cursor-pointer hover:border-rewst-gray transition-colors';
+    tagsContainer.className = 'rewst-multiselect-tags';
 
     // Create dropdown menu
     const dropdownMenu = document.createElement('div');
-    dropdownMenu.className = 'hidden absolute z-10 w-full mt-1 bg-white border-2 border-rewst-light-gray rounded-md shadow-lg overflow-auto';
+    dropdownMenu.className = 'rewst-multiselect-menu hidden';
     dropdownMenu.style.maxHeight = maxHeight;
 
     // Render tags
@@ -1628,15 +1624,14 @@ const RewstDOM = {
           const label = option ? option.label : value;
 
           const tag = document.createElement('div');
-          tag.className = 'inline-flex items-center gap-1 px-3 py-1.5 bg-rewst-light-gray text-rewst-dark-gray rounded-full text-sm font-medium';
+          tag.className = 'rewst-multiselect-tag';
 
           const tagLabel = document.createElement('span');
           tagLabel.textContent = label;
 
           const removeBtn = document.createElement('button');
           removeBtn.type = 'button';
-          removeBtn.className = 'material-icons text-rewst-dark-gray hover:text-rewst-black cursor-pointer';
-          removeBtn.style.fontSize = '18px';
+          removeBtn.className = 'material-icons rewst-multiselect-tag-remove';
           removeBtn.textContent = 'close';
           removeBtn.onclick = (e) => {
             e.stopPropagation();
@@ -1652,15 +1647,14 @@ const RewstDOM = {
         });
       } else {
         const placeholderSpan = document.createElement('span');
-        placeholderSpan.className = 'text-rewst-gray text-sm';
+        placeholderSpan.className = 'rewst-multiselect-placeholder';
         placeholderSpan.textContent = placeholder;
         tagsContainer.appendChild(placeholderSpan);
       }
 
       // Add dropdown arrow
       const arrow = document.createElement('span');
-      arrow.className = 'material-icons text-rewst-gray ml-auto';
-      arrow.style.fontSize = '20px';
+      arrow.className = 'material-icons rewst-multiselect-arrow';
       arrow.textContent = 'expand_more';
       tagsContainer.appendChild(arrow);
     };
@@ -1671,7 +1665,7 @@ const RewstDOM = {
 
       if (options.length === 0) {
         const emptyMsg = document.createElement('div');
-        emptyMsg.className = 'px-3 py-2 text-rewst-gray text-sm';
+        emptyMsg.className = 'rewst-multiselect-empty';
         emptyMsg.textContent = 'No options available';
         dropdownMenu.appendChild(emptyMsg);
         return;
@@ -1682,9 +1676,7 @@ const RewstDOM = {
 
         const optionEl = document.createElement('button');
         optionEl.type = 'button';
-        optionEl.className = `w-full px-3 py-2 text-left transition-colors flex items-center justify-between ${
-          isSelected ? 'bg-rewst-light' : ''
-        }`;
+        optionEl.className = `rewst-multiselect-option${isSelected ? ' is-selected' : ''}`;
 
         optionEl.addEventListener('mouseenter', () => {
           optionEl.style.backgroundColor = 'var(--rewst-light-gray)';
@@ -1704,11 +1696,10 @@ const RewstDOM = {
 
         const labelSpan = document.createElement('span');
         labelSpan.textContent = option.label;
-        labelSpan.className = isSelected ? 'text-rewst-teal font-medium text-sm' : 'text-rewst-dark-gray text-sm';
+        labelSpan.className = isSelected ? 'rewst-multiselect-option-label is-selected' : 'rewst-multiselect-option-label';
 
         const checkIcon = document.createElement('span');
-        checkIcon.className = 'material-icons text-rewst-teal';
-        checkIcon.style.fontSize = '20px';
+        checkIcon.className = 'material-icons rewst-multiselect-check';
         checkIcon.textContent = 'check';
         checkIcon.style.visibility = isSelected ? 'visible' : 'hidden';
 
@@ -1803,12 +1794,12 @@ const RewstDOM = {
 
     // Create form element
     const form = document.createElement('form');
-    form.className = 'w-full bg-white rounded-lg shadow-sm border border-gray-100 p-6';
+    form.className = 'rewst-form';
 
     // Add title if form has a name
     if (formData.name) {
       const title = document.createElement('h2');
-      title.className = 'text-2xl font-bold text-gray-900 mb-6 pb-4 border-b-2 border-gray-200';
+      title.className = 'rewst-form-title';
       title.textContent = formData.name;
       form.appendChild(title);
     }
@@ -1816,7 +1807,7 @@ const RewstDOM = {
     // Add description if exists
     if (formData.description) {
       const desc = document.createElement('p');
-      desc.className = 'text-gray-600 mb-6';
+      desc.className = 'rewst-form-description';
       desc.textContent = formData.description;
       form.appendChild(desc);
     }
@@ -1900,7 +1891,7 @@ const RewstDOM = {
     // Create fields
     for (const field of sortedFields) {
       const fieldWrapper = document.createElement('div');
-      fieldWrapper.className = 'mb-8 w-full';
+      fieldWrapper.className = 'rewst-form-field';
 
       const schema = field.schema || {};
       const label = schema.label || field.id;
@@ -1909,7 +1900,7 @@ const RewstDOM = {
       // Handle TEXT type (markdown/static text)
       if (field.type === 'TEXT' && schema.static) {
         const textDiv = document.createElement('div');
-        textDiv.className = 'text-gray-700 mb-4';
+        textDiv.className = 'rewst-form-static';
         textDiv.innerHTML = this._markdownToHtml(schema.text || '');
         form.appendChild(textDiv);
         continue;
@@ -1921,11 +1912,11 @@ const RewstDOM = {
       // Create label (except for checkbox which has its own layout)
       if (field.type !== 'CHECKBOX') {
         const labelEl = document.createElement('label');
-        labelEl.className = 'block text-sm font-medium text-gray-700 mb-2';
+        labelEl.className = 'rewst-form-label';
 
         // Add required asterisk in red if needed
         if (required) {
-          labelEl.innerHTML = `${label} <span class="text-red-500">*</span>`;
+          labelEl.innerHTML = `${label} <span class="rewst-form-required">*</span>`;
         } else {
           labelEl.textContent = label;
         }
@@ -1937,7 +1928,7 @@ const RewstDOM = {
       // Add description as help text if exists
       if (schema.description) {
         const helpText = document.createElement('p');
-        helpText.className = 'text-xs text-gray-500 mb-1.5';
+        helpText.className = 'rewst-form-help';
         helpText.textContent = schema.description;
         fieldWrapper.appendChild(helpText);
       }
@@ -1949,7 +1940,7 @@ const RewstDOM = {
         case 'TEXT_INPUT':
           input = document.createElement('input');
           input.type = 'text';
-          input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400';
+          input.className = 'rewst-form-input';
           if (schema.placeholder) input.placeholder = schema.placeholder;
           if (schema.default) input.value = schema.default;
 
@@ -1962,7 +1953,7 @@ const RewstDOM = {
         case 'EMAIL_INPUT':
           input = document.createElement('input');
           input.type = 'email';
-          input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400';
+          input.className = 'rewst-form-input';
           if (schema.placeholder) input.placeholder = schema.placeholder;
           if (schema.default) input.value = schema.default;
 
@@ -1975,7 +1966,7 @@ const RewstDOM = {
         case 'NUMBER_INPUT':
           input = document.createElement('input');
           input.type = 'number';
-          input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400';
+          input.className = 'rewst-form-input';
           if (schema.min !== undefined) input.min = schema.min;
           if (schema.max !== undefined) input.max = schema.max;
           if (schema.default) input.value = schema.default;
@@ -1988,7 +1979,7 @@ const RewstDOM = {
 
         case 'TEXTAREA':
           input = document.createElement('textarea');
-          input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400';
+          input.className = 'rewst-form-input';
           input.rows = schema.rows || 4;
           if (schema.placeholder) input.placeholder = schema.placeholder;
           if (schema.default) input.value = schema.default;
@@ -2001,19 +1992,19 @@ const RewstDOM = {
 
         case 'RADIO':
           input = document.createElement('div');
-          input.className = 'flex flex-col gap-2.5';
+          input.className = 'rewst-form-radio-group';
 
           if (schema.enum && Array.isArray(schema.enum)) {
             schema.enum.forEach((option, idx) => {
               const radioWrapper = document.createElement('div');
-              radioWrapper.className = 'flex items-center gap-2.5';
+              radioWrapper.className = 'rewst-form-radio-item';
 
               const radioInput = document.createElement('input');
               radioInput.type = 'radio';
               radioInput.id = `${field.id}_${idx}`;
               radioInput.name = field.id;
               radioInput.value = typeof option === 'object' ? option.value : option;
-              radioInput.className = 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 flex-shrink-0 self-start mt-0.5';
+              radioInput.className = 'rewst-form-radio-input';
 
               if (schema.default && radioInput.value === schema.default) {
                 radioInput.checked = true;
@@ -2028,7 +2019,7 @@ const RewstDOM = {
 
               const radioLabel = document.createElement('label');
               radioLabel.htmlFor = `${field.id}_${idx}`;
-              radioLabel.className = 'text-sm text-gray-700 cursor-pointer select-none flex-1';
+              radioLabel.className = 'rewst-form-radio-label';
               radioLabel.textContent = typeof option === 'object' ? option.label : option;
 
               radioWrapper.appendChild(radioInput);
@@ -2041,10 +2032,10 @@ const RewstDOM = {
         case 'DROPDOWN':
         case 'SELECT':
           const dropdownWrapper = document.createElement('div');
-          dropdownWrapper.className = 'w-full';
+          dropdownWrapper.className = 'rewst-form-select-wrap';
 
           const selectInput = document.createElement('select');
-          selectInput.className = 'w-full h-[42px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400 appearance-none bg-white';
+          selectInput.className = 'rewst-form-select';
 
           // Add placeholder option
           const placeholderOption = document.createElement('option');
@@ -2060,11 +2051,11 @@ const RewstDOM = {
           // Check for workflow-based options
           if (schema.enumSourceWorkflow) {
             const controlWrapper = document.createElement('div');
-            controlWrapper.className = 'flex gap-2 items-start';
+            controlWrapper.className = 'rewst-form-select-control';
 
             const refreshBtn = document.createElement('button');
             refreshBtn.type = 'button';
-            refreshBtn.className = 'material-icons bg-gray-50 text-rewst-teal hover:bg-gray-100 border border-gray-200 rounded-full p-2 transition-colors';
+            refreshBtn.className = 'material-icons rewst-form-select-refresh';
             refreshBtn.textContent = 'refresh';
             refreshBtn.title = 'Refresh options';
 
@@ -3173,30 +3164,28 @@ const RewstDOM = {
 
     // Create container
     const container = document.createElement('div');
-    container.className = 'relative w-full';
+    container.className = 'rewst-autocomplete';
 
     // Create input wrapper
     const inputWrapper = document.createElement('div');
-    inputWrapper.className = 'relative';
+    inputWrapper.className = 'rewst-autocomplete-input-wrap';
 
     // Create search input
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = placeholder;
-    input.className = 'w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rewst-teal focus:border-rewst-teal';
+    input.className = 'rewst-autocomplete-input';
 
     // Create dropdown arrow button
     const dropdownBtn = document.createElement('button');
     dropdownBtn.type = 'button';
-    dropdownBtn.className = 'material-icons absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer transition-transform';
-    dropdownBtn.style.fontSize = '20px';
+    dropdownBtn.className = 'material-icons rewst-autocomplete-toggle';
     dropdownBtn.textContent = 'arrow_drop_down';
 
     // Create clear button (hidden by default)
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
-    clearBtn.className = 'material-icons absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer';
-    clearBtn.style.fontSize = '20px';
+    clearBtn.className = 'material-icons rewst-autocomplete-clear';
     clearBtn.textContent = 'close';
     clearBtn.style.display = 'none'; // Hidden by default
 
@@ -3211,14 +3200,14 @@ const RewstDOM = {
     let subtitleDisplay = null;
     if (subtitleKey) {
       subtitleDisplay = document.createElement('div');
-      subtitleDisplay.className = 'text-xs text-gray-500 mt-1 px-1';
+      subtitleDisplay.className = 'rewst-autocomplete-subtitle';
       subtitleDisplay.style.display = 'none';
       container.appendChild(subtitleDisplay);
     }
 
     // Create dropdown
     const dropdown = document.createElement('div');
-    dropdown.className = 'hidden absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto';
+    dropdown.className = 'rewst-autocomplete-menu hidden';
     container.appendChild(dropdown);
 
     // Default search function
@@ -3238,7 +3227,7 @@ const RewstDOM = {
 
       if (filteredItems.length === 0) {
         const noResults = document.createElement('div');
-        noResults.className = 'px-3 py-2 text-sm text-gray-500 italic';
+        noResults.className = 'rewst-autocomplete-empty';
         noResults.textContent = noResultsText;
         dropdown.appendChild(noResults);
         return;
@@ -3250,16 +3239,16 @@ const RewstDOM = {
       displayItems.forEach((item, idx) => {
         const itemEl = document.createElement('button');
         itemEl.type = 'button';
-        itemEl.className = 'w-full px-3 py-2 text-left text-sm hover:bg-rewst-light transition-colors cursor-pointer';
+        itemEl.className = 'rewst-autocomplete-option';
         itemEl.dataset.index = idx;
 
         // If subtitleKey is set, show label + subtitle
         if (subtitleKey && item[subtitleKey]) {
           const labelSpan = document.createElement('div');
-          labelSpan.className = 'font-medium';
+          labelSpan.className = 'rewst-autocomplete-option-title';
           labelSpan.textContent = item[labelKey];
           const subtitleSpan = document.createElement('div');
-          subtitleSpan.className = 'text-xs text-gray-500';
+          subtitleSpan.className = 'rewst-autocomplete-option-subtitle';
           subtitleSpan.textContent = item[subtitleKey];
           itemEl.appendChild(labelSpan);
           itemEl.appendChild(subtitleSpan);
@@ -3281,7 +3270,7 @@ const RewstDOM = {
 
       if (filteredItems.length > maxResults) {
         const moreResults = document.createElement('div');
-        moreResults.className = 'px-3 py-2 text-sm text-gray-500 italic border-t border-gray-200';
+        moreResults.className = 'rewst-autocomplete-more';
         moreResults.textContent = `${filteredItems.length - maxResults} more results...`;
         dropdown.appendChild(moreResults);
       }
@@ -3292,9 +3281,9 @@ const RewstDOM = {
       const items = dropdown.querySelectorAll('button');
       items.forEach((item, idx) => {
         if (idx === highlightedIndex) {
-          item.classList.add('bg-rewst-light');
+          item.classList.add('is-highlighted');
         } else {
-          item.classList.remove('bg-rewst-light');
+          item.classList.remove('is-highlighted');
         }
       });
     };
@@ -3473,7 +3462,7 @@ const RewstDOM = {
     if (!container) {
       container = document.createElement('div');
       container.id = 'rewst-toast-container';
-      container.className = 'fixed top-4 right-4 z-50 space-y-2';
+      container.className = 'rewst-toast-container';
       document.body.appendChild(container);
     }
     return container;
@@ -3490,7 +3479,7 @@ const RewstDOM = {
 
     // Create toast element using alert classes
     const toast = document.createElement('div');
-    toast.className = 'alert min-w-[320px] max-w-md transform translate-x-full transition-transform duration-300 ease-out';
+    toast.className = 'alert rewst-toast is-entering';
     toast.style.opacity = '1'; // Force full opacity
 
     // Add type-specific alert class
@@ -3524,9 +3513,8 @@ const RewstDOM = {
 
     // Create close button
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'material-icons ml-auto opacity-70 hover:opacity-100 transition-opacity cursor-pointer';
+    closeBtn.className = 'material-icons rewst-toast-close';
     closeBtn.textContent = 'close';
-    closeBtn.style.fontSize = '20px';
     closeBtn.onclick = () => this._removeToast(toast);
 
     // Assemble toast
@@ -3537,8 +3525,8 @@ const RewstDOM = {
 
     // Trigger slide-in animation
     setTimeout(() => {
-      toast.classList.remove('translate-x-full');
-      toast.classList.add('translate-x-0');
+      toast.classList.remove('is-entering');
+      toast.classList.add('is-visible');
     }, 10);
 
     // Auto-dismiss
@@ -3556,7 +3544,8 @@ const RewstDOM = {
    * @private
    */
   _removeToast(toast) {
-    toast.classList.add('translate-x-full', 'opacity-0');
+    toast.classList.remove('is-visible');
+    toast.classList.add('is-hiding');
     setTimeout(() => {
       if (toast.parentNode) {
         toast.parentNode.removeChild(toast);

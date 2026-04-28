@@ -7,17 +7,17 @@ function renderVpnSetupPage() {
   container.innerHTML = '';
 
   const infoCard = RewstDOM.createCard(`
-    <div class="flex items-start gap-3">
-      <div class="text-green-500 mt-0.5">
+    <div class="vpnsetup-info-row">
+      <div class="vpnsetup-info-icon">
         <span class="material-icons">check_circle</span>
       </div>
-      <div>
-        <p class="text-rewst-dark-gray font-medium">Computer prerequisite checks are complete</p>
-        <p class="text-sm text-rewst-gray mt-1">All validation checks now run on the Prerequisites page before you continue here.</p>
+      <div class="vpnsetup-info-content">
+        <p class="vpnsetup-info-title">Computer prerequisite checks are complete</p>
+        <p class="vpnsetup-info-detail">All validation checks now run on the Prerequisites page before you continue here.</p>
       </div>
     </div>
   `);
-  infoCard.className = 'card p-5';
+  infoCard.className = 'card vpnsetup-info-card';
 
   container.appendChild(infoCard);
 }

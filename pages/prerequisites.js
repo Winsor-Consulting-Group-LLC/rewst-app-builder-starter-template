@@ -14,13 +14,13 @@ function renderPrerequisitesPage() {
 
   // ---- Checklist items container ----
   const checklistContainer = document.createElement('div');
-  checklistContainer.className = 'space-y-3';
+  checklistContainer.className = 'prereq-checklist';
   container.appendChild(checklistContainer);
 
   // ---- Company checks section ----
   const companySectionHeader = document.createElement('div');
-  companySectionHeader.className = 'mt-6 mb-3';
-  companySectionHeader.innerHTML = '<h3 class="text-lg font-semibold text-rewst-dark-gray">Company Prerequisites</h3>';
+  companySectionHeader.className = 'prereq-section-header';
+  companySectionHeader.innerHTML = '<h3 class="prereq-section-title">Company Prerequisites</h3>';
   checklistContainer.appendChild(companySectionHeader);
 
   const companyChecks = [
@@ -32,14 +32,14 @@ function renderPrerequisitesPage() {
 
   function createCheckCard(id, label) {
     const checkItem = createCardContainer(`
-      <div class="text-rewst-gray">
+      <div class="prereq-check-icon is-pending">
         <span class="material-icons">schedule</span>
       </div>
-      <div class="flex-1">
-        <p class="text-rewst-dark-gray font-medium">${label}</p>
-        <p class="text-sm text-rewst-gray">Pending - Waiting to start...</p>
+      <div class="prereq-check-content">
+        <p class="prereq-check-title">${label}</p>
+        <p class="prereq-check-detail">Pending - Waiting to start...</p>
       </div>
-    `, 'card p-4 flex items-center gap-3');
+    `, 'card prereq-check-card');
 
     checkItem.id = id;
     return checkItem;
@@ -53,8 +53,8 @@ function renderPrerequisitesPage() {
 
   // ---- User checks section ----
   const userSectionHeader = document.createElement('div');
-  userSectionHeader.className = 'mt-6 mb-3';
-  userSectionHeader.innerHTML = '<h3 class="text-lg font-semibold text-rewst-dark-gray">User Prerequisites</h3>';
+  userSectionHeader.className = 'prereq-section-header';
+  userSectionHeader.innerHTML = '<h3 class="prereq-section-title">User Prerequisites</h3>';
   checklistContainer.appendChild(userSectionHeader);
 
   const emailVerificationCheckItem = createCheckCard('check-email-verification', 'Email verification');
@@ -68,8 +68,8 @@ function renderPrerequisitesPage() {
 
   // ---- Computer checks section ----
   const computerSectionHeader = document.createElement('div');
-  computerSectionHeader.className = 'mt-6 mb-3';
-  computerSectionHeader.innerHTML = '<h3 class="text-lg font-semibold text-rewst-dark-gray">Computer Prerequisites</h3>';
+  computerSectionHeader.className = 'prereq-section-header';
+  computerSectionHeader.innerHTML = '<h3 class="prereq-section-title">Computer Prerequisites</h3>';
   checklistContainer.appendChild(computerSectionHeader);
 
   const validMachineCertCheckItem = createCheckCard('check-valid-machine-cert', 'Valid machine certificate installed');
@@ -80,10 +80,10 @@ function renderPrerequisitesPage() {
 
   // ---- Continue button ----
   const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'mt-8 flex justify-center';
+  buttonContainer.className = 'prereq-actions';
 
   const continueButton = document.createElement('button');
-  continueButton.className = 'btn-primary flex items-center gap-2 opacity-50 cursor-not-allowed';
+  continueButton.className = 'btn-primary prereq-continue-btn is-disabled';
   continueButton.disabled = true;
   const defaultContinueButtonHtml = `
     <span class="material-icons">arrow_forward</span>
@@ -304,22 +304,23 @@ function renderPrerequisitesPage() {
           : statusType === 'running'
             ? 'Running'
             : 'Failed');
-    const iconAnimationClass = statusType === 'running' ? 'animate-spin' : '';
+    const iconAnimationClass = statusType === 'running' ? 'prereq-icon-spin' : '';
     const showRetry = !passed && typeof onRetry === 'function';
+    const statusModifierClass = `is-${statusType}`;
 
     element.innerHTML = `
-      <div class="${statusClass}">
+      <div class="prereq-check-icon ${statusModifierClass}">
         <span class="material-icons ${iconAnimationClass}">${statusIcon}</span>
       </div>
-      <div class="flex-1">
-        <p class="text-rewst-dark-gray font-medium">${label}</p>
-        <p class="text-sm text-rewst-gray">${statusText}${details ? ` - ${details}` : ''}</p>
+      <div class="prereq-check-content">
+        <p class="prereq-check-title">${label}</p>
+        <p class="prereq-check-detail">${statusText}${details ? ` - ${details}` : ''}</p>
       </div>
-      ${showRetry ? '<button class="btn-secondary btn-sm retry-btn flex items-center gap-1"><span class="material-icons text-sm">refresh</span><span>Re-check</span></button>' : ''}
+      ${showRetry ? '<button class="btn-secondary btn-sm prereq-retry-btn"><span class="material-icons">refresh</span><span>Re-check</span></button>' : ''}
     `;
 
     if (showRetry) {
-      const retryBtn = element.querySelector('.retry-btn');
+      const retryBtn = element.querySelector('.prereq-retry-btn');
       if (retryBtn) {
         retryBtn.addEventListener('click', onRetry);
       }
@@ -360,8 +361,7 @@ function renderPrerequisitesPage() {
 
     autoProceedCountdownValue = AUTO_PROCEED_COUNTDOWN_SECONDS;
     continueButton.disabled = false;
-    continueButton.classList.remove('opacity-50', 'cursor-not-allowed');
-    continueButton.classList.add('cursor-pointer');
+    continueButton.classList.remove('is-disabled');
     updateContinueButtonForCountdown();
 
     autoProceedCountdownTimer = setInterval(() => {
@@ -395,11 +395,9 @@ function renderPrerequisitesPage() {
 
     continueButton.disabled = !allPassed;
     if (allPassed) {
-      continueButton.classList.remove('opacity-50', 'cursor-not-allowed');
-      continueButton.classList.add('cursor-pointer');
+      continueButton.classList.remove('is-disabled');
     } else {
-      continueButton.classList.add('opacity-50', 'cursor-not-allowed');
-      continueButton.classList.remove('cursor-pointer');
+      continueButton.classList.add('is-disabled');
     }
 
     if (allPassed) {

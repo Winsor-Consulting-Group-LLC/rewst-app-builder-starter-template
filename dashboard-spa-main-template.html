@@ -19,6 +19,9 @@
   <!-- Lodash -->
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 
+  <!-- HTMX (for progressive HTML-driven interactions) -->
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -28,44 +31,44 @@
     {{ CSS_THEME }}
   </style>
 </head>
-<body class="bg-rewst-light">
+<body class="app-shell">
 
   <!-- Sidebar -->
-  <div id="sidebar" class="sidebar fixed left-0 top-0 h-screen bg-white border-r border-gray-200 flex flex-col z-50">
+  <div id="sidebar" class="sidebar app-sidebar">
 
     <!-- Sidebar Header -->
-    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-      <div class="flex items-center gap-2 overflow-hidden">
+    <div class="app-sidebar-header">
+      <div class="app-sidebar-branding">
         <div class="winsor-logo-mark" aria-label="Winsor logo" title="Winsor">
           <svg class="winsor-logo-svg" viewBox="0 0 75 75" role="img" aria-hidden="true" focusable="false">
             <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABLCAMAAAAPkIrYAAAB/lBMVEVHcExhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0dhr0e1nmhSAAAAqXRSTlMAiIQDqGAErGWK8D0uzRYiyubbaBTyQMmnAeHxOetrobAMZBX+OA430R3VGu8bWQJmWgt39qpqsqn3BaJB/Zc8M/j7CDshwQe41846GN665ekZFyXS7a7u7BzY0zTqI2GOkpaJbQkkk4OHo31nc6aGi5o+eaWzMJv5tVVGv522xEyFngaCUmlLSETMbxCR+owR2ZTP0DZDMuLUHjUfKisxINbo38ct5PzzlkgqLQAAAqNJREFUeNrt1/dTE0EUB/DFEg0EggXSNQSSqCH0JoJ0BRFpSlXsvfcuKth7772+/9J3t5G5290ke784/rBvJpPNfjOf3OV2cy+EqFKlSpWq/6gia4XTU6HgpbNNoqQ86AqWCOY9Na7eJ0/jfFC4BrQ6yAVt1XrgtrGBrU4PvA42WJwLtI4yQUFnIljFUvNwMrMIYIGDp3w32y9jbDcFj/FwWyvPnGwE2MtRRfcKsxaymEblNeDgGGLbDEGOC2DlDRwcwmAfe1RzceBkMJ3K14d2fMv2mWB0GZ7GHX1YicFhnmIxA0WxHYnxxBjA12jixX4MQjxlxkwUxY7row/fAHo+zgSr8Qu6wFNG7L7LRFHsOj5/6gUY/2wI3AAtF3mKYj8n6Mf58k2XyK6vAH8A4PuAcb7+Cr7Vz1MUGyIkFoDW28zS0bANffiIMGttEk8m6uYoQn7kga+DdDdCLrfW7frqHGrjNgde13MCihAX/PITRwt4I0KsR7Bvl68AIeUcht+DxHYXoK5UiE0L9vN5IZWTDdCJz7cwnTNbiM0ioj0opor1RRGSxlJQmVl0PF+M7WQxCSoplmHGpCg5TJKSwQpkKQmsXEgNrOMpCSwDtnLpeiGVHitt5qlnYkr2ahqq/zku0SbxjdMi1o8bvbg92V3YEhbbCDDcnfyWbgGLI7XJn6o/kMbi40iFUzcbZQy2OyzERt8AjITTdS6LzNgBKBFg2k/iSDR9G2TCluJtew+HaVTghUxPpWFHPH8p2MV9Z2+/IPVOrkHTsFOeBLWEuwDvuwC2bJbt9jSs2tnhNlEUezD4cswKRbGqKoai2EN89DVb6UPLaP9Ww0xf02dfv7LW1J6o9XpPN3DTV2u7sh/FLLfIFRXC6XqP+vegSpUqVf+o/gDBcldBUWvVfwAAAABJRU5ErkJggg==" x="0" y="0" width="75" height="75" preserveAspectRatio="xMidYMid meet" />
           </svg>
         </div>
-        <span class="nav-text font-semibold text-rewst-black whitespace-nowrap">Computer VPN Manager</span>
+        <span class="nav-text app-sidebar-brand-title">Computer VPN Manager</span>
       </div>
-      <button id="toggle-sidebar" class="p-1 hover:bg-gray-100 rounded">
-        <span class="material-icons text-gray-600">chevron_left</span>
+      <button id="toggle-sidebar" class="app-sidebar-toggle-btn">
+        <span class="material-icons app-sidebar-toggle-icon">chevron_left</span>
       </button>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 p-4 overflow-y-auto">
+    <nav class="app-sidebar-nav">
 
       <!-- Pages Section -->
-      <div class="mb-2">
-        <div class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-rewst-gray">
-          <span class="material-icons text-lg">menu</span>
+      <div class="app-nav-section">
+        <div class="app-nav-section-label">
+          <span class="material-icons app-nav-section-icon">menu</span>
           <span class="nav-text">Pages</span>
         </div>
 
-        <div class="sub-nav ml-4 mt-1 space-y-1">
-          <a href="#" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="prerequisites">
-            <span class="material-icons text-lg">checklist</span>
+        <div class="sub-nav app-nav-list">
+          <a href="#" class="sidebar-item active app-nav-item" data-page="prerequisites">
+            <span class="material-icons app-nav-item-icon">checklist</span>
             <span class="nav-text">Prerequisites</span>
-            <span id="prereq-complete-indicator" class="material-icons text-base text-rewst-teal hidden" title="All prerequisites complete">verified</span>
+            <span id="prereq-complete-indicator" class="material-icons app-nav-status-icon hidden" title="All prerequisites complete">verified</span>
           </a>
-          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray opacity-50 cursor-not-allowed" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
-            <span class="material-icons text-lg">vpn_lock</span>
+          <a href="#" class="sidebar-item app-nav-item opacity-50 cursor-not-allowed" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
+            <span class="material-icons app-nav-item-icon">vpn_lock</span>
             <span id="vpnsetup-nav-text" class="nav-text">VPN Setup</span>
           </a>
         </div>
@@ -76,39 +79,39 @@
   </div>
 
   <!-- Filter Slide-Out Drawer -->
-  <div id="filter-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden transition-opacity duration-300"></div>
+  <div id="filter-overlay" class="app-filter-overlay hidden"></div>
 
-  <div id="filter-drawer" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300">
+  <div id="filter-drawer" class="app-filter-drawer">
     <!-- Drawer Header -->
-    <div class="flex items-center justify-between px-8 py-4 border-b border-gray-200 bg-gray-50">
-      <h3 class="text-base font-semibold text-rewst-black">Filters</h3>
-      <button id="close-filter-drawer" class="text-gray-500 hover:text-gray-700 transition-colors">
+    <div class="app-filter-drawer-header">
+      <h3 class="app-filter-drawer-title">Filters</h3>
+      <button id="close-filter-drawer" class="app-filter-close-btn">
         <span class="material-icons">close</span>
       </button>
     </div>
 
     <!-- Drawer Content — add your filter controls here -->
-    <div class="p-6 overflow-y-auto" style="height: calc(100% - 65px);">
+    <div class="app-filter-drawer-content" style="height: calc(100% - 65px);">
 
       <!-- Example: Organization Filter -->
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-rewst-dark-gray mb-2">Organization</label>
+      <div class="app-filter-group">
+        <label class="app-filter-label">Organization</label>
         <div id="filter-org-container">
           <!-- Populate with RewstDOM.createAutocomplete() or createStyledDropdown() -->
         </div>
       </div>
 
       <!-- Example: Date Range Filter -->
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-rewst-dark-gray mb-2">Date Range</label>
+      <div class="app-filter-group">
+        <label class="app-filter-label">Date Range</label>
         <div id="filter-date-container">
           <!-- Populate with RewstDOM.createStyledDropdown() -->
         </div>
       </div>
 
       <!-- Example: Custom Filter -->
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-rewst-dark-gray mb-2">Custom Filter</label>
+      <div class="app-filter-group">
+        <label class="app-filter-label">Custom Filter</label>
         <div id="filter-custom-container">
           <!-- Populate with RewstDOM.createMultiSelect() -->
         </div>
@@ -118,32 +121,32 @@
   </div>
 
   <!-- Main Content -->
-  <div id="main-content" class="main-content min-h-screen">
+  <div id="main-content" class="main-content app-main-content">
 
     <!-- Sticky Header -->
-    <div id="sticky-header" class="sticky-header py-4 px-8">
-      <div class="flex items-center justify-between">
+    <div id="sticky-header" class="sticky-header app-sticky-header">
+      <div class="app-sticky-header-row">
         <div>
-          <h1 class="text-2xl font-semibold text-rewst-black transition-all">Prerequisites</h1>
-          <p class="header-subtitle text-sm text-rewst-gray">Company and user-level validation checks</p>
+          <h1 class="app-page-title">Prerequisites</h1>
+          <p class="header-subtitle app-page-subtitle">Company and user-level validation checks</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="app-header-actions">
 
           <!-- Dark Mode Toggle -->
-          <label id="toggle-example" class="dark-mode-toggle flex items-center gap-2 cursor-pointer">
-            <span class="text-sm text-rewst-gray">Dark mode</span>
-            <span id="dark-mode-sun" class="material-icons text-base text-rewst-warning transition-colors duration-200">light_mode</span>
-            <div class="relative inline-block w-12 h-6">
+          <label id="toggle-example" class="dark-mode-toggle app-dark-toggle">
+            <span class="app-dark-toggle-label">Dark mode</span>
+            <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
+            <div class="app-dark-toggle-switch">
               <input type="checkbox" id="header-toggle" class="sr-only">
-              <div class="toggle-bg w-12 h-6 bg-gray-300 rounded-full transition-all duration-200"></div>
-              <div class="toggle-dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm"></div>
+              <div class="toggle-bg app-dark-toggle-bg"></div>
+              <div class="toggle-dot app-dark-toggle-dot"></div>
             </div>
-            <span id="dark-mode-moon" class="material-icons text-base text-gray-400 transition-colors duration-200">dark_mode</span>
+            <span id="dark-mode-moon" class="material-icons app-dark-toggle-moon">dark_mode</span>
           </label>
 
           <!-- Refresh Button -->
           <div id="refresh-button-container">
-            <button id="refresh-btn" class="btn-primary flex items-center gap-2">
+            <button id="refresh-btn" class="btn-primary app-refresh-btn">
               <span class="material-icons">refresh</span>
               <span class="btn-text">Re-check all</span>
             </button>
@@ -154,7 +157,7 @@
     </div>
 
     <!-- Page Content -->
-    <div class="px-8 pb-8 pt-6">
+    <div class="app-page-content-wrap">
 
       <!-- Prerequisites Page (Company + User) -->
       <div id="page-prerequisites" class="page-content">
