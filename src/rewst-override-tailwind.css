@@ -2050,6 +2050,22 @@ tbody td {
   font-weight: 500;
 }
 
+.rewst-metric-trend-solid {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.rewst-metric-trend-up {
+  color: #16a34a;
+}
+
+.rewst-metric-trend-down {
+  color: #dc2626;
+}
+
+.rewst-metric-trend-neutral {
+  color: #4b5563;
+}
+
 /* List helper */
 .rewst-list {
   margin: 0;

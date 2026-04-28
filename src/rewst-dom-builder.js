@@ -3013,13 +3013,19 @@ const RewstDOM = {
       let trendColorClass = '';
       if (trend === 'up') {
         trendIcon.textContent = 'trending_up';
-        trendColorClass = (solidBackground === true) ? 'text-white/90' : 'text-green-600';
+        trendColorClass = (solidBackground === true)
+          ? 'rewst-metric-trend-solid'
+          : 'rewst-metric-trend-up';
       } else if (trend === 'down') {
         trendIcon.textContent = 'trending_down';
-        trendColorClass = (solidBackground === true) ? 'text-white/90' : 'text-red-600';
+        trendColorClass = (solidBackground === true)
+          ? 'rewst-metric-trend-solid'
+          : 'rewst-metric-trend-down';
       } else {
         trendIcon.textContent = 'remove';
-        trendColorClass = (solidBackground === true) ? 'text-white/90' : 'text-gray-600';
+        trendColorClass = (solidBackground === true)
+          ? 'rewst-metric-trend-solid'
+          : 'rewst-metric-trend-neutral';
       }
 
       if (trendColorClass) {
