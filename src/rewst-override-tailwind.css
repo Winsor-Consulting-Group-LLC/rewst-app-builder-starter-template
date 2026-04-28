@@ -1973,6 +1973,165 @@ tbody td {
   width: 100%;
 }
 
+/* Metric helpers */
+.rewst-metric-card {
+  width: 100%;
+}
+
+.rewst-metric-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.rewst-metric-title-wrap {
+  flex: 1;
+}
+
+.rewst-metric-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--rewst-dark-gray);
+}
+
+.rewst-metric-title.is-solid {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.rewst-metric-subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--rewst-gray);
+}
+
+.rewst-metric-subtitle.is-solid {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.rewst-metric-icon-wrap {
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: var(--rewst-light);
+}
+
+.rewst-metric-icon-wrap.is-solid {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.rewst-metric-icon {
+  font-size: 24px;
+}
+
+.rewst-metric-value {
+  margin-bottom: 0.5rem;
+  font-size: 2.25rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.rewst-metric-value.is-solid {
+  color: #ffffff;
+}
+
+.rewst-metric-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rewst-metric-trend-icon {
+  font-size: 0.875rem;
+}
+
+.rewst-metric-trend-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* List helper */
+.rewst-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.rewst-list-ordered {
+  list-style: decimal;
+}
+
+.rewst-list-unordered {
+  list-style: disc;
+}
+
+.rewst-list-item {
+  color: #374151;
+  margin: 0.25rem 0;
+}
+
+/* Key-value helper */
+.rewst-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .rewst-kv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rewst-kv-item {
+  min-width: 0;
+}
+
+.rewst-kv-key {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.rewst-kv-value {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.rewst-kv-value.is-plain {
+  color: #111827;
+}
+
+.rewst-kv-json {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background: #111827;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace;
+  overflow-x: auto;
+}
+
+.rewst-json-number {
+  color: #6ee7b7;
+}
+
+.rewst-json-key {
+  color: #22d3ee;
+}
+
+.rewst-json-string {
+  color: #fcd34d;
+}
+
+.rewst-json-literal {
+  color: #c084fc;
+}
+
+.rewst-json-syntax {
+  color: #9ca3af;
+}
+
 /* ============================================
      FORMS - Rewst Style
      ============================================ */

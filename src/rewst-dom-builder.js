@@ -2933,28 +2933,32 @@ const RewstDOM = {
     // Class order: w-full card card-metric card-metric-{color} OR card card-metric card-{color}
     // Always include w-full to ensure cards fill their container
     if (cardClass) {
-      card.className = `w-full card card-metric ${cardClass}`;
+      card.className = `rewst-metric-card card card-metric ${cardClass}`;
     } else if (solidBackground === true) {
-      card.className = `w-full card card-metric card-metric-${color}`;
+      card.className = `rewst-metric-card card card-metric card-metric-${color}`;
     } else {
-      card.className = `w-full card card-metric card-${color}`;
+      card.className = `rewst-metric-card card card-metric card-${color}`;
     }
 
     // Header with title/subtitle and optional icon
     const header = document.createElement('div');
-    header.className = 'flex items-start justify-between mb-4';
+    header.className = 'rewst-metric-header';
 
     const titleSection = document.createElement('div');
-    titleSection.className = 'flex-1';
+    titleSection.className = 'rewst-metric-title-wrap';
 
     const titleEl = document.createElement('h3');
-    titleEl.className = (solidBackground === true) ? 'text-sm font-medium text-white/90 mb-1' : 'text-sm font-medium text-rewst-dark-gray mb-1';
+    titleEl.className = (solidBackground === true)
+      ? 'rewst-metric-title is-solid'
+      : 'rewst-metric-title';
     titleEl.textContent = title;
     titleSection.appendChild(titleEl);
 
     if (subtitle) {
       const subtitleEl = document.createElement('p');
-      subtitleEl.className = (solidBackground === true) ? 'text-xs text-white/70' : 'text-xs text-rewst-gray';
+      subtitleEl.className = (solidBackground === true)
+        ? 'rewst-metric-subtitle is-solid'
+        : 'rewst-metric-subtitle';
       subtitleEl.textContent = subtitle;
       titleSection.appendChild(subtitleEl);
     }
@@ -2967,11 +2971,13 @@ const RewstDOM = {
       if (iconBgClass) {
         iconWrapper.className = iconBgClass;
       } else {
-        iconWrapper.className = (solidBackground === true) ? 'bg-white/20 rounded-full p-3' : 'bg-rewst-light rounded-full p-3';
+        iconWrapper.className = (solidBackground === true)
+          ? 'rewst-metric-icon-wrap is-solid'
+          : 'rewst-metric-icon-wrap';
       }
 
       const iconEl = document.createElement('span');
-      iconEl.className = 'material-icons';
+      iconEl.className = 'material-icons rewst-metric-icon';
       if (iconClass) {
         iconEl.className += ' ' + iconClass;
       } else if (solidBackground === true) {
@@ -2990,17 +2996,19 @@ const RewstDOM = {
 
     // Large metric value
     const valueEl = document.createElement('div');
-    valueEl.className = (solidBackground === true) ? 'text-4xl font-bold text-white mb-2' : `text-4xl font-bold text-rewst-${color} mb-2`;
+    valueEl.className = (solidBackground === true)
+      ? 'rewst-metric-value is-solid'
+      : `rewst-metric-value text-rewst-${color}`;
     valueEl.textContent = value;
     card.appendChild(valueEl);
 
     // Optional trend indicator
     if (trend && trendValue) {
       const trendWrapper = document.createElement('div');
-      trendWrapper.className = 'flex items-center gap-1';
+      trendWrapper.className = 'rewst-metric-trend';
 
       const trendIcon = document.createElement('span');
-      trendIcon.className = 'material-icons text-sm';
+      trendIcon.className = 'material-icons rewst-metric-trend-icon';
 
       let trendColorClass = '';
       if (trend === 'up') {
@@ -3019,7 +3027,7 @@ const RewstDOM = {
       }
 
       const trendText = document.createElement('span');
-      trendText.className = 'text-sm font-medium';
+      trendText.className = 'rewst-metric-trend-text';
       if (trendColorClass) {
         trendText.className += ' ' + trendColorClass;
       }
@@ -3039,12 +3047,12 @@ const RewstDOM = {
   createList(items, ordered = false) {
     const list = document.createElement(ordered ? 'ol' : 'ul');
     list.className = ordered
-      ? 'list-decimal list-inside space-y-1'
-      : 'list-disc list-inside space-y-1';
+      ? 'rewst-list rewst-list-ordered'
+      : 'rewst-list rewst-list-unordered';
 
     items.forEach(item => {
       const li = document.createElement('li');
-      li.className = 'text-gray-700';
+      li.className = 'rewst-list-item';
       li.textContent = typeof item === 'object' ? JSON.stringify(item) : item;
       list.appendChild(li);
     });
@@ -3066,25 +3074,25 @@ const RewstDOM = {
 
     // First, color the values
     json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-      let cls = 'text-emerald-300'; // numbers
+      let cls = 'rewst-json-number'; // numbers
 
       if (/^"/.test(match)) {
         if (/:$/.test(match)) {
-          cls = 'text-cyan-400'; // keys
+          cls = 'rewst-json-key'; // keys
         } else {
-          cls = 'text-amber-300'; // string values
+          cls = 'rewst-json-string'; // string values
         }
       } else if (/true|false/.test(match)) {
-        cls = 'text-purple-400'; // booleans
+        cls = 'rewst-json-literal'; // booleans
       } else if (/null/.test(match)) {
-        cls = 'text-purple-400'; // null
+        cls = 'rewst-json-literal'; // null
       }
 
       return '<span class="' + cls + '">' + match + '</span>';
     });
 
     // Then, color the structural characters (brackets, braces, colons, commas)
-    json = json.replace(/([{}\[\],:])/g, '<span class="text-gray-400">$1</span>');
+    json = json.replace(/([{}\[\],:])/g, '<span class="rewst-json-syntax">$1</span>');
 
     return json;
   },
@@ -3094,27 +3102,27 @@ const RewstDOM = {
    */
   createKeyValue(data) {
     const dl = document.createElement('dl');
-    dl.className = 'grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2';
+    dl.className = 'rewst-kv-grid';
 
     Object.entries(data).forEach(([key, value]) => {
       const wrapper = document.createElement('div');
-      wrapper.className = 'sm:col-span-1';
+      wrapper.className = 'rewst-kv-item';
 
       const dt = document.createElement('dt');
-      dt.className = 'text-sm font-medium text-gray-500';
+      dt.className = 'rewst-kv-key';
       dt.textContent = key.replace(/_/g, ' ');
 
       const dd = document.createElement('dd');
-      dd.className = 'mt-1 text-sm';
+      dd.className = 'rewst-kv-value';
 
       // Handle objects with pretty formatting and syntax highlighting
       if (typeof value === 'object' && value !== null) {
         const pre = document.createElement('pre');
-        pre.className = 'bg-gray-900 p-3 rounded text-xs overflow-x-auto font-mono leading-relaxed';
+        pre.className = 'rewst-kv-json';
         pre.innerHTML = this._syntaxHighlightJSON(value);
         dd.appendChild(pre);
       } else {
-        dd.className += ' text-gray-900';
+        dd.classList.add('is-plain');
         dd.textContent = value;
       }
 
