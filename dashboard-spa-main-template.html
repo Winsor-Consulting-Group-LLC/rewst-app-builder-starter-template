@@ -46,7 +46,7 @@
         </div>
         <span class="nav-text app-sidebar-brand-title">Computer VPN Manager</span>
       </div>
-      <button id="toggle-sidebar" class="app-sidebar-toggle-btn">
+      <button id="toggle-sidebar" class="app-sidebar-toggle-btn" hx-on:click="window.AppUI && window.AppUI.toggleSidebar()">
         <span class="material-icons app-sidebar-toggle-icon">chevron_left</span>
       </button>
     </div>
@@ -79,13 +79,13 @@
   </div>
 
   <!-- Filter Slide-Out Drawer -->
-  <div id="filter-overlay" class="app-filter-overlay hidden"></div>
+  <div id="filter-overlay" class="app-filter-overlay hidden" hx-on:click="window.AppUI && window.AppUI.closeFilterDrawer()"></div>
 
   <div id="filter-drawer" class="app-filter-drawer">
     <!-- Drawer Header -->
     <div class="app-filter-drawer-header">
       <h3 class="app-filter-drawer-title">Filters</h3>
-      <button id="close-filter-drawer" class="app-filter-close-btn">
+      <button id="close-filter-drawer" class="app-filter-close-btn" hx-on:click="window.AppUI && window.AppUI.closeFilterDrawer()">
         <span class="material-icons">close</span>
       </button>
     </div>
@@ -137,7 +137,7 @@
             <span class="app-dark-toggle-label">Dark mode</span>
             <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
             <div class="app-dark-toggle-switch">
-              <input type="checkbox" id="header-toggle" class="sr-only">
+              <input type="checkbox" id="header-toggle" class="sr-only" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
               <div class="toggle-bg app-dark-toggle-bg"></div>
               <div class="toggle-dot app-dark-toggle-dot"></div>
             </div>
@@ -146,7 +146,7 @@
 
           <!-- Refresh Button -->
           <div id="refresh-button-container">
-            <button id="refresh-btn" class="btn-primary app-refresh-btn">
+            <button id="refresh-btn" class="btn-primary app-refresh-btn" hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()">
               <span class="material-icons">refresh</span>
               <span class="btn-text">Re-check all</span>
             </button>
@@ -269,11 +269,11 @@
       const toggleBtn = document.getElementById('toggle-sidebar');
       const toggleIcon = toggleBtn.querySelector('.material-icons');
 
-      toggleBtn.addEventListener('click', () => {
+      function toggleSidebar() {
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('sidebar-collapsed');
         toggleIcon.textContent = sidebar.classList.contains('collapsed') ? 'chevron_right' : 'chevron_left';
-      });
+      }
 
       // ============================================
       // PAGE NAVIGATION
@@ -577,14 +577,14 @@
 
       applyDarkMode(getInitialDarkModePreference(), true, false);
 
-      headerToggle.addEventListener('change', () => {
+      function toggleDarkMode() {
         applyDarkMode(headerToggle.checked, true, true);
-      });
+      }
 
       // ============================================
       // REFRESH BUTTON
       // ============================================
-      document.getElementById('refresh-btn').addEventListener('click', () => {
+      function refreshPrerequisites() {
         debugLog('Refresh clicked - resetting prerequisite session cache');
 
         try {
@@ -601,7 +601,7 @@
 
         RewstDOM.showInfo('Session cache reset. Re-running prerequisites checks...');
         switchPage('prerequisites');
-      });
+      }
 
       // ============================================
       // FILTER DRAWER
@@ -609,26 +609,31 @@
       const filterOverlay = document.getElementById('filter-overlay');
       const filterDrawer = document.getElementById('filter-drawer');
       const openFilterDrawerBtn = document.getElementById('open-filter-drawer');
-      const closeFilterDrawerBtn = document.getElementById('close-filter-drawer');
 
-      if (openFilterDrawerBtn) {
-        openFilterDrawerBtn.addEventListener('click', () => {
-          filterOverlay.classList.remove('hidden');
-          filterOverlay.classList.add('open');
-          filterDrawer.classList.add('open');
-        });
+      function openFilterDrawer() {
+        filterOverlay.classList.remove('hidden');
+        filterOverlay.classList.add('open');
+        filterDrawer.classList.add('open');
       }
 
-      const closeDrawer = () => {
+      function closeFilterDrawer() {
         filterOverlay.classList.remove('open');
         filterDrawer.classList.remove('open');
         setTimeout(() => { filterOverlay.classList.add('hidden'); }, 300);
+      }
+
+      // HTMX uses these named handlers from markup for readability.
+      window.AppUI = {
+        toggleSidebar,
+        refreshPrerequisites,
+        openFilterDrawer,
+        closeFilterDrawer,
+        toggleDarkMode
       };
 
-      if (closeFilterDrawerBtn) {
-        closeFilterDrawerBtn.addEventListener('click', closeDrawer);
+      if (openFilterDrawerBtn) {
+        openFilterDrawerBtn.addEventListener('click', openFilterDrawer);
       }
-      filterOverlay.addEventListener('click', closeDrawer);
 
       // ============================================
       // PAGE RENDER FUNCTIONS
