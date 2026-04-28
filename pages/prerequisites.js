@@ -108,12 +108,16 @@ function renderPrerequisitesPage() {
 
   const MAX_CHECK_ATTEMPTS = 3; // Initial run + 2 retries
   const RETRY_DELAY_MS = 600;
+  const EMAIL_LOOKUP_MAX_ATTEMPTS = 8;
+  const EMAIL_LOOKUP_RETRY_DELAY_MS = 1500;
+  const EMAIL_LOOKUP_MAX_WAIT_MS = 2 * 60 * 1000;
   const COMPUTER_CHECK_MAX_WAIT_MS = 5 * 60 * 1000;
   const COMPUTER_CHECK_RETRY_DELAY_MS = 5000;
   const COMPUTER_CHECK_MAX_ATTEMPTS = 60;
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
 
   let currentUserEmail = null;
+  let emailLookupInFlight = null;
   let selectedConfig = null;
   const checkResultDetails = {
     ca_name: '',
@@ -403,19 +407,66 @@ function renderPrerequisitesPage() {
   async function ensureUserEmail() {
     if (currentUserEmail) return currentUserEmail;
 
-    const attemptResult = await runWithRetries(
-      () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL')),
-      (usernameResult) => !!usernameResult?.output?.username,
-      'Email verification lookup'
-    );
+    if (!emailLookupInFlight) {
+      emailLookupInFlight = (async () => {
+        const extractUserEmail = (result) => {
+          const data = result?.output || result || {};
+          const candidates = [
+            data.username,
+            data.user_email,
+            data.userEmail,
+            data.email,
+            data.user_principal_name,
+            data.userPrincipalName
+          ];
 
-    const email = attemptResult.result?.output?.username;
-    if (!attemptResult.ok || !email) {
-      throw new Error(`Could not determine current user email after ${attemptResult.attempts} attempts`);
+          for (const candidate of candidates) {
+            if (typeof candidate === 'string' && candidate.trim()) {
+              return candidate.trim();
+            }
+          }
+
+          return null;
+        };
+
+        const attemptResult = await runWithRetries(
+          () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL')),
+          (lookupResult) => !!extractUserEmail(lookupResult),
+          'Email verification lookup',
+          {
+            maxAttempts: EMAIL_LOOKUP_MAX_ATTEMPTS,
+            retryDelayMs: EMAIL_LOOKUP_RETRY_DELAY_MS,
+            maxTotalMs: EMAIL_LOOKUP_MAX_WAIT_MS
+          }
+        );
+
+        const email = extractUserEmail(attemptResult.result);
+        if (!attemptResult.ok || !email) {
+          let message = `Could not determine current user email after ${attemptResult.attempts} attempts over ${formatDuration(attemptResult.elapsedMs || 0)}`;
+          if (attemptResult.exhaustedTimeBudget) {
+            message += ` (reached ${formatDuration(EMAIL_LOOKUP_MAX_WAIT_MS)} wait limit)`;
+          }
+          throw new Error(message);
+        }
+
+        currentUserEmail = email;
+        return currentUserEmail;
+      })().finally(() => {
+        emailLookupInFlight = null;
+      });
     }
 
-    currentUserEmail = email;
-    return currentUserEmail;
+    return emailLookupInFlight;
+  }
+
+  function startUserEmailPrefetch() {
+    if (currentUserEmail || emailLookupInFlight) {
+      return;
+    }
+
+    ensureUserEmail().catch((error) => {
+      debugWarn('Background email prefetch did not resolve yet:', error);
+    });
   }
 
   async function runEmailVerificationCheck(options = {}) {
@@ -899,6 +950,9 @@ function renderPrerequisitesPage() {
     setCheckPending(computerOnlineCheckItem, 'Computer Online', 'Waiting for CWM Configuration to complete.');
     setCheckPending(validMachineCertCheckItem, 'Valid machine certificate installed', 'Waiting for Computer Online to pass.');
     setCheckPending(remoteDomainReachableCheckItem, 'Remote domain reachable', 'Waiting for Computer Online to pass.');
+
+    // Start user email lookup immediately so it is ready when the check is reached.
+    startUserEmailPrefetch();
 
     const cached = getCachedPrereqs();
     if (applyCachedPrereqs(cached)) {
