@@ -1939,6 +1939,40 @@ tbody td {
   margin-top: 1.5rem;
 }
 
+/* Charts */
+.rewst-chart-container {
+  width: 100%;
+}
+
+.rewst-chart-error {
+  color: #ef4444;
+}
+
+.rewst-chart-toolbar {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rewst-chart-refresh-btn {
+  padding: 0.5rem;
+  border: 1px solid var(--rewst-light-gray);
+  border-radius: 9999px;
+  background: #f9fafb;
+  color: var(--rewst-teal);
+  transition: background-color 0.2s ease;
+}
+
+.rewst-chart-refresh-btn:hover {
+  background: var(--rewst-light-gray);
+}
+
+.rewst-chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+}
+
 /* ============================================
      FORMS - Rewst Style
      ============================================ */

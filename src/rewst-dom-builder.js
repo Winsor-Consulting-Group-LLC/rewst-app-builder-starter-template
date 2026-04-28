@@ -2678,7 +2678,7 @@ const RewstDOM = {
     if (typeof Chart === 'undefined') {
       const error = document.createElement('p');
       error.textContent = 'Chart.js library not loaded';
-      error.className = 'text-red-500';
+      error.className = 'rewst-chart-error';
       return error;
     }
 
@@ -2703,15 +2703,15 @@ const RewstDOM = {
 
     // Create container
     const container = document.createElement('div');
-    container.className = 'rewst-chart-container w-full';
+    container.className = 'rewst-chart-container';
 
     // Create top bar with optional refresh button
     if (canRefresh) {
       const topBar = document.createElement('div');
-      topBar.className = 'mb-4 flex justify-between items-center';
+      topBar.className = 'rewst-chart-toolbar';
 
       const refreshBtn = document.createElement('button');
-      refreshBtn.className = 'material-icons bg-gray-50 text-rewst-teal hover:bg-rewst-light-gray border border-rewst-light-gray rounded-full p-2 transition-colors';
+      refreshBtn.className = 'material-icons rewst-chart-refresh-btn';
       refreshBtn.textContent = 'refresh';
       refreshBtn.title = 'Refresh chart data';
 
@@ -2724,7 +2724,7 @@ const RewstDOM = {
 
     // Create canvas wrapper
     const canvasWrapper = document.createElement('div');
-    canvasWrapper.className = 'relative w-full';
+    canvasWrapper.className = 'rewst-chart-canvas-wrap';
     canvasWrapper.style.height = options.height || '400px';
 
     // Create canvas
