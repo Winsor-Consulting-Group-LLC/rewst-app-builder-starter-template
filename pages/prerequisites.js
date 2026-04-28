@@ -418,7 +418,9 @@ function renderPrerequisitesPage() {
     return currentUserEmail;
   }
 
-  async function runEmailVerificationCheck() {
+  async function runEmailVerificationCheck(options = {}) {
+    const continuePipeline = options.continuePipeline === true;
+
     setCheckLoading(emailVerificationCheckItem, 'Email verification', 'Looking up your current account details...');
     checkResultDetails.email_verification = '';
 
@@ -437,10 +439,15 @@ function renderPrerequisitesPage() {
         false,
         'Email verification',
         checkResultDetails.email_verification,
-        runEmailVerificationCheck
+        () => runEmailVerificationCheck({ continuePipeline: true })
       );
     } finally {
       updateButtonState();
+    }
+
+    if (continuePipeline && checkStates.email_verification) {
+      await runCwmConfigurationCheck();
+      await runComputerOnlineCheck();
     }
   }
 
@@ -528,7 +535,14 @@ function renderPrerequisitesPage() {
       if (!checkStates.email_verification) {
         checkStates.cwm_config = false;
         checkResultDetails.cwm_config = 'Run Email verification first';
-        setCheckPending(cwmCheckItem, 'CWM Configuration', 'Waiting for Email verification to pass.');
+        renderCheckResult(
+          cwmCheckItem,
+          false,
+          'CWM Configuration',
+          'Waiting for Email verification to pass.',
+          () => runEmailVerificationCheck({ continuePipeline: true }),
+          { statusType: 'pending', statusText: 'Pending' }
+        );
         return;
       }
 
