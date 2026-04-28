@@ -2139,18 +2139,18 @@ const RewstDOM = {
 
         case 'MULTISELECT':
           const multiselectWrapper = document.createElement('div');
-          multiselectWrapper.className = 'w-full relative';
+          multiselectWrapper.className = 'rewst-form-multiselect';
 
           // Store selected values
           const selectedValues = new Set(schema.default || []);
 
           // Create unified container for tags (acts as the clickable input)
           const tagsContainer = document.createElement('div');
-          tagsContainer.className = 'w-full min-h-[52px] px-3 py-2 border-2 border-rewst-light-gray rounded-md focus-within:ring-2 focus-within:ring-rewst-teal focus-within:border-rewst-teal flex flex-wrap gap-2 items-center bg-white cursor-pointer hover:border-rewst-gray transition-colors';
+          tagsContainer.className = 'rewst-form-multiselect-tags';
 
           // Create dropdown menu that appears below
           const dropdownMenu = document.createElement('div');
-          dropdownMenu.className = 'hidden absolute z-10 w-full mt-1 bg-white border-2 border-rewst-light-gray rounded-md shadow-rewst max-h-60 overflow-auto';
+          dropdownMenu.className = 'rewst-form-multiselect-menu hidden';
 
           let availableOptions = [];
 
@@ -2166,15 +2166,14 @@ const RewstDOM = {
                 const label = option ? option.label : value;
 
                 const tag = document.createElement('div');
-                tag.className = 'inline-flex items-center gap-1 px-3 py-1.5 bg-rewst-light-gray text-rewst-dark-gray rounded-full text-sm font-medium';
+                tag.className = 'rewst-form-multiselect-tag';
 
                 const tagLabel = document.createElement('span');
                 tagLabel.textContent = label;
 
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'material-icons text-rewst-dark-gray hover:text-rewst-black cursor-pointer';
-                removeBtn.style.fontSize = '18px';
+                removeBtn.className = 'material-icons rewst-form-multiselect-tag-remove';
                 removeBtn.textContent = 'close';
                 removeBtn.onclick = (e) => {
                   e.stopPropagation();
@@ -2192,15 +2191,14 @@ const RewstDOM = {
             } else {
               // Add placeholder if empty
               const placeholder = document.createElement('span');
-              placeholder.className = 'text-rewst-gray text-sm';
+              placeholder.className = 'rewst-form-multiselect-placeholder';
               placeholder.textContent = 'Click to select items...';
               tagsContainer.appendChild(placeholder);
             }
 
             // Add dropdown arrow indicator
             const arrow = document.createElement('span');
-            arrow.className = 'material-icons text-rewst-gray ml-auto';
-            arrow.style.fontSize = '20px';
+            arrow.className = 'material-icons rewst-form-multiselect-arrow';
             arrow.textContent = 'expand_more';
             tagsContainer.appendChild(arrow);
           };
@@ -2211,7 +2209,7 @@ const RewstDOM = {
 
             if (availableOptions.length === 0) {
               const emptyMsg = document.createElement('div');
-              emptyMsg.className = 'px-3 py-2 text-rewst-gray text-sm';
+              emptyMsg.className = 'rewst-form-multiselect-empty';
               emptyMsg.textContent = 'No options available';
               dropdownMenu.appendChild(emptyMsg);
               return;
@@ -2222,7 +2220,7 @@ const RewstDOM = {
 
               const optionEl = document.createElement('button');
               optionEl.type = 'button';
-              optionEl.className = `w-full px-3 py-2 text-left transition-colors flex items-center justify-between ${isSelected ? 'bg-rewst-light' : ''}`;
+              optionEl.className = `rewst-form-multiselect-option${isSelected ? ' is-selected' : ''}`;
 
               // Add hover state manually since Tailwind hover: doesn't work with custom classes
               optionEl.addEventListener('mouseenter', () => {
@@ -2243,11 +2241,10 @@ const RewstDOM = {
 
               const labelSpan = document.createElement('span');
               labelSpan.textContent = option.label;
-              labelSpan.className = isSelected ? 'text-rewst-teal font-medium' : 'text-rewst-dark-gray';
+              labelSpan.className = isSelected ? 'rewst-form-multiselect-option-label is-selected' : 'rewst-form-multiselect-option-label';
 
               const checkIcon = document.createElement('span');
-              checkIcon.className = 'material-icons text-rewst-teal';
-              checkIcon.style.fontSize = '20px';
+              checkIcon.className = 'material-icons rewst-form-multiselect-check';
               checkIcon.textContent = 'check';
               checkIcon.style.visibility = isSelected ? 'visible' : 'hidden';
 
@@ -2292,11 +2289,11 @@ const RewstDOM = {
           if (schema.enumSourceWorkflow) {
             // Add refresh button to the right of the container
             const containerWithRefresh = document.createElement('div');
-            containerWithRefresh.className = 'flex gap-2 items-center';
+            containerWithRefresh.className = 'rewst-form-select-control';
 
             const refreshBtn = document.createElement('button');
             refreshBtn.type = 'button';
-            refreshBtn.className = 'material-icons bg-gray-50 text-rewst-teal hover:bg-rewst-light-gray border border-rewst-light-gray rounded-full p-2 transition-colors';
+            refreshBtn.className = 'material-icons rewst-form-select-refresh';
             refreshBtn.textContent = 'refresh';
             refreshBtn.title = 'Refresh options';
 
@@ -2390,11 +2387,11 @@ const RewstDOM = {
 
         case 'CHECKBOX':
           const checkboxWrapper = document.createElement('div');
-          checkboxWrapper.className = 'flex items-start gap-3';
+          checkboxWrapper.className = 'rewst-form-checkbox';
 
           input = document.createElement('input');
           input.type = 'checkbox';
-          input.className = 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0 mt-0.5';
+          input.className = 'rewst-form-checkbox-input';
           if (schema.default) input.checked = schema.default;
 
           // CRITICAL: Add change listener for conditional fields
@@ -2405,7 +2402,7 @@ const RewstDOM = {
 
           const checkboxLabel = document.createElement('label');
           checkboxLabel.htmlFor = field.id;
-          checkboxLabel.className = 'text-sm text-gray-700 cursor-pointer select-none';
+          checkboxLabel.className = 'rewst-form-checkbox-label';
           checkboxLabel.textContent = label;
 
           checkboxWrapper.appendChild(input);
@@ -2422,7 +2419,7 @@ const RewstDOM = {
         case 'DATE':
           input = document.createElement('input');
           input.type = 'date';
-          input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400';
+          input.className = 'rewst-form-input';
           if (schema.default) input.value = schema.default;
 
           input.addEventListener('change', (e) => {
@@ -2435,7 +2432,7 @@ const RewstDOM = {
           // Default to text input
           input = document.createElement('input');
           input.type = 'text';
-          input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400';
+          input.className = 'rewst-form-input';
 
           input.addEventListener('input', (e) => {
             formValues[schema.name] = e.target.value;
@@ -2475,7 +2472,7 @@ const RewstDOM = {
     // Create submit button using Rewst theme
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
-    submitButton.className = 'btn-primary mt-6';
+    submitButton.className = 'btn-primary rewst-form-submit';
     submitButton.textContent = 'Submit';
     form.appendChild(submitButton);
 

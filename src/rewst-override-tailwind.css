@@ -1815,6 +1815,130 @@ tbody td {
   background: #f3f4f6;
 }
 
+.rewst-form-multiselect {
+  width: 100%;
+  position: relative;
+}
+
+.rewst-form-multiselect-tags {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--rewst-light-gray);
+  border-radius: 0.375rem;
+  background: var(--rewst-white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  transition: border-color 0.2s ease;
+}
+
+.rewst-form-multiselect-tags:hover {
+  border-color: var(--rewst-gray);
+}
+
+.rewst-form-multiselect-menu {
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  margin-top: 0.25rem;
+  max-height: 15rem;
+  overflow: auto;
+  background: var(--rewst-white);
+  border: 2px solid var(--rewst-light-gray);
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.rewst-form-multiselect-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  background: var(--rewst-light-gray);
+  color: var(--rewst-dark-gray);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.rewst-form-multiselect-tag-remove {
+  font-size: 18px;
+  color: var(--rewst-dark-gray);
+}
+
+.rewst-form-multiselect-placeholder {
+  font-size: 0.875rem;
+  color: var(--rewst-gray);
+}
+
+.rewst-form-multiselect-arrow {
+  margin-left: auto;
+  font-size: 20px;
+  color: var(--rewst-gray);
+}
+
+.rewst-form-multiselect-empty {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--rewst-gray);
+}
+
+.rewst-form-multiselect-option {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+}
+
+.rewst-form-multiselect-option.is-selected {
+  background: var(--rewst-light);
+}
+
+.rewst-form-multiselect-option-label {
+  color: var(--rewst-dark-gray);
+}
+
+.rewst-form-multiselect-option-label.is-selected {
+  color: var(--rewst-teal);
+  font-weight: 500;
+}
+
+.rewst-form-multiselect-check {
+  font-size: 20px;
+  color: var(--rewst-teal);
+}
+
+.rewst-form-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.rewst-form-checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.125rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+
+.rewst-form-checkbox-label {
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rewst-form-submit {
+  margin-top: 1.5rem;
+}
+
 /* ============================================
      FORMS - Rewst Style
      ============================================ */
