@@ -597,7 +597,7 @@ function renderPrerequisitesPage() {
     setCheckLoading(
       computerOnlineCheckItem,
       'Computer Online',
-      'Communicating with your PC... This can take up to 5 minutes.',
+      'Initial request sent. This can take up to 5 minutes.',
       'Communicating with your PC'
     );
     checkResultDetails.computer_online = '';
@@ -631,7 +631,7 @@ function renderPrerequisitesPage() {
             setCheckLoading(
               computerOnlineCheckItem,
               'Computer Online',
-              `Communicating with your PC... attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`,
+              `Attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`,
               'Communicating with your PC'
             );
           }
@@ -776,13 +776,13 @@ function renderPrerequisitesPage() {
     setCheckLoading(
       validMachineCertCheckItem,
       'Valid machine certificate installed',
-      'Communicating with your PC... This can take up to 5 minutes.',
+      'Initial request sent. This can take up to 5 minutes.',
       'Communicating with your PC'
     );
     setCheckLoading(
       remoteDomainReachableCheckItem,
       'Remote domain reachable',
-      'Communicating with your PC... This can take up to 5 minutes.',
+      'Initial request sent. This can take up to 5 minutes.',
       'Communicating with your PC'
     );
     checkResultDetails.valid_machine_cert_installed = '';
@@ -821,7 +821,7 @@ function renderPrerequisitesPage() {
         retryDelayMs: COMPUTER_CHECK_RETRY_DELAY_MS,
         maxTotalMs: COMPUTER_CHECK_MAX_WAIT_MS,
         onAttemptStart: ({ attempt, maxAttempts }) => {
-          const detail = `Communicating with your PC... attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`;
+          const detail = `Attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`;
           setCheckLoading(validMachineCertCheckItem, 'Valid machine certificate installed', detail, 'Communicating with your PC');
           setCheckLoading(remoteDomainReachableCheckItem, 'Remote domain reachable', detail, 'Communicating with your PC');
         }
