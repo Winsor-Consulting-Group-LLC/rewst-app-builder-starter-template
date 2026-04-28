@@ -142,14 +142,6 @@
             </button>
           </div>
 
-          <!-- Filters Button (opens drawer) -->
-          <div id="filter-button-container">
-            <button id="open-filter-drawer" class="btn-secondary flex items-center gap-2">
-              <span class="material-icons">filter_list</span>
-              <span class="btn-text">Filters</span>
-            </button>
-          </div>
-
         </div>
       </div>
     </div>
@@ -453,12 +445,16 @@
       // ============================================
       const filterOverlay = document.getElementById('filter-overlay');
       const filterDrawer = document.getElementById('filter-drawer');
+      const openFilterDrawerBtn = document.getElementById('open-filter-drawer');
+      const closeFilterDrawerBtn = document.getElementById('close-filter-drawer');
 
-      document.getElementById('open-filter-drawer').addEventListener('click', () => {
-        filterOverlay.classList.remove('hidden');
-        filterOverlay.classList.add('open');
-        filterDrawer.classList.add('open');
-      });
+      if (openFilterDrawerBtn) {
+        openFilterDrawerBtn.addEventListener('click', () => {
+          filterOverlay.classList.remove('hidden');
+          filterOverlay.classList.add('open');
+          filterDrawer.classList.add('open');
+        });
+      }
 
       const closeDrawer = () => {
         filterOverlay.classList.remove('open');
@@ -466,7 +462,9 @@
         setTimeout(() => { filterOverlay.classList.add('hidden'); }, 300);
       };
 
-      document.getElementById('close-filter-drawer').addEventListener('click', closeDrawer);
+      if (closeFilterDrawerBtn) {
+        closeFilterDrawerBtn.addEventListener('click', closeDrawer);
+      }
       filterOverlay.addEventListener('click', closeDrawer);
 
       // ============================================
