@@ -1,5 +1,10 @@
 # Rewst App Builder Template
 
+> [!WARNING]
+> This is **not** the original public template/fork. This repository is a highly opinionated, internal-use variant maintained for one team's workflow.
+>
+> It is **unsupported** for external users. If you are looking for a general starter, use the **upstream/original fork** instead of this repository.
+
 A barebones starter template for building single-page apps on the Rewst App Builder platform.
 
 **Author:** Nick Zipse
