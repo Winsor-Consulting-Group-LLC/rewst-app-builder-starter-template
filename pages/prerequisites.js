@@ -85,11 +85,21 @@ function renderPrerequisitesPage() {
   const continueButton = document.createElement('button');
   continueButton.className = 'btn-primary flex items-center gap-2 opacity-50 cursor-not-allowed';
   continueButton.disabled = true;
-  continueButton.innerHTML = `
+  const defaultContinueButtonHtml = `
     <span class="material-icons">arrow_forward</span>
-    <span>Continue to VPN Setup</span>
+    <span>Continue to Manage VPN</span>
   `;
+  continueButton.innerHTML = defaultContinueButtonHtml;
   continueButton.addEventListener('click', () => {
+    if (autoProceedCountdownTimer) {
+      stopAutoProceedCountdown();
+      autoProceedTriggered = true;
+      if (typeof window.maybeAutoNavigateToVpnSetup === 'function') {
+        window.maybeAutoNavigateToVpnSetup();
+        return;
+      }
+    }
+
     switchPage('vpnsetup');
   });
 
@@ -116,9 +126,17 @@ function renderPrerequisitesPage() {
   const COMPUTER_CHECK_MAX_ATTEMPTS = 60;
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
 
+  const configuredCountdown = Number(window.APP_CONFIG?.autoProceedCountdownSeconds);
+  const AUTO_PROCEED_COUNTDOWN_SECONDS = Number.isInteger(configuredCountdown) && configuredCountdown > 0
+    ? configuredCountdown
+    : 3;
+
   let currentUserEmail = null;
   let emailLookupInFlight = null;
   let selectedConfig = null;
+  let autoProceedCountdownTimer = null;
+  let autoProceedCountdownValue = AUTO_PROCEED_COUNTDOWN_SECONDS;
+  let autoProceedTriggered = false;
   const checkResultDetails = {
     ca_name: '',
     ad_domain: '',
@@ -308,8 +326,73 @@ function renderPrerequisitesPage() {
     }
   }
 
+  function hasAutoNavigatedToVpnAlready() {
+    try {
+      return sessionStorage.getItem('autoNavigatedToVpnSetupV1') === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function stopAutoProceedCountdown(resetState = false) {
+    if (autoProceedCountdownTimer) {
+      clearInterval(autoProceedCountdownTimer);
+      autoProceedCountdownTimer = null;
+    }
+
+    if (resetState) {
+      autoProceedCountdownValue = AUTO_PROCEED_COUNTDOWN_SECONDS;
+      autoProceedTriggered = false;
+    }
+  }
+
+  function updateContinueButtonForCountdown() {
+    continueButton.innerHTML = `
+      <span class="material-icons">check_circle</span>
+      <span>All checks passed. Proceeding in ${autoProceedCountdownValue}... (Proceed now)</span>
+    `;
+  }
+
+  function startAutoProceedCountdown() {
+    if (autoProceedTriggered || autoProceedCountdownTimer || hasAutoNavigatedToVpnAlready()) {
+      return;
+    }
+
+    autoProceedCountdownValue = AUTO_PROCEED_COUNTDOWN_SECONDS;
+    continueButton.disabled = false;
+    continueButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    continueButton.classList.add('cursor-pointer');
+    updateContinueButtonForCountdown();
+
+    autoProceedCountdownTimer = setInterval(() => {
+      autoProceedCountdownValue -= 1;
+
+      if (autoProceedCountdownValue > 0) {
+        updateContinueButtonForCountdown();
+        return;
+      }
+
+      stopAutoProceedCountdown();
+      autoProceedTriggered = true;
+      continueButton.innerHTML = `
+        <span class="material-icons">arrow_forward</span>
+        <span>Opening Manage VPN...</span>
+      `;
+
+      if (typeof window.maybeAutoNavigateToVpnSetup === 'function') {
+        window.maybeAutoNavigateToVpnSetup();
+      }
+    }, 1000);
+  }
+
   function updateButtonState() {
     const allPassed = REQUIRED_PASSING_KEYS.every(key => checkStates[key] === true);
+
+    if (!allPassed) {
+      stopAutoProceedCountdown(true);
+      continueButton.innerHTML = defaultContinueButtonHtml;
+    }
+
     continueButton.disabled = !allPassed;
     if (allPassed) {
       continueButton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -327,8 +410,12 @@ function renderPrerequisitesPage() {
       window.setVpnSetupNavEnabled(allPassed);
     }
 
-    if (allPassed && typeof window.maybeAutoNavigateToVpnSetup === 'function') {
-      window.maybeAutoNavigateToVpnSetup();
+    if (allPassed) {
+      if (hasAutoNavigatedToVpnAlready()) {
+        continueButton.innerHTML = defaultContinueButtonHtml;
+      } else {
+        startAutoProceedCountdown();
+      }
     }
   }
 
