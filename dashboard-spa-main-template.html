@@ -62,10 +62,11 @@
           <a href="#" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray" data-page="prerequisites">
             <span class="material-icons text-lg">checklist</span>
             <span class="nav-text">Prerequisites</span>
+            <span id="prereq-complete-indicator" class="material-icons text-base text-rewst-teal hidden" title="All prerequisites complete">verified</span>
           </a>
           <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded text-sm text-rewst-dark-gray opacity-50 cursor-not-allowed" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
             <span class="material-icons text-lg">vpn_lock</span>
-            <span class="nav-text">VPN Setup</span>
+            <span id="vpnsetup-nav-text" class="nav-text">VPN Setup</span>
           </a>
         </div>
       </div>
@@ -271,7 +272,10 @@
       // ============================================
       const navLinks = document.querySelectorAll('.sidebar-item');
       const pageContainers = document.querySelectorAll('.page-content');
+      const prereqCompleteIndicator = document.getElementById('prereq-complete-indicator');
       const vpnSetupNavLink = document.querySelector('.sidebar-item[data-page="vpnsetup"]');
+      const vpnSetupNavText = document.getElementById('vpnsetup-nav-text');
+      const AUTO_NAVIGATED_TO_VPN_KEY = 'autoNavigatedToVpnSetupV1';
 
       function arePrerequisitesCompleteFromCache() {
         try {
@@ -304,12 +308,42 @@
         vpnSetupNavLink.title = enabled
           ? 'VPN Setup'
           : 'Complete all prerequisites to unlock VPN Setup';
+        if (vpnSetupNavText) {
+          vpnSetupNavText.textContent = enabled ? 'Manage VPN' : 'VPN Setup';
+        }
+        if (prereqCompleteIndicator) {
+          prereqCompleteIndicator.classList.toggle('hidden', !enabled);
+        }
         vpnSetupNavLink.classList.toggle('opacity-50', !enabled);
         vpnSetupNavLink.classList.toggle('cursor-not-allowed', !enabled);
       }
 
+      function maybeAutoNavigateToVpnSetup() {
+        const prerequisitesComplete = arePrerequisitesCompleteFromCache();
+        if (!prerequisitesComplete || currentPage !== 'prerequisites') {
+          return;
+        }
+
+        try {
+          if (sessionStorage.getItem(AUTO_NAVIGATED_TO_VPN_KEY) === 'true') {
+            return;
+          }
+          sessionStorage.setItem(AUTO_NAVIGATED_TO_VPN_KEY, 'true');
+        } catch (error) {
+          debugWarn('Failed to persist auto-navigation state:', error);
+        }
+
+        switchPage('vpnsetup');
+      }
+
       window.setVpnSetupNavEnabled = setVpnSetupNavEnabled;
-      setVpnSetupNavEnabled(arePrerequisitesCompleteFromCache());
+      window.maybeAutoNavigateToVpnSetup = maybeAutoNavigateToVpnSetup;
+
+      const prerequisitesCompleteOnLoad = arePrerequisitesCompleteFromCache();
+      setVpnSetupNavEnabled(prerequisitesCompleteOnLoad);
+      if (prerequisitesCompleteOnLoad) {
+        maybeAutoNavigateToVpnSetup();
+      }
 
       navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -549,6 +583,7 @@
           sessionStorage.removeItem('prerequisitesChecksCacheV1');
           sessionStorage.removeItem('vpnSetupChecksCacheV1');
           sessionStorage.removeItem('selectedConfig');
+          sessionStorage.removeItem(AUTO_NAVIGATED_TO_VPN_KEY);
         } catch (error) {
           debugWarn('Failed to clear one or more session cache keys:', error);
         }

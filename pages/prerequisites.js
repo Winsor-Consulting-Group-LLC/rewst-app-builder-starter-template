@@ -322,6 +322,10 @@ function renderPrerequisitesPage() {
     if (typeof window.setVpnSetupNavEnabled === 'function') {
       window.setVpnSetupNavEnabled(allPassed);
     }
+
+    if (allPassed && typeof window.maybeAutoNavigateToVpnSetup === 'function') {
+      window.maybeAutoNavigateToVpnSetup();
+    }
   }
 
   async function runWithRetries(task, isSuccess, operationName = 'workflow', options = {}) {
