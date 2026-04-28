@@ -418,6 +418,26 @@
       const darkModeSun = document.getElementById('dark-mode-sun');
       const darkModeMoon = document.getElementById('dark-mode-moon');
       const DARK_MODE_SESSION_KEY = 'darkModeEnabledV1';
+      const THEME_TRANSITION_CLASS = 'theme-transitioning';
+      const THEME_TRANSITION_DURATION_MS = 560;
+
+      let themeTransitionTimeout = null;
+      let themeTransitionOverlay = null;
+
+      function getOrCreateThemeTransitionOverlay() {
+        if (themeTransitionOverlay) return themeTransitionOverlay;
+
+        const existing = document.getElementById('theme-transition-overlay');
+        if (existing) {
+          themeTransitionOverlay = existing;
+          return themeTransitionOverlay;
+        }
+
+        themeTransitionOverlay = document.createElement('div');
+        themeTransitionOverlay.id = 'theme-transition-overlay';
+        document.body.appendChild(themeTransitionOverlay);
+        return themeTransitionOverlay;
+      }
 
       function getInitialDarkModePreference() {
         try {
@@ -439,7 +459,50 @@
         }
       }
 
-      function applyDarkMode(isDark, persist = true) {
+      function triggerThemeTransition() {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          return;
+        }
+
+        const overlay = getOrCreateThemeTransitionOverlay();
+        const toggleRect = headerToggle.getBoundingClientRect();
+        const originX = toggleRect.left + (toggleRect.width / 2);
+        const originY = toggleRect.top + (toggleRect.height / 2);
+
+        document.documentElement.style.setProperty('--theme-origin-x', `${originX}px`);
+        document.documentElement.style.setProperty('--theme-origin-y', `${originY}px`);
+
+        document.documentElement.classList.remove(THEME_TRANSITION_CLASS);
+        void document.documentElement.offsetWidth;
+        document.documentElement.classList.add(THEME_TRANSITION_CLASS);
+
+        overlay.animate(
+          [
+            { opacity: 0, transform: 'scale(1.02)', filter: 'blur(0px)' },
+            { opacity: 0.44, transform: 'scale(1)', filter: 'blur(0.6px)', offset: 0.45 },
+            { opacity: 0, transform: 'scale(0.99)', filter: 'blur(0px)' }
+          ],
+          {
+            duration: THEME_TRANSITION_DURATION_MS,
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            fill: 'none'
+          }
+        );
+
+        if (themeTransitionTimeout) {
+          clearTimeout(themeTransitionTimeout);
+        }
+
+        themeTransitionTimeout = setTimeout(() => {
+          document.documentElement.classList.remove(THEME_TRANSITION_CLASS);
+        }, THEME_TRANSITION_DURATION_MS);
+      }
+
+      function applyDarkMode(isDark, persist = true, animate = false) {
+        if (animate) {
+          triggerThemeTransition();
+        }
+
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
         headerToggle.checked = isDark;
         toggleDot.style.transform = isDark ? 'translateX(24px)' : 'translateX(0)';
@@ -466,10 +529,10 @@
         debugLog('Dark mode:', isDark);
       }
 
-      applyDarkMode(getInitialDarkModePreference(), true);
+      applyDarkMode(getInitialDarkModePreference(), true, false);
 
       headerToggle.addEventListener('change', () => {
-        applyDarkMode(headerToggle.checked, true);
+        applyDarkMode(headerToggle.checked, true, true);
       });
 
       // ============================================

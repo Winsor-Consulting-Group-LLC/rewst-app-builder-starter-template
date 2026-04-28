@@ -3857,15 +3857,15 @@ const RewstDOM = {
    */
   chartColorSchemes: {
     primary: {
-      backgroundColor: 'rgba(0, 148, 144, 0.5)',
-      borderColor: 'rgba(0, 148, 144, 1)',
-      pointBackgroundColor: 'rgba(0, 148, 144, 1)',
+      backgroundColor: 'rgba(99, 176, 72, 0.5)',
+      borderColor: 'rgba(99, 176, 72, 1)',
+      pointBackgroundColor: 'rgba(99, 176, 72, 1)',
       pointBorderColor: '#fff'
     },
     accent: {
-      backgroundColor: 'rgba(255, 121, 63, 0.5)',
-      borderColor: 'rgba(255, 121, 63, 1)',
-      pointBackgroundColor: 'rgba(255, 121, 63, 1)',
+      backgroundColor: 'rgba(7, 55, 99, 0.5)',
+      borderColor: 'rgba(7, 55, 99, 1)',
+      pointBackgroundColor: 'rgba(7, 55, 99, 1)',
       pointBorderColor: '#fff'
     },
     success: {
@@ -3887,12 +3887,12 @@ const RewstDOM = {
       pointBorderColor: '#fff'
     },
     multi: [
-      'rgba(0, 148, 144, 0.7)',    // Teal
-      'rgba(255, 121, 63, 0.7)',   // Orange
-      'rgba(139, 92, 246, 0.7)',   // Purple
-      'rgba(34, 197, 94, 0.7)',    // Success
-      'rgba(234, 179, 8, 0.7)',    // Warning
-      'rgba(59, 130, 246, 0.7)'    // Blue
+      'rgba(99, 176, 72, 0.7)',    // Winsor green
+      'rgba(7, 55, 99, 0.7)',      // Winsor navy
+      'rgba(133, 139, 155, 0.7)',  // Steel gray
+      'rgba(61, 62, 64, 0.7)',     // Charcoal
+      'rgba(141, 175, 58, 0.7)',   // Olive accent
+      'rgba(53, 94, 134, 0.7)'     // Slate blue
     ]
   },
 
