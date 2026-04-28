@@ -286,10 +286,7 @@ class RewstApp {
 
       const result = await this._waitForCompletion(executionId, onProgress);
       this._log('Workflow completed successfully');
-      if ((result.type || '').toLowerCase() === 'form submission') {
-    result.submittedInputs = this._extractSubmittedInputs(layer);
-  }
-  return result;
+      return result;
 
     } catch (error) {
       this._error(`Failed to execute workflow ${workflowId}`, error);
@@ -350,10 +347,7 @@ class RewstApp {
 
       const result = await this._waitForCompletion(executionId, onProgress);
       this._log('Workflow completed successfully');
-      if ((result.type || '').toLowerCase() === 'form submission') {
-    result.submittedInputs = this._extractSubmittedInputs(layer);
-  }
-  return result;
+      return result;
 
     } catch (error) {
       this._error('Failed to execute workflow with trigger', error);
@@ -766,10 +760,7 @@ class RewstApp {
 
         if (!executionId) {
           this._log('Could not find execution ID, returning submission result only');
-          if ((result.type || '').toLowerCase() === 'form submission') {
-    result.submittedInputs = this._extractSubmittedInputs(layer);
-  }
-  return result;
+          return result;
         }
 
         this._log('Found execution ID:', executionId);
@@ -793,10 +784,7 @@ class RewstApp {
         this._log('Workflow execution completed');
       }
 
-      if ((result.type || '').toLowerCase() === 'form submission') {
-    result.submittedInputs = this._extractSubmittedInputs(layer);
-  }
-  return result;
+      return result;
 
     } catch (error) {
       this._error('Failed to submit form', error);
@@ -5180,7 +5168,7 @@ async _fetchTriggerInfoBatched(executions, includeRawContext = false, options = 
     const maxAttempts = 150;
     let attempts = 0;
     let notFoundRetries = 0;
-    const maxNotFoundRetries = 5;
+    const maxNotFoundRetries = 30;
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -5212,12 +5200,24 @@ async _fetchTriggerInfoBatched(executions, includeRawContext = false, options = 
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         attempts++;
       } catch (error) {
-        if (error.message.includes('not found') && notFoundRetries < maxNotFoundRetries) {
+        const message = (error?.message || '').toLowerCase();
+        const isNotFound = message.includes('not found');
+
+        if (isNotFound && notFoundRetries < maxNotFoundRetries) {
           notFoundRetries++;
           this._log(`Execution not found yet, retry ${notFoundRetries}/${maxNotFoundRetries}...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
           continue;
         }
+
+        if (isNotFound && notFoundRetries >= maxNotFoundRetries) {
+          this._log(`Execution still not found after ${maxNotFoundRetries} retries; continuing to poll until timeout...`);
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
+          continue;
+        }
+
         throw error;
       }
     }

@@ -491,23 +491,78 @@ function renderPrerequisitesPage() {
     };
   }
 
+  function buildResultDataCandidates(result) {
+    const candidates = [];
+    const pushIfObject = (value) => {
+      if (value && typeof value === 'object') {
+        candidates.push(value);
+      }
+    };
+
+    pushIfObject(result);
+    pushIfObject(result?.output);
+    pushIfObject(result?.execution?.conductor?.output);
+    pushIfObject(result?.execution?.output);
+
+    const base = candidates.slice();
+    base.forEach((candidate) => {
+      pushIfObject(candidate.output);
+      pushIfObject(candidate.result);
+      pushIfObject(candidate.data);
+      pushIfObject(candidate.payload);
+    });
+
+    return candidates;
+  }
+
+  function getFirstFieldValue(result, fieldNames) {
+    const candidates = buildResultDataCandidates(result);
+    for (const candidate of candidates) {
+      for (const fieldName of fieldNames) {
+        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
+          const value = candidate[fieldName];
+          if (value !== undefined && value !== null) {
+            return value;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function parseBooleanLike(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', 'yes', 'y', '1', 'online', 'connected', 'up'].includes(normalized)) return true;
+      if (['false', 'no', 'n', '0', 'offline', 'disconnected', 'down'].includes(normalized)) return false;
+    }
+    return null;
+  }
+
+  function getBooleanFieldValue(result, fieldNames) {
+    const rawValue = getFirstFieldValue(result, fieldNames);
+    return {
+      rawValue,
+      parsed: parseBooleanLike(rawValue)
+    };
+  }
+
   async function ensureUserEmail() {
     if (currentUserEmail) return currentUserEmail;
 
     if (!emailLookupInFlight) {
       emailLookupInFlight = (async () => {
         const extractUserEmail = (result) => {
-          const data = result?.output || result || {};
-          const candidates = [
-            data.username,
-            data.user_email,
-            data.userEmail,
-            data.email,
-            data.user_principal_name,
-            data.userPrincipalName
-          ];
+            const candidates = [
+              getFirstFieldValue(result, ['username']),
+              getFirstFieldValue(result, ['user_email', 'userEmail']),
+              getFirstFieldValue(result, ['email']),
+              getFirstFieldValue(result, ['user_principal_name', 'userPrincipalName'])
+            ];
 
-          for (const candidate of candidates) {
+            for (const candidate of candidates) {
             if (typeof candidate === 'string' && candidate.trim()) {
               return candidate.trim();
             }
@@ -598,15 +653,14 @@ function renderPrerequisitesPage() {
       const attemptResult = await runWithRetries(
         () => rewst.runWorkflowSmart(getWorkflowId('COMPANY_PREREQUISITES')),
         (result) => {
-          const data = result?.output || result;
-          return !!data?.ca_name;
+          const value = getFirstFieldValue(result, ['ca_name', 'caName']);
+          return !!value;
         },
         'Company prerequisite: CA Name'
       );
 
       if (attemptResult.ok) {
-        const data = attemptResult.result?.output || attemptResult.result;
-        const value = data?.ca_name;
+        const value = getFirstFieldValue(attemptResult.result, ['ca_name', 'caName']);
         checkStates.ca_name = true;
         checkResultDetails.ca_name = `Data: ${value}`;
         renderCheckResult(element, true, 'CA Name', checkResultDetails.ca_name);
@@ -632,15 +686,14 @@ function renderPrerequisitesPage() {
       const attemptResult = await runWithRetries(
         () => rewst.runWorkflowSmart(getWorkflowId('COMPANY_PREREQUISITES')),
         (result) => {
-          const data = result?.output || result;
-          return !!data?.ad_domain;
+          const value = getFirstFieldValue(result, ['ad_domain', 'adDomain']);
+          return !!value;
         },
         'Company prerequisite: AD Domain'
       );
 
       if (attemptResult.ok) {
-        const data = attemptResult.result?.output || attemptResult.result;
-        const value = data?.ad_domain;
+        const value = getFirstFieldValue(attemptResult.result, ['ad_domain', 'adDomain']);
         checkStates.ad_domain = true;
         checkResultDetails.ad_domain = `Data: ${value}`;
         renderCheckResult(element, true, 'AD Domain', checkResultDetails.ad_domain);
@@ -686,8 +739,7 @@ function renderPrerequisitesPage() {
 
       const userEmail = await ensureUserEmail();
       const getValidConfigs = (result) => {
-        const data = result?.output || result;
-        const configs = data?.cwm_configurations || [];
+        const configs = getFirstFieldValue(result, ['cwm_configurations', 'cwmConfigurations', 'configurations']) || [];
         return configs.filter(config =>
           config && typeof config === 'object' && config.name && config.id && config.deviceIdentifier
         );
@@ -777,7 +829,7 @@ function renderPrerequisitesPage() {
         () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
           cwa_computer_id: selectedConfig.deviceIdentifier
         }),
-        (result) => !!result?.output?.online,
+        (result) => getBooleanFieldValue(result, ['online', 'is_online', 'computer_online', 'isOnline']).parsed === true,
         'User prerequisite: Computer Online',
         {
           maxAttempts: COMPUTER_CHECK_MAX_ATTEMPTS,
@@ -795,7 +847,10 @@ function renderPrerequisitesPage() {
       );
 
       if (attemptResult.ok) {
-        const onlineValue = attemptResult.result?.output?.online;
+        const onlineValue = getBooleanFieldValue(
+          attemptResult.result,
+          ['online', 'is_online', 'computer_online', 'isOnline']
+        ).rawValue;
         checkStates.computer_online = true;
         checkResultDetails.computer_online = `Status: ${onlineValue}`;
         renderCheckResult(
@@ -846,7 +901,13 @@ function renderPrerequisitesPage() {
   }
 
   function evaluateComputerPrereqs(result) {
-    const data = result?.output?.prereq_info || result || {};
+    const directInfo = getFirstFieldValue(result, ['prereq_info', 'prereqInfo']);
+    const data = directInfo && typeof directInfo === 'object'
+      ? directInfo
+      : (buildResultDataCandidates(result).find(candidate =>
+          Object.prototype.hasOwnProperty.call(candidate, 'ValidCertCount') ||
+          Object.prototype.hasOwnProperty.call(candidate, 'DomainTest')
+        ) || {});
 
     const validCertCountRaw = data?.ValidCertCount;
     const validCertCount = Number(validCertCountRaw);
