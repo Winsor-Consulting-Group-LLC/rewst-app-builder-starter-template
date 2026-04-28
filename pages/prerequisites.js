@@ -17,11 +17,57 @@ function renderPrerequisitesPage() {
   checklistContainer.className = 'prereq-checklist';
   container.appendChild(checklistContainer);
 
+  const categorySections = {};
+
+  function createCategorySection(key, title) {
+    const section = document.createElement('section');
+    section.className = 'prereq-category';
+
+    const headerBtn = document.createElement('button');
+    headerBtn.type = 'button';
+    headerBtn.className = 'prereq-section-header prereq-section-toggle';
+    headerBtn.setAttribute('aria-expanded', 'true');
+    headerBtn.innerHTML = `
+      <h3 class="prereq-section-title">${title}</h3>
+      <span class="material-icons prereq-section-toggle-icon">expand_less</span>
+    `;
+
+    const body = document.createElement('div');
+    body.className = 'prereq-category-body';
+
+    const setCollapsed = (collapsed, persistState = false) => {
+      section.classList.toggle('is-collapsed', collapsed);
+      headerBtn.setAttribute('aria-expanded', (!collapsed).toString());
+
+      const icon = headerBtn.querySelector('.prereq-section-toggle-icon');
+      if (icon) {
+        icon.textContent = collapsed ? 'expand_more' : 'expand_less';
+      }
+
+      if (persistState) {
+        section.dataset.collapseState = collapsed ? 'collapsed' : 'expanded';
+      }
+    };
+
+    headerBtn.addEventListener('click', () => {
+      const collapsed = section.classList.contains('is-collapsed');
+      setCollapsed(!collapsed, true);
+    });
+
+    section.appendChild(headerBtn);
+    section.appendChild(body);
+    checklistContainer.appendChild(section);
+
+    categorySections[key] = {
+      section,
+      setCollapsed
+    };
+
+    return body;
+  }
+
   // ---- Company checks section ----
-  const companySectionHeader = document.createElement('div');
-  companySectionHeader.className = 'prereq-section-header';
-  companySectionHeader.innerHTML = '<h3 class="prereq-section-title">Company Prerequisites</h3>';
-  checklistContainer.appendChild(companySectionHeader);
+  const companyCategoryBody = createCategorySection('company', 'Company Prerequisites');
 
   const companyChecks = [
     { id: 'ca_name', label: 'CA Name' },
@@ -47,36 +93,30 @@ function renderPrerequisitesPage() {
 
   companyChecks.forEach(check => {
     const checkItem = createCheckCard(`check-${check.id}`, check.label);
-    checklistContainer.appendChild(checkItem);
+    companyCategoryBody.appendChild(checkItem);
     companyCheckElements[check.id] = checkItem;
   });
 
   // ---- User checks section ----
-  const userSectionHeader = document.createElement('div');
-  userSectionHeader.className = 'prereq-section-header';
-  userSectionHeader.innerHTML = '<h3 class="prereq-section-title">User Prerequisites</h3>';
-  checklistContainer.appendChild(userSectionHeader);
+  const userCategoryBody = createCategorySection('user', 'User Prerequisites');
 
   const emailVerificationCheckItem = createCheckCard('check-email-verification', 'Email verification');
-  checklistContainer.appendChild(emailVerificationCheckItem);
+  userCategoryBody.appendChild(emailVerificationCheckItem);
 
   const cwmCheckItem = createCheckCard('check-cwm-config', 'CWM Configuration');
-  checklistContainer.appendChild(cwmCheckItem);
+  userCategoryBody.appendChild(cwmCheckItem);
 
   const computerOnlineCheckItem = createCheckCard('check-computer-online', 'Computer Online');
-  checklistContainer.appendChild(computerOnlineCheckItem);
+  userCategoryBody.appendChild(computerOnlineCheckItem);
 
   // ---- Computer checks section ----
-  const computerSectionHeader = document.createElement('div');
-  computerSectionHeader.className = 'prereq-section-header';
-  computerSectionHeader.innerHTML = '<h3 class="prereq-section-title">Computer Prerequisites</h3>';
-  checklistContainer.appendChild(computerSectionHeader);
+  const computerCategoryBody = createCategorySection('computer', 'Computer Prerequisites');
 
   const validMachineCertCheckItem = createCheckCard('check-valid-machine-cert', 'Valid machine certificate installed');
-  checklistContainer.appendChild(validMachineCertCheckItem);
+  computerCategoryBody.appendChild(validMachineCertCheckItem);
 
   const remoteDomainReachableCheckItem = createCheckCard('check-remote-domain-reachable', 'Remote domain reachable');
-  checklistContainer.appendChild(remoteDomainReachableCheckItem);
+  computerCategoryBody.appendChild(remoteDomainReachableCheckItem);
 
   // ---- Continue button ----
   const buttonContainer = document.createElement('div');
@@ -156,6 +196,30 @@ function renderPrerequisitesPage() {
     'computer_online',
     'valid_machine_cert_installed'
   ];
+
+  const CATEGORY_CHECK_KEYS = {
+    company: ['ca_name', 'ad_domain'],
+    user: ['email_verification', 'cwm_config', 'computer_online'],
+    computer: ['valid_machine_cert_installed', 'remote_domain_reachable']
+  };
+
+  function updateCategoryCollapseStates() {
+    Object.entries(CATEGORY_CHECK_KEYS).forEach(([categoryKey, checkKeys]) => {
+      const category = categorySections[categoryKey];
+      if (!category) return;
+
+      const isComplete = checkKeys.every((key) => checkStates[key] === true);
+
+      if (isComplete) {
+        // Auto-collapse complete categories unless the user explicitly expanded them.
+        const shouldCollapse = category.section.dataset.collapseState !== 'expanded';
+        category.setCollapsed(shouldCollapse, false);
+      } else {
+        category.setCollapsed(false, false);
+        delete category.section.dataset.collapseState;
+      }
+    });
+  }
 
   function getWorkflowId(key) {
     const id = workflowIds[key];
@@ -316,6 +380,8 @@ function renderPrerequisitesPage() {
         retryBtn.addEventListener('click', onRetry);
       }
     }
+
+    updateCategoryCollapseStates();
   }
 
   function hasAutoNavigatedToVpnAlready() {
