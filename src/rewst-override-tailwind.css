@@ -43,6 +43,32 @@
   --rewst-info: #073763;
 }
 
+/* ============================================
+   Base Reset (replaces Tailwind preflight behavior we depended on)
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 :root {
   color-scheme: light;
 
