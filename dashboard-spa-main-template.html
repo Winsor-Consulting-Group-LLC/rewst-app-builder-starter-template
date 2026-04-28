@@ -124,14 +124,16 @@
         </div>
         <div class="flex items-center gap-3">
 
-          <!-- Toggle Switch Example -->
-          <label id="toggle-example" class="flex items-center gap-2 cursor-pointer">
-            <span class="text-sm text-rewst-gray">Toggle</span>
+          <!-- Dark Mode Toggle -->
+          <label id="toggle-example" class="dark-mode-toggle flex items-center gap-2 cursor-pointer">
+            <span class="text-sm text-rewst-gray">Dark mode</span>
+            <span id="dark-mode-sun" class="material-icons text-base text-rewst-warning transition-colors duration-200">light_mode</span>
             <div class="relative inline-block w-12 h-6">
               <input type="checkbox" id="header-toggle" class="sr-only">
               <div class="toggle-bg w-12 h-6 bg-gray-300 rounded-full transition-all duration-200"></div>
               <div class="toggle-dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm"></div>
             </div>
+            <span id="dark-mode-moon" class="material-icons text-base text-gray-400 transition-colors duration-200">dark_mode</span>
           </label>
 
           <!-- Refresh Button -->
@@ -408,15 +410,66 @@
       }, { passive: true });
 
       // ============================================
-      // HEADER TOGGLE SWITCH
+      // HEADER TOGGLE SWITCH (DARK MODE)
       // ============================================
       const headerToggle = document.getElementById('header-toggle');
       const toggleDot = document.querySelector('.toggle-dot');
+      const toggleBg = document.querySelector('.toggle-bg');
+      const darkModeSun = document.getElementById('dark-mode-sun');
+      const darkModeMoon = document.getElementById('dark-mode-moon');
+      const DARK_MODE_SESSION_KEY = 'darkModeEnabledV1';
+
+      function getInitialDarkModePreference() {
+        try {
+          const stored = sessionStorage.getItem(DARK_MODE_SESSION_KEY);
+          if (stored === 'true') return true;
+          if (stored === 'false') return false;
+        } catch (error) {
+          debugWarn('Failed to read dark mode preference from session:', error);
+        }
+
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+
+      function persistDarkModePreference(isDark) {
+        try {
+          sessionStorage.setItem(DARK_MODE_SESSION_KEY, String(isDark));
+        } catch (error) {
+          debugWarn('Failed to persist dark mode preference in session:', error);
+        }
+      }
+
+      function applyDarkMode(isDark, persist = true) {
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        headerToggle.checked = isDark;
+        toggleDot.style.transform = isDark ? 'translateX(24px)' : 'translateX(0)';
+
+        if (toggleBg) {
+          toggleBg.classList.toggle('bg-gray-300', !isDark);
+          toggleBg.classList.toggle('bg-rewst-teal', isDark);
+        }
+
+        if (darkModeSun) {
+          darkModeSun.classList.toggle('text-rewst-warning', !isDark);
+          darkModeSun.classList.toggle('text-gray-400', isDark);
+        }
+
+        if (darkModeMoon) {
+          darkModeMoon.classList.toggle('text-rewst-teal', isDark);
+          darkModeMoon.classList.toggle('text-gray-400', !isDark);
+        }
+
+        if (persist) {
+          persistDarkModePreference(isDark);
+        }
+
+        debugLog('Dark mode:', isDark);
+      }
+
+      applyDarkMode(getInitialDarkModePreference(), true);
 
       headerToggle.addEventListener('change', () => {
-        toggleDot.style.transform = headerToggle.checked ? 'translateX(24px)' : 'translateX(0)';
-        // Hook into this for your toggle logic:
-        debugLog('Toggle:', headerToggle.checked);
+        applyDarkMode(headerToggle.checked, true);
       });
 
       // ============================================

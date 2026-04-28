@@ -12,3 +12,6 @@ node_modules/
 
 # Local workflow UUIDs (do not commit)
 src/workflow-ids.local.js
+
+# VS Code local agent/tooling settings
+.vscode/settings.json
