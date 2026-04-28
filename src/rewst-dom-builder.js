@@ -3515,7 +3515,7 @@ const RewstDOM = {
 
     // Create message container
     const messageContainer = document.createElement('div');
-    messageContainer.className = 'flex-1';
+    messageContainer.className = 'rewst-toast-message';
 
     // Add message text
     const messageText = document.createElement('span');

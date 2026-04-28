@@ -1612,6 +1612,10 @@ tbody td {
   opacity: 1;
 }
 
+.rewst-toast-message {
+  flex: 1;
+}
+
 /* Autocomplete */
 .rewst-autocomplete {
   position: relative;
