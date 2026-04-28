@@ -286,15 +286,6 @@ function renderPrerequisitesPage() {
           : statusType === 'running'
             ? 'sync'
             : 'cancel';
-    const statusClass = statusType === 'passed'
-      ? 'text-green-500'
-      : statusType === 'info'
-        ? 'text-yellow-500'
-        : statusType === 'pending'
-          ? 'text-rewst-gray'
-          : statusType === 'running'
-            ? 'text-rewst-teal'
-            : 'text-red-500';
     const statusText = options.statusText || (statusType === 'passed'
       ? 'Passed'
       : statusType === 'info'

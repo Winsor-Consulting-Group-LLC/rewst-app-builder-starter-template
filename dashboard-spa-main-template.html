@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Computer VPN Manager</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
   <!-- Poppins Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,7 +64,7 @@
             <span class="nav-text">Prerequisites</span>
             <span id="prereq-complete-indicator" class="material-icons app-nav-status-icon hidden" title="All prerequisites complete">verified</span>
           </a>
-          <a href="#" class="sidebar-item app-nav-item opacity-50 cursor-not-allowed" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
+          <a href="#" class="sidebar-item app-nav-item app-nav-item-disabled" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
             <span class="material-icons app-nav-item-icon">vpn_lock</span>
             <span id="vpnsetup-nav-text" class="nav-text">VPN Setup</span>
           </a>
@@ -137,7 +134,7 @@
             <span class="app-dark-toggle-label">Dark mode</span>
             <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
             <div class="app-dark-toggle-switch">
-              <input type="checkbox" id="header-toggle" class="sr-only" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
+              <input type="checkbox" id="header-toggle" class="app-visually-hidden" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
               <div class="toggle-bg app-dark-toggle-bg"></div>
               <div class="toggle-dot app-dark-toggle-dot"></div>
             </div>
@@ -322,8 +319,7 @@
         if (prereqCompleteIndicator) {
           prereqCompleteIndicator.classList.toggle('hidden', !enabled);
         }
-        vpnSetupNavLink.classList.toggle('opacity-50', !enabled);
-        vpnSetupNavLink.classList.toggle('cursor-not-allowed', !enabled);
+        vpnSetupNavLink.classList.toggle('app-nav-item-disabled', !enabled);
       }
 
       function maybeAutoNavigateToVpnSetup() {
@@ -554,18 +550,18 @@
         toggleDot.style.transform = isDark ? 'translateX(24px)' : 'translateX(0)';
 
         if (toggleBg) {
-          toggleBg.classList.toggle('bg-gray-300', !isDark);
-          toggleBg.classList.toggle('bg-rewst-teal', isDark);
+          toggleBg.classList.toggle('app-dark-toggle-bg-off', !isDark);
+          toggleBg.classList.toggle('app-dark-toggle-bg-on', isDark);
         }
 
         if (darkModeSun) {
-          darkModeSun.classList.toggle('text-rewst-warning', !isDark);
-          darkModeSun.classList.toggle('text-gray-400', isDark);
+          darkModeSun.classList.toggle('app-dark-toggle-icon-active', !isDark);
+          darkModeSun.classList.toggle('app-dark-toggle-icon-muted', isDark);
         }
 
         if (darkModeMoon) {
-          darkModeMoon.classList.toggle('text-rewst-teal', isDark);
-          darkModeMoon.classList.toggle('text-gray-400', !isDark);
+          darkModeMoon.classList.toggle('app-dark-toggle-icon-active', isDark);
+          darkModeMoon.classList.toggle('app-dark-toggle-icon-muted', !isDark);
         }
 
         if (persist) {

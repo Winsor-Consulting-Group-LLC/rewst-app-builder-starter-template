@@ -82,6 +82,37 @@ body {
 
 }
 
+/* ============================================
+   Core Utility Equivalents (Tailwind-free runtime)
+   ============================================ */
+
+.hidden,
+.is-hidden {
+  display: none !important;
+}
+
+.app-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes rewst-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: rewst-spin 1s linear infinite;
+}
+
 body::before {
   content: '';
   position: fixed;
@@ -2706,6 +2737,11 @@ html[data-theme='dark'] #theme-transition-overlay {
   color: var(--rewst-dark-gray);
 }
 
+.app-nav-item-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .app-nav-item-icon {
   font-size: 1.125rem;
 }
@@ -2901,6 +2937,14 @@ html[data-theme='dark'] #theme-transition-overlay {
   transition: all 0.2s ease;
 }
 
+.app-dark-toggle-bg-off {
+  background: #d1d5db;
+}
+
+.app-dark-toggle-bg-on {
+  background: var(--rewst-teal);
+}
+
 .app-dark-toggle-dot {
   position: absolute;
   left: 0.25rem;
@@ -2911,6 +2955,19 @@ html[data-theme='dark'] #theme-transition-overlay {
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease;
+}
+
+.app-dark-toggle-icon-active {
+  color: var(--rewst-warning);
+}
+
+.app-dark-toggle-icon-muted {
+  color: #9ca3af;
+}
+
+/* Moon icon uses brand teal for active state. */
+#dark-mode-moon.app-dark-toggle-icon-active {
+  color: var(--rewst-teal);
 }
 
 .app-refresh-btn {
