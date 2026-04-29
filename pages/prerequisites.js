@@ -541,6 +541,10 @@ function renderPrerequisitesPage() {
     return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
   }
 
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   function setCheckLoading(element, label, details = 'Validating...', statusText = 'Running') {
       // Puts a check card into the "running" state with a spinner icon.
     renderCheckResult(element, false, label, details, null, {
@@ -709,8 +713,19 @@ function renderPrerequisitesPage() {
     return /timeout/i.test(message);
   }
 
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks) {
+  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
       // Converts raw workflow status updates into user-facing loading text.
+    const resolvedStep = workflowKey
+      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
+      : null;
+    const configuredLabel = resolvedStep?.step?.progressLabel || null;
+    if (configuredLabel) {
+      const taskSuffix = Number.isFinite(numSuccessfulTasks)
+        ? ` Successful tasks: ${numSuccessfulTasks}.`
+        : '';
+      return `${configuredLabel}.${taskSuffix}`;
+    }
+
     const normalizedStatus = typeof status === 'string' && status.trim()
       ? status.trim().replace(/_/g, ' ').toLowerCase()
       : 'processing';
@@ -1192,6 +1207,54 @@ function renderPrerequisitesPage() {
     };
   }
 
+  function getWorkflowExecutionId(result) {
+      // Extracts an execution ID from different result shapes.
+    const candidates = [
+      result?.execution?.id,
+      result?.executionId,
+      result?.id,
+      result?.output?.executionId,
+      result?.execution?.executionId
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+
+    return null;
+  }
+
+  async function resolveComputerPrereqEvaluation(result, operationName = 'Computer prerequisite checks') {
+      // Some runs finish but initial output reads can be stale/missing.
+      // If ValidCertCount is missing, do one silent refresh by execution ID.
+    const initialEvaluation = evaluateComputerPrereqs(result);
+    if (initialEvaluation.validCertCount !== null) {
+      return initialEvaluation;
+    }
+
+    const executionId = getWorkflowExecutionId(result);
+    if (!executionId) {
+      return initialEvaluation;
+    }
+
+    try {
+      debugWarn(`[Workflow] ${operationName}: ValidCertCount missing; refreshing execution output for ${executionId}`);
+      await sleep(1200);
+      const refreshedResult = await rewst.getExecutionStatus(executionId, true, true);
+      const refreshedEvaluation = evaluateComputerPrereqs(refreshedResult);
+      if (refreshedEvaluation.validCertCount !== null) {
+        refreshedEvaluation.usedFreshExecutionRead = true;
+        return refreshedEvaluation;
+      }
+    } catch (error) {
+      debugWarn(`[Workflow] ${operationName}: refresh read failed for execution ${executionId}`, error);
+    }
+
+    return initialEvaluation;
+  }
+
   function clearComputerPrereqStateAndRenderBlocked() {
       // Resets the computer check card to "pending" when the Computer Online check hasn't passed yet.
     checkStates.valid_machine_cert_installed = false;
@@ -1209,9 +1272,13 @@ function renderPrerequisitesPage() {
       // Takes the evaluated computer prereq data and updates the cert check card.
     checkStates.valid_machine_cert_installed = evaluation.certPassed;
 
-    const certDetails = evaluation.certPassed
+    let certDetails = evaluation.certPassed
       ? `ValidCertCount: ${evaluation.validCertCountRaw}`
       : `ValidCertCount must be 1 or higher (received: ${evaluation.validCertCountRaw ?? 'none'})`;
+
+    if (evaluation.usedFreshExecutionRead) {
+      certDetails += ' (refreshed execution output)';
+    }
 
     const failureSuffix = attemptInfo ? ` after ${attemptInfo.attempts} attempts` : '';
 
@@ -1270,7 +1337,7 @@ function renderPrerequisitesPage() {
           setCheckLoading(
             validMachineCertCheckItem,
             'Valid machine certificate installed',
-            formatWorkflowProgressDetails(status, numSuccessfulTasks),
+            formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),
             'Communicating with your PC'
           );
         }
@@ -1279,7 +1346,7 @@ function renderPrerequisitesPage() {
     );
 
     if (attemptResult.ok) {
-      const evaluation = evaluateComputerPrereqs(attemptResult.result);
+      const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
       renderComputerPrereqResults(evaluation);
       updateButtonState();
       return;
@@ -1302,7 +1369,7 @@ function renderPrerequisitesPage() {
       return;
     }
 
-    const evaluation = evaluateComputerPrereqs(attemptResult.result);
+    const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
     renderComputerPrereqResults(evaluation, attemptResult);
     clearCachedPrereqs();
     updateButtonState();

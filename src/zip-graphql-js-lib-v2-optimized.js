@@ -5030,6 +5030,7 @@ async _fetchTriggerInfoBatched(executions, includeRawContext = false, options = 
       const response = await fetch(this.graphqlUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
         credentials: 'include',
         body: JSON.stringify({ operationName, query, variables }),
         signal: controller.signal

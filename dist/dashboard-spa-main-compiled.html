@@ -9736,6 +9736,7 @@ async _fetchTriggerInfoBatched(executions, includeRawContext = false, options = 
       const response = await fetch(this.graphqlUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
         credentials: 'include',
         body: JSON.stringify({ operationName, query, variables }),
         signal: controller.signal
@@ -13997,6 +13998,52 @@ if (typeof module !== 'undefined' && module.exports) {
 
 window.WORKFLOW_IDS = WORKFLOW_IDS;
 
+// Progress step definitions for workflow status updates.
+// Each entry maps a workflow key to an ordered array of task-count ranges.
+// Use minTasks + maxTasks + progressLabel everywhere for consistency.
+// detail is optional and can be used by checklist-style UIs.
+const WORKFLOW_STEPS = {
+  COMPUTER_PREREQUISITES: [
+    {
+      minTasks: 0,
+      maxTasks: 7,
+      progressLabel: 'Sending script to remote computer'
+    },
+    {
+      minTasks: 8,
+      maxTasks: 8,
+      progressLabel: 'Awaiting response from remote computer'
+    },
+    {
+      minTasks: 9,
+      maxTasks: Infinity,
+      progressLabel: 'Processing response'
+    }
+  ],
+  MACHINE_CERT_REMEDIATION_APPLY: [
+    {
+      minTasks: 0,
+      maxTasks: 12,
+      progressLabel: 'Obtain CSR from remote computer',
+      detail: 'Runs until successful task 13.'
+    },
+    {
+      minTasks: 13,
+      maxTasks: 22,
+      progressLabel: 'Obtain signed certificate from CA',
+      detail: 'Runs from task 13 to task 23.'
+    },
+    {
+      minTasks: 23,
+      maxTasks: Infinity,
+      progressLabel: 'Install signed certificate on remote computer',
+      detail: 'Runs from task 23 to workflow completion.'
+    }
+  ]
+};
+
+window.WORKFLOW_STEPS = WORKFLOW_STEPS;
+
 
     // App initialization
     (async function() {
@@ -14460,6 +14507,44 @@ window.WORKFLOW_IDS = WORKFLOW_IDS;
 
       if (openFilterDrawerBtn) {
         openFilterDrawerBtn.addEventListener('click', openFilterDrawer);
+      }
+
+      // ============================================
+      // SHARED WORKFLOW STEP HELPERS
+      // ============================================
+      function getWorkflowStepDefinitions(workflowKey, fallbackSteps = []) {
+        const workflowSteps = window.WORKFLOW_STEPS || {};
+        const configured = workflowSteps[workflowKey];
+        return Array.isArray(configured) && configured.length > 0 ? configured : fallbackSteps;
+      }
+
+      function resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks, fallbackSteps = []) {
+        const steps = getWorkflowStepDefinitions(workflowKey, fallbackSteps);
+        if (!Array.isArray(steps) || steps.length === 0) {
+          return { steps: [], index: 0, step: null };
+        }
+
+        if (!Number.isFinite(numSuccessfulTasks)) {
+          return { steps, index: 0, step: steps[0] };
+        }
+
+        const index = steps.findIndex((step) => {
+          const minTasks = Number.isFinite(step?.minTasks) ? step.minTasks : 0;
+          const maxTasks = Number.isFinite(step?.maxTasks) ? step.maxTasks : Infinity;
+          return numSuccessfulTasks >= minTasks && numSuccessfulTasks <= maxTasks;
+        });
+
+        if (index >= 0) {
+          return { steps, index, step: steps[index] };
+        }
+
+        const firstMin = Number.isFinite(steps[0]?.minTasks) ? steps[0].minTasks : 0;
+        if (numSuccessfulTasks < firstMin) {
+          return { steps, index: 0, step: steps[0] };
+        }
+
+        const lastIndex = steps.length - 1;
+        return { steps, index: lastIndex, step: steps[lastIndex] };
       }
 
       // ============================================
@@ -15009,6 +15094,10 @@ function renderPrerequisitesPage() {
     return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
   }
 
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   function setCheckLoading(element, label, details = 'Validating...', statusText = 'Running') {
       // Puts a check card into the "running" state with a spinner icon.
     renderCheckResult(element, false, label, details, null, {
@@ -15177,8 +15266,19 @@ function renderPrerequisitesPage() {
     return /timeout/i.test(message);
   }
 
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks) {
+  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
       // Converts raw workflow status updates into user-facing loading text.
+    const resolvedStep = workflowKey
+      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
+      : null;
+    const configuredLabel = resolvedStep?.step?.progressLabel || null;
+    if (configuredLabel) {
+      const taskSuffix = Number.isFinite(numSuccessfulTasks)
+        ? ` Successful tasks: ${numSuccessfulTasks}.`
+        : '';
+      return `${configuredLabel}.${taskSuffix}`;
+    }
+
     const normalizedStatus = typeof status === 'string' && status.trim()
       ? status.trim().replace(/_/g, ' ').toLowerCase()
       : 'processing';
@@ -15660,6 +15760,54 @@ function renderPrerequisitesPage() {
     };
   }
 
+  function getWorkflowExecutionId(result) {
+      // Extracts an execution ID from different result shapes.
+    const candidates = [
+      result?.execution?.id,
+      result?.executionId,
+      result?.id,
+      result?.output?.executionId,
+      result?.execution?.executionId
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+
+    return null;
+  }
+
+  async function resolveComputerPrereqEvaluation(result, operationName = 'Computer prerequisite checks') {
+      // Some runs finish but initial output reads can be stale/missing.
+      // If ValidCertCount is missing, do one silent refresh by execution ID.
+    const initialEvaluation = evaluateComputerPrereqs(result);
+    if (initialEvaluation.validCertCount !== null) {
+      return initialEvaluation;
+    }
+
+    const executionId = getWorkflowExecutionId(result);
+    if (!executionId) {
+      return initialEvaluation;
+    }
+
+    try {
+      debugWarn(`[Workflow] ${operationName}: ValidCertCount missing; refreshing execution output for ${executionId}`);
+      await sleep(1200);
+      const refreshedResult = await rewst.getExecutionStatus(executionId, true, true);
+      const refreshedEvaluation = evaluateComputerPrereqs(refreshedResult);
+      if (refreshedEvaluation.validCertCount !== null) {
+        refreshedEvaluation.usedFreshExecutionRead = true;
+        return refreshedEvaluation;
+      }
+    } catch (error) {
+      debugWarn(`[Workflow] ${operationName}: refresh read failed for execution ${executionId}`, error);
+    }
+
+    return initialEvaluation;
+  }
+
   function clearComputerPrereqStateAndRenderBlocked() {
       // Resets the computer check card to "pending" when the Computer Online check hasn't passed yet.
     checkStates.valid_machine_cert_installed = false;
@@ -15677,9 +15825,13 @@ function renderPrerequisitesPage() {
       // Takes the evaluated computer prereq data and updates the cert check card.
     checkStates.valid_machine_cert_installed = evaluation.certPassed;
 
-    const certDetails = evaluation.certPassed
+    let certDetails = evaluation.certPassed
       ? `ValidCertCount: ${evaluation.validCertCountRaw}`
       : `ValidCertCount must be 1 or higher (received: ${evaluation.validCertCountRaw ?? 'none'})`;
+
+    if (evaluation.usedFreshExecutionRead) {
+      certDetails += ' (refreshed execution output)';
+    }
 
     const failureSuffix = attemptInfo ? ` after ${attemptInfo.attempts} attempts` : '';
 
@@ -15738,7 +15890,7 @@ function renderPrerequisitesPage() {
           setCheckLoading(
             validMachineCertCheckItem,
             'Valid machine certificate installed',
-            formatWorkflowProgressDetails(status, numSuccessfulTasks),
+            formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),
             'Communicating with your PC'
           );
         }
@@ -15747,7 +15899,7 @@ function renderPrerequisitesPage() {
     );
 
     if (attemptResult.ok) {
-      const evaluation = evaluateComputerPrereqs(attemptResult.result);
+      const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
       renderComputerPrereqResults(evaluation);
       updateButtonState();
       return;
@@ -15770,7 +15922,7 @@ function renderPrerequisitesPage() {
       return;
     }
 
-    const evaluation = evaluateComputerPrereqs(attemptResult.result);
+    const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
     renderComputerPrereqResults(evaluation, attemptResult);
     clearCachedPrereqs();
     updateButtonState();
@@ -15975,52 +16127,37 @@ function renderPrerequisitesPage() {
     statusText: 'Preparing remediation workflow...'
   };
 
-  function getCurrentStage() {
-    if (state.taskCount < 13) return 1;
-    if (state.taskCount < 23) return 2;
-    return 3;
+  // Load step definitions from shared workflow-step config.
+  const workflowSteps = getWorkflowStepDefinitions('MACHINE_CERT_REMEDIATION_APPLY', [
+    { minTasks: 0, maxTasks: Infinity, progressLabel: 'Run remediation', detail: 'Workflow in progress.' }
+  ]);
+
+  function getCurrentStepIndex() {
+    return resolveWorkflowStepByTaskCount('MACHINE_CERT_REMEDIATION_APPLY', state.taskCount, workflowSteps).index;
   }
 
   function getStepCards() {
-    const currentStage = getCurrentStage();
+    const currentIndex = getCurrentStepIndex();
     const isFailed = state.phase === 'failed';
     const isDone = state.phase === 'done';
 
-    return [
-      {
-        title: 'Obtain CSR from remote computer',
-        detail: 'Runs until successful task 13.',
-        status: isDone || state.taskCount >= 13
-          ? 'Done'
-          : isFailed && currentStage === 1
-            ? 'Failed'
-            : currentStage === 1 && state.inFlight
-              ? 'Running'
-              : 'Pending'
-      },
-      {
-        title: 'Obtain signed certificate from CA',
-        detail: 'Runs from task 13 to task 23.',
-        status: isDone || state.taskCount >= 23
-          ? 'Done'
-          : isFailed && currentStage === 2
-            ? 'Failed'
-            : currentStage === 2 && state.inFlight
-              ? 'Running'
-              : 'Pending'
-      },
-      {
-        title: 'Install signed certificate on remote computer',
-        detail: 'Runs from task 23 to workflow completion.',
-        status: isDone
-          ? 'Done'
-          : isFailed && currentStage === 3
-            ? 'Failed'
-            : currentStage === 3 && state.inFlight
-              ? 'Running'
-              : 'Pending'
+    return workflowSteps.map((step, i) => {
+      const maxTasks = Number.isFinite(step?.maxTasks) ? step.maxTasks : Infinity;
+      const stepComplete = isDone || state.taskCount > maxTasks;
+      let status;
+      if (stepComplete) {
+        status = 'Done';
+      } else if (isFailed && i === currentIndex) {
+        status = 'Failed';
+      } else if (i === currentIndex && state.inFlight) {
+        status = 'Running';
+      } else if (i < currentIndex) {
+        status = 'Done';
+      } else {
+        status = 'Pending';
       }
-    ];
+      return { title: step.progressLabel || 'Workflow step', detail: step.detail || '', status };
+    });
   }
 
   function render() {
