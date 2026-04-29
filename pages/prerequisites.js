@@ -216,16 +216,8 @@ function renderPrerequisitesPage() {
     valid_machine_cert_installed: false
   };
 
-  const MAX_CHECK_ATTEMPTS = 3; // Initial run + 2 retries
-  const RETRY_DELAY_MS = 600;
-    // Email lookup can take a while because it may need to wait for a workflow to provision.
-  const EMAIL_LOOKUP_MAX_ATTEMPTS = 8;
-  const EMAIL_LOOKUP_RETRY_DELAY_MS = 1500;
-  const EMAIL_LOOKUP_MAX_WAIT_MS = 2 * 60 * 1000;
-    // Computer checks can take up to 5 minutes if the machine is waking up or slow to respond.
-  const COMPUTER_CHECK_MAX_WAIT_MS = 5 * 60 * 1000;
-  const COMPUTER_CHECK_RETRY_DELAY_MS = 5000;
-  const COMPUTER_CHECK_MAX_ATTEMPTS = 60;
+    // Workflow checks should wait on a single execution instead of re-running in a retry loop.
+  const WORKFLOW_RESPONSE_MAX_WAIT_MS = 5 * 60 * 1000;
     // Cache key used in sessionStorage so passing checks survive a page refresh.
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
 
@@ -623,79 +615,44 @@ function renderPrerequisitesPage() {
     }
   }
 
-  async function runWithRetries(task, isSuccess, operationName = 'workflow', options = {}) {
-      // Generic retry wrapper. Calls `task()` up to maxAttempts times, checking the result
-      // with `isSuccess`. Returns a result object with `ok`, `result`, `attempts`, `error`.
-      // Supports a total time budget (maxTotalMs) to avoid waiting forever.
-    const maxAttempts = options.maxAttempts || MAX_CHECK_ATTEMPTS;
-    const retryDelayMs = options.retryDelayMs || RETRY_DELAY_MS;
-    const maxTotalMs = options.maxTotalMs || null;
-    const onAttemptStart = typeof options.onAttemptStart === 'function' ? options.onAttemptStart : null;
-    const onRetryWait = typeof options.onRetryWait === 'function' ? options.onRetryWait : null;
+  function isWorkflowTimeoutError(error) {
+      // Rewst surfaces timeouts via the error message after the shared 5-minute wait expires.
+    const message = error?.message || '';
+    return /timeout/i.test(message);
+  }
 
-    let lastResult = null;
-    let lastError = null;
-    let attemptsMade = 0;
+  function formatWorkflowProgressDetails(status, numSuccessfulTasks) {
+      // Converts raw workflow status updates into user-facing loading text.
+    const normalizedStatus = typeof status === 'string' && status.trim()
+      ? status.trim().replace(/_/g, ' ').toLowerCase()
+      : 'processing';
+    const taskSuffix = Number.isFinite(numSuccessfulTasks)
+      ? ` Successful tasks: ${numSuccessfulTasks}.`
+      : '';
+    return `Workflow is still ${normalizedStatus}. Waiting up to ${formatDuration(WORKFLOW_RESPONSE_MAX_WAIT_MS)} for a response.${taskSuffix}`;
+  }
+
+  async function runSingleAttempt(task, operationName = 'workflow') {
+      // Executes the task once and lets the underlying Rewst client handle the long poll.
     const startedAt = Date.now();
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      attemptsMade = attempt;
-      const elapsedAtAttemptStart = Date.now() - startedAt;
-      if (onAttemptStart) {
-        onAttemptStart({
-          attempt,
-          maxAttempts,
-          elapsedMs: elapsedAtAttemptStart,
-          maxTotalMs
-        });
-      }
-
-      try {
-        debugLog(`[Retry] ${operationName}: attempt ${attempt}/${maxAttempts}`);
-        const result = await task();
-        lastResult = result;
-
-        if (isSuccess(result)) {
-          debugLog(`[Retry] ${operationName}: success on attempt ${attempt}/${maxAttempts}`);
-          return { ok: true, result, attempts: attempt, error: null };
-        }
-
-        debugWarn(`[Retry] ${operationName}: attempt ${attempt}/${maxAttempts} did not meet success criteria`);
-      } catch (error) {
-        lastError = error;
-        debugWarn(`[Retry] ${operationName}: attempt ${attempt}/${maxAttempts} threw error`, error);
-      }
-
-      const elapsedAfterAttempt = Date.now() - startedAt;
-      const timeBudgetAllowsRetry = !maxTotalMs || (elapsedAfterAttempt + retryDelayMs) <= maxTotalMs;
-
-      if (attempt < maxAttempts && timeBudgetAllowsRetry) {
-        if (onRetryWait) {
-          onRetryWait({
-            attempt,
-            maxAttempts,
-            delayMs: retryDelayMs,
-            elapsedMs: elapsedAfterAttempt,
-            maxTotalMs
-          });
-        }
-        debugLog(`[Retry] ${operationName}: waiting ${retryDelayMs}ms before retry`);
-        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-      } else if (attempt < maxAttempts && !timeBudgetAllowsRetry) {
-        debugWarn(`[Retry] ${operationName}: stopping retries because ${maxTotalMs}ms max wait budget was reached`);
-        break;
-      }
+    try {
+      debugLog(`[Workflow] ${operationName}: starting single attempt`);
+      const result = await task();
+      const elapsedMs = Date.now() - startedAt;
+      debugLog(`[Workflow] ${operationName}: completed in ${elapsedMs}ms`);
+      return { ok: true, result, error: null, elapsedMs, timedOut: false };
+    } catch (error) {
+      const elapsedMs = Date.now() - startedAt;
+      debugWarn(`[Workflow] ${operationName}: failed after ${elapsedMs}ms`, error);
+      return {
+        ok: false,
+        result: null,
+        error,
+        elapsedMs,
+        timedOut: isWorkflowTimeoutError(error)
+      };
     }
-
-    const elapsedMs = Date.now() - startedAt;
-    return {
-      ok: false,
-      result: lastResult,
-      attempts: attemptsMade,
-      error: lastError,
-      elapsedMs,
-      exhaustedTimeBudget: !!maxTotalMs && elapsedMs >= maxTotalMs
-    };
   }
 
   function buildResultDataCandidates(result) {
@@ -788,24 +745,27 @@ function renderPrerequisitesPage() {
           return null;
         };
 
-        const attemptResult = await runWithRetries(
-          () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL')),
-          (lookupResult) => !!extractUserEmail(lookupResult),
-          'Email verification lookup',
-          {
-            maxAttempts: EMAIL_LOOKUP_MAX_ATTEMPTS,
-            retryDelayMs: EMAIL_LOOKUP_RETRY_DELAY_MS,
-            maxTotalMs: EMAIL_LOOKUP_MAX_WAIT_MS
-          }
+        const attemptResult = await runSingleAttempt(
+          () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL'), {}, {
+            onProgress: (status, numSuccessfulTasks) => {
+              setCheckLoading(
+                emailVerificationCheckItem,
+                'Email verification',
+                formatWorkflowProgressDetails(status, numSuccessfulTasks),
+                'Communicating with Rewst'
+              );
+            }
+          }),
+          'Email verification lookup'
         );
 
         const email = extractUserEmail(attemptResult.result);
-        if (!attemptResult.ok || !email) {
-          let message = `Could not determine current user email after ${attemptResult.attempts} attempts over ${formatDuration(attemptResult.elapsedMs || 0)}`;
-          if (attemptResult.exhaustedTimeBudget) {
-            message += ` (reached ${formatDuration(EMAIL_LOOKUP_MAX_WAIT_MS)} wait limit)`;
-          }
-          throw new Error(message);
+        if (!attemptResult.ok) {
+          throw attemptResult.error || new Error(`Could not determine current user email after ${formatDuration(attemptResult.elapsedMs || 0)}`);
+        }
+
+        if (!email) {
+          throw new Error(`Workflow completed without returning a user email after ${formatDuration(attemptResult.elapsedMs || 0)}`);
         }
 
         currentUserEmail = email;
@@ -871,13 +831,12 @@ function renderPrerequisitesPage() {
     checkResultDetails.ca_name = '';
 
     try {
-      const attemptResult = await runWithRetries(
+      const attemptResult = await runSingleAttempt(
         () => rewst.getOrgVariable('ca_name'),
-        (result) => !!result,
         'Company prerequisite: CA Name'
       );
 
-      if (attemptResult.ok) {
+      if (attemptResult.ok && attemptResult.result) {
         const value = attemptResult.result;
         checkStates.ca_name = true;
         checkResultDetails.ca_name = `Data: ${value}`;
@@ -885,8 +844,8 @@ function renderPrerequisitesPage() {
       } else {
         checkStates.ca_name = false;
         checkResultDetails.ca_name = attemptResult.error
-          ? `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`
-          : `No CA Name returned after ${attemptResult.attempts} attempts`;
+          ? attemptResult.error.message || 'Workflow execution failed'
+          : 'No CA Name returned';
         clearCachedPrereqs();
         renderCheckResult(element, false, 'CA Name', checkResultDetails.ca_name, runCaNameCheck);
       }
@@ -902,13 +861,12 @@ function renderPrerequisitesPage() {
     checkResultDetails.ad_domain = '';
 
     try {
-      const attemptResult = await runWithRetries(
+      const attemptResult = await runSingleAttempt(
         () => rewst.getOrgVariable('ad_domain'),
-        (result) => !!result,
         'Company prerequisite: AD Domain'
       );
 
-      if (attemptResult.ok) {
+      if (attemptResult.ok && attemptResult.result) {
         const value = attemptResult.result;
         checkStates.ad_domain = true;
         checkResultDetails.ad_domain = `Data: ${value}`;
@@ -916,8 +874,8 @@ function renderPrerequisitesPage() {
       } else {
         checkStates.ad_domain = false;
         checkResultDetails.ad_domain = attemptResult.error
-          ? `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`
-          : `No AD Domain returned after ${attemptResult.attempts} attempts`;
+          ? attemptResult.error.message || 'Workflow execution failed'
+          : 'No AD Domain returned';
         clearCachedPrereqs();
         renderCheckResult(element, false, 'AD Domain', checkResultDetails.ad_domain, runAdDomainCheck);
       }
@@ -964,11 +922,19 @@ function renderPrerequisitesPage() {
         );
       };
 
-      const attemptResult = await runWithRetries(
+      const attemptResult = await runSingleAttempt(
         () => rewst.runWorkflowSmart(getWorkflowId('CWM_CONFIGURATIONS'), {
           user_principal_name: userEmail
+        }, {
+          onProgress: (status, numSuccessfulTasks) => {
+            setCheckLoading(
+              cwmCheckItem,
+              'CWM Configuration',
+              formatWorkflowProgressDetails(status, numSuccessfulTasks),
+              'Communicating with CWM'
+            );
+          }
         }),
-        (result) => getValidConfigs(result).length > 0,
         'User prerequisite: CWM Configuration'
       );
 
@@ -977,8 +943,8 @@ function renderPrerequisitesPage() {
       if (!attemptResult.ok || validConfigs.length === 0) {
         checkStates.cwm_config = false;
         checkResultDetails.cwm_config = attemptResult.error
-          ? `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`
-          : `No valid configurations found after ${attemptResult.attempts} attempts`;
+          ? attemptResult.error.message || 'Workflow execution failed'
+          : 'Workflow completed without returning any valid configurations';
         renderCheckResult(cwmCheckItem, false, 'CWM Configuration', checkResultDetails.cwm_config, runCwmConfigurationCheck);
       } else if (validConfigs.length === 1) {
         selectedConfig = validConfigs[0];
@@ -1047,28 +1013,26 @@ function renderPrerequisitesPage() {
         return;
       }
 
-      const attemptResult = await runWithRetries(
+      const attemptResult = await runSingleAttempt(
         () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
           cwa_computer_id: selectedConfig.deviceIdentifier
-        }),
-        (result) => getBooleanFieldValue(result, ['online', 'is_online', 'computer_online', 'isOnline']).parsed === true,
-        'User prerequisite: Computer Online',
-        {
-          maxAttempts: COMPUTER_CHECK_MAX_ATTEMPTS,
-          retryDelayMs: COMPUTER_CHECK_RETRY_DELAY_MS,
-          maxTotalMs: COMPUTER_CHECK_MAX_WAIT_MS,
-          onAttemptStart: ({ attempt, maxAttempts }) => {
+        }, {
+          onProgress: (status, numSuccessfulTasks) => {
             setCheckLoading(
               computerOnlineCheckItem,
               'Computer Online',
-              `Attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`,
+              formatWorkflowProgressDetails(status, numSuccessfulTasks),
               'Communicating with your PC'
             );
           }
-        }
+        }),
+        'User prerequisite: Computer Online'
       );
 
-      if (attemptResult.ok) {
+      if (attemptResult.ok && getBooleanFieldValue(
+        attemptResult.result,
+        ['online', 'is_online', 'computer_online', 'isOnline']
+      ).parsed === true) {
         const onlineValue = getBooleanFieldValue(
           attemptResult.result,
           ['online', 'is_online', 'computer_online', 'isOnline']
@@ -1085,12 +1049,8 @@ function renderPrerequisitesPage() {
       } else {
         checkStates.computer_online = false;
         checkResultDetails.computer_online = attemptResult.error
-          ? `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts)`
-          : `Computer not online after ${attemptResult.attempts} attempts over ${formatDuration(attemptResult.elapsedMs || 0)}`;
-
-        if (attemptResult.exhaustedTimeBudget) {
-          checkResultDetails.computer_online += ' (reached 5 minute wait limit)';
-        }
+          ? attemptResult.error.message || 'Workflow execution failed'
+          : `Computer is still offline after ${formatDuration(attemptResult.elapsedMs || 0)}`;
         clearCachedPrereqs();
         renderCheckResult(computerOnlineCheckItem, false, 'Computer Online', checkResultDetails.computer_online, runComputerOnlineCheck);
       }
@@ -1181,7 +1141,7 @@ function renderPrerequisitesPage() {
 
   async function runComputerPrerequisitesChecks() {
       // Runs the COMPUTER_PREREQUISITES workflow to check cert count and domain reachability.
-      // Like the computer online check, this retries for up to 5 minutes.
+      // This waits on one execution for up to 5 minutes instead of re-running the workflow.
     if (!checkStates.computer_online) {
       clearComputerPrereqStateAndRenderBlocked();
       updateButtonState();
@@ -1210,22 +1170,18 @@ function renderPrerequisitesPage() {
       return;
     }
 
-    const attemptResult = await runWithRetries(
-      () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }),
-      (result) => {
-        const evaluation = evaluateComputerPrereqs(result);
-        return evaluation.certPassed;
-      },
-      'Computer prerequisite checks',
-      {
-        maxAttempts: COMPUTER_CHECK_MAX_ATTEMPTS,
-        retryDelayMs: COMPUTER_CHECK_RETRY_DELAY_MS,
-        maxTotalMs: COMPUTER_CHECK_MAX_WAIT_MS,
-        onAttemptStart: ({ attempt, maxAttempts }) => {
-          const detail = `Attempt ${attempt}/${maxAttempts}. This can take up to 5 minutes.`;
-          setCheckLoading(validMachineCertCheckItem, 'Valid machine certificate installed', detail, 'Communicating with your PC');
+    const attemptResult = await runSingleAttempt(
+      () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }, {
+        onProgress: (status, numSuccessfulTasks) => {
+          setCheckLoading(
+            validMachineCertCheckItem,
+            'Valid machine certificate installed',
+            formatWorkflowProgressDetails(status, numSuccessfulTasks),
+            'Communicating with your PC'
+          );
         }
-      }
+      }),
+      'Computer prerequisite checks'
     );
 
     if (attemptResult.ok) {
@@ -1236,10 +1192,7 @@ function renderPrerequisitesPage() {
     }
 
     if (attemptResult.error && !attemptResult.result) {
-      let errorDetails = `${attemptResult.error.message || 'Workflow execution failed'} (after ${attemptResult.attempts} attempts over ${formatDuration(attemptResult.elapsedMs || 0)})`;
-      if (attemptResult.exhaustedTimeBudget) {
-        errorDetails += ' (reached 5 minute wait limit)';
-      }
+      const errorDetails = attemptResult.error.message || 'Workflow execution failed';
       checkStates.valid_machine_cert_installed = false;
       checkResultDetails.valid_machine_cert_installed = errorDetails;
 
