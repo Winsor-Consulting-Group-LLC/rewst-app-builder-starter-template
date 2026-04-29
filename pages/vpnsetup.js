@@ -240,7 +240,18 @@ function renderVpnSetupPage() {
         }
       });
 
-      const vpnConnections = getFirstFieldValue(result, ['VPNConnections', 'vpn_connections', 'vpnConnections']) || {};
+      let resolvedResult = result;
+      let vpnConnections = getFirstFieldValue(resolvedResult, ['VPNConnections', 'vpn_connections', 'vpnConnections']) || {};
+
+      if ((!vpnConnections || Object.keys(vpnConnections).length === 0) && typeof refreshExecutionOutput === 'function') {
+        const refreshedResult = await refreshExecutionOutput(result, 'VPN adapter status refresh');
+        if (refreshedResult) {
+          resolvedResult = refreshedResult;
+          vpnConnections = getFirstFieldValue(resolvedResult, ['VPNConnections', 'vpn_connections', 'vpnConnections']) || {};
+          state.statusText = 'Adapter status updated from refreshed execution output.';
+        }
+      }
+
       setAdapterStateFromConnections(vpnConnections);
       state.lastUpdatedAt = new Date().toISOString();
 

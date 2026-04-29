@@ -772,10 +772,8 @@ function renderPrerequisitesPage() {
     const startedAt = Date.now();
 
     try {
-      debugLog(`[Workflow] ${operationName}: starting single attempt`);
       const result = await task();
       const elapsedMs = Date.now() - startedAt;
-      debugLog(`[Workflow] ${operationName}: completed in ${elapsedMs}ms`);
       return { ok: true, result, error: null, elapsedMs, timedOut: false };
     } catch (error) {
       const elapsedMs = Date.now() - startedAt;
@@ -863,38 +861,111 @@ function renderPrerequisitesPage() {
     if (!emailLookupInFlight) {
         // Kick off the lookup and store the promise so concurrent callers share it.
       emailLookupInFlight = (async () => {
-        const extractUserEmail = (result) => {
-            const candidates = [
-              getFirstFieldValue(result, ['username']),
-              getFirstFieldValue(result, ['user_email', 'userEmail']),
-              getFirstFieldValue(result, ['email']),
-              getFirstFieldValue(result, ['user_principal_name', 'userPrincipalName'])
-            ];
+        const EMAIL_KEY_HINTS = [
+          'username',
+          'user_name',
+          'user_email',
+          'userEmail',
+          'email',
+          'mail',
+          'upn',
+          'user_principal_name',
+          'userPrincipalName',
+          'principalName'
+        ];
 
-            for (const candidate of candidates) {
-            if (typeof candidate === 'string' && candidate.trim()) {
-              return candidate.trim();
+        const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        const findEmailInValue = (value, depth = 0) => {
+          if (depth > 4 || value === null || value === undefined) return null;
+
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (EMAIL_PATTERN.test(trimmed)) {
+              return trimmed;
+            }
+            return null;
+          }
+
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              const found = findEmailInValue(item, depth + 1);
+              if (found) return found;
+            }
+            return null;
+          }
+
+          if (typeof value === 'object') {
+            for (const key of EMAIL_KEY_HINTS) {
+              if (Object.prototype.hasOwnProperty.call(value, key)) {
+                const found = findEmailInValue(value[key], depth + 1);
+                if (found) return found;
+              }
+            }
+
+            for (const nestedValue of Object.values(value)) {
+              const found = findEmailInValue(nestedValue, depth + 1);
+              if (found) return found;
             }
           }
 
           return null;
         };
 
-        const attemptResult = await runSingleAttempt(
+        const extractUserEmail = (result) => {
+            const candidates = [
+              getFirstFieldValue(result, ['username']),
+              getFirstFieldValue(result, ['user_name', 'upn']),
+              getFirstFieldValue(result, ['user_email', 'userEmail']),
+              getFirstFieldValue(result, ['email', 'mail']),
+              getFirstFieldValue(result, ['user_principal_name', 'userPrincipalName', 'principalName']),
+              result
+            ];
+
+          for (const candidate of candidates) {
+            const found = findEmailInValue(candidate);
+            if (found) {
+              return found;
+            }
+          }
+
+          return null;
+        };
+
+        const runEmailLookupAttempt = async (operationName, loadingStatus = 'Communicating with Rewst') => runSingleAttempt(
           () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL'), {}, {
             onProgress: (status, numSuccessfulTasks) => {
               setCheckLoading(
                 emailVerificationCheckItem,
                 'Email verification',
                 formatWorkflowProgressDetails(status, numSuccessfulTasks),
-                'Communicating with Rewst'
+                loadingStatus
               );
             }
           }),
-          'Email verification lookup'
+          operationName
         );
 
-        const email = extractUserEmail(attemptResult.result);
+        let attemptResult = await runEmailLookupAttempt('Email verification lookup');
+        let email = extractUserEmail(attemptResult.result);
+
+        if (attemptResult.ok && !email) {
+          const refreshedResult = await refreshExecutionOutput(
+            attemptResult.result,
+            'Email verification lookup'
+          );
+          if (refreshedResult) {
+            email = extractUserEmail(refreshedResult);
+          }
+        }
+
+        // Some runs report success before the email payload is fully materialized.
+        if (attemptResult.ok && !email) {
+          await sleep(1200);
+          attemptResult = await runEmailLookupAttempt('Email verification lookup retry', 'Finalizing account lookup');
+          email = extractUserEmail(attemptResult.result);
+        }
+
         if (!attemptResult.ok) {
           throw attemptResult.error || new Error(`Could not determine current user email after ${formatDuration(attemptResult.elapsedMs || 0)}`);
         }
@@ -953,8 +1024,7 @@ function renderPrerequisitesPage() {
     }
 
     if (continuePipeline && checkStates.email_verification) {
-      await runCwmConfigurationCheck();
-      await runComputerOnlineCheck();
+      await runCwmConfigurationCheck({ continuePipeline: true });
     }
   }
 
@@ -1019,7 +1089,8 @@ function renderPrerequisitesPage() {
     }
   }
 
-  async function runCwmConfigurationCheck() {
+  async function runCwmConfigurationCheck(options = {}) {
+    const continuePipeline = options.continuePipeline === true;
       // Asks a Rewst workflow for the user's CWM (ConnectWise Manage) device configurations.
       // If exactly one is found, it's selected automatically. If multiple are found, the first is used.
       // The selectedConfig is stored globally for downstream checks (computer online, cert check).
@@ -1050,12 +1121,6 @@ function renderPrerequisitesPage() {
       }
 
       const userEmail = await ensureUserEmail();
-      const getValidConfigs = (result) => {
-        const configs = getFirstFieldValue(result, ['cwm_configurations', 'cwmConfigurations', 'configurations']) || [];
-        return configs.filter(config =>
-          config && typeof config === 'object' && config.name && config.id && config.deviceIdentifier
-        );
-      };
 
       const attemptResult = await runSingleAttempt(
         () => rewst.runWorkflowSmart(getWorkflowId('CWM_CONFIGURATIONS'), {
@@ -1073,14 +1138,61 @@ function renderPrerequisitesPage() {
         'User prerequisite: CWM Configuration'
       );
 
-      const validConfigs = getValidConfigs(attemptResult.result);
+      const cwmResolution = attemptResult.ok
+        ? await resolveCwmConfigurations(attemptResult.result)
+        : { rawConfigs: [], validConfigs: [], usedFreshExecutionRead: false };
+      const rawConfigs = cwmResolution.rawConfigs;
+      const validConfigs = cwmResolution.validConfigs;
+      const candidateObjects = buildResultDataCandidates(attemptResult.result);
+      const executionId = getWorkflowExecutionId(attemptResult.result) || 'n/a';
+      const candidatePreview = candidateObjects
+        .slice(0, 4)
+        .map((candidate, index) => {
+          const keys = Object.keys(candidate);
+          const previewKeys = keys.slice(0, 8).join(', ');
+          const suffix = keys.length > 8 ? ', ...' : '';
+          return `#${index + 1}: [${previewKeys}${suffix}]`;
+        })
+        .join(' | ');
+
+      if (rawConfigs.length > 0 && validConfigs.length === 0) {
+        const firstRawConfig = rawConfigs[0];
+        const missingFields = ['name', 'id', 'deviceIdentifier'].filter(
+          (field) => !firstRawConfig || firstRawConfig[field] === undefined || firstRawConfig[field] === null || firstRawConfig[field] === ''
+        );
+
+        debugWarn(
+          `[Workflow] User prerequisite: CWM Configuration rejected all configs ` +
+          `(executionId=${executionId}, firstConfigMissing=${missingFields.join(', ') || 'none'})`,
+          {
+            firstConfigKeys: firstRawConfig && typeof firstRawConfig === 'object'
+              ? Object.keys(firstRawConfig)
+              : [],
+            candidatePreview
+          }
+        );
+      }
+
+      if (rawConfigs.length === 0 && attemptResult.ok) {
+        debugWarn(
+          `[Workflow] User prerequisite: CWM Configuration returned zero configs despite successful workflow ` +
+          `(executionId=${executionId})`,
+          { candidatePreview }
+        );
+      }
 
       if (!attemptResult.ok || validConfigs.length === 0) {
         checkStates.cwm_config = false;
         checkResultDetails.cwm_config = attemptResult.error
           ? attemptResult.error.message || 'Workflow execution failed'
           : 'Workflow completed without returning any valid configurations';
-        renderCheckResult(cwmCheckItem, false, 'CWM Configuration', checkResultDetails.cwm_config, runCwmConfigurationCheck);
+        renderCheckResult(
+          cwmCheckItem,
+          false,
+          'CWM Configuration',
+          checkResultDetails.cwm_config,
+          () => runCwmConfigurationCheck({ continuePipeline: true })
+        );
       } else if (validConfigs.length === 1) {
         selectedConfig = validConfigs[0];
         window.selectedConfig = selectedConfig;
@@ -1090,7 +1202,9 @@ function renderPrerequisitesPage() {
           // Ignore storage errors.
         }
         checkStates.cwm_config = true;
-        checkResultDetails.cwm_config = `Selected: ${selectedConfig.name}`;
+        checkResultDetails.cwm_config = cwmResolution.usedFreshExecutionRead
+          ? `Selected: ${selectedConfig.name} (refreshed execution output)`
+          : `Selected: ${selectedConfig.name}`;
         renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
       } else {
         selectedConfig = validConfigs[0];
@@ -1101,7 +1215,9 @@ function renderPrerequisitesPage() {
           // Ignore storage errors.
         }
         checkStates.cwm_config = true;
-        checkResultDetails.cwm_config = `Multiple found, selected: ${selectedConfig.name}`;
+        checkResultDetails.cwm_config = cwmResolution.usedFreshExecutionRead
+          ? `Multiple found, selected: ${selectedConfig.name} (refreshed execution output)`
+          : `Multiple found, selected: ${selectedConfig.name}`;
         renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
       }
     } catch (error) {
@@ -1115,9 +1231,19 @@ function renderPrerequisitesPage() {
         // Ignore storage errors.
       }
       clearCachedPrereqs();
-      renderCheckResult(cwmCheckItem, false, 'CWM Configuration', checkResultDetails.cwm_config, runCwmConfigurationCheck);
+      renderCheckResult(
+        cwmCheckItem,
+        false,
+        'CWM Configuration',
+        checkResultDetails.cwm_config,
+        () => runCwmConfigurationCheck({ continuePipeline: true })
+      );
     } finally {
       updateButtonState();
+    }
+
+    if (continuePipeline && checkStates.cwm_config) {
+      await runComputerOnlineCheck();
     }
   }
 
@@ -1164,14 +1290,50 @@ function renderPrerequisitesPage() {
         'User prerequisite: Computer Online'
       );
 
-      if (attemptResult.ok && getBooleanFieldValue(
-        attemptResult.result,
+      let resolvedOnlineResult = attemptResult.result;
+      let onlineField = getBooleanFieldValue(
+        resolvedOnlineResult,
         ['online', 'is_online', 'computer_online', 'isOnline']
-      ).parsed === true) {
-        const onlineValue = getBooleanFieldValue(
+      );
+      let usedFreshExecutionRead = false;
+
+      if (attemptResult.ok && onlineField.parsed !== true) {
+        const refreshedResult = await refreshExecutionOutput(
           attemptResult.result,
-          ['online', 'is_online', 'computer_online', 'isOnline']
-        ).rawValue;
+          'User prerequisite: Computer Online'
+        );
+        if (refreshedResult) {
+          resolvedOnlineResult = refreshedResult;
+          onlineField = getBooleanFieldValue(
+            resolvedOnlineResult,
+            ['online', 'is_online', 'computer_online', 'isOnline']
+          );
+          usedFreshExecutionRead = true;
+        }
+      }
+
+      const computerOnlineExecutionId = getWorkflowExecutionId(attemptResult.result) || 'n/a';
+      const onlineCandidateObjects = buildResultDataCandidates(resolvedOnlineResult);
+      const onlineCandidatePreview = onlineCandidateObjects
+        .slice(0, 4)
+        .map((candidate, index) => {
+          const keys = Object.keys(candidate);
+          const previewKeys = keys.slice(0, 8).join(', ');
+          const suffix = keys.length > 8 ? ', ...' : '';
+          return `#${index + 1}: [${previewKeys}${suffix}]`;
+        })
+        .join(' | ');
+
+      if (attemptResult.ok && onlineField.parsed !== true) {
+        debugWarn(
+          `[Workflow] User prerequisite: Computer Online did not produce a truthy online field ` +
+          `(executionId=${computerOnlineExecutionId})`,
+          { candidatePreview: onlineCandidatePreview }
+        );
+      }
+
+      if (attemptResult.ok && onlineField.parsed === true) {
+        const onlineValue = onlineField.rawValue;
         checkStates.computer_online = true;
         checkResultDetails.computer_online = `Status: ${onlineValue}`;
         renderCheckResult(
@@ -1258,6 +1420,72 @@ function renderPrerequisitesPage() {
     }
 
     return null;
+  }
+
+  async function refreshExecutionOutput(result, operationName, delayMs = 1200) {
+      // Some successful workflow runs initially expose empty or incomplete output objects.
+      // This does one delayed execution refresh so callers can re-evaluate the final payload.
+    const executionId = getWorkflowExecutionId(result);
+    if (!executionId) {
+      return null;
+    }
+
+    try {
+      debugWarn(`[Workflow] ${operationName}: refreshing execution output for ${executionId}`);
+      await sleep(delayMs);
+      return await rewst.getExecutionStatus(executionId, true, true);
+    } catch (error) {
+      debugWarn(`[Workflow] ${operationName}: refresh read failed for execution ${executionId}`, error);
+      return null;
+    }
+  }
+
+  async function resolveCwmConfigurations(result, operationName = 'User prerequisite: CWM Configuration') {
+      // Some successful runs initially expose empty output objects.
+      // If no configs are visible, do one direct execution refresh before failing.
+    const getRawConfigs = (inputResult) => {
+      const rawValue = getFirstFieldValue(inputResult, ['cwm_configurations', 'cwmConfigurations', 'configurations']);
+      if (Array.isArray(rawValue)) {
+        return rawValue;
+      }
+
+      if (rawValue && typeof rawValue === 'object') {
+        return Object.values(rawValue);
+      }
+
+      return [];
+    };
+
+    const getValidConfigs = (configs) => configs.filter(config =>
+      config && typeof config === 'object' && config.name && config.id && config.deviceIdentifier
+    );
+
+    const initialRawConfigs = getRawConfigs(result);
+    const initialValidConfigs = getValidConfigs(initialRawConfigs);
+    if (initialValidConfigs.length > 0) {
+      return {
+        rawConfigs: initialRawConfigs,
+        validConfigs: initialValidConfigs,
+        usedFreshExecutionRead: false
+      };
+    }
+
+    const refreshedResult = await refreshExecutionOutput(result, `${operationName}: zero configs visible`);
+    if (!refreshedResult) {
+      return {
+        rawConfigs: initialRawConfigs,
+        validConfigs: initialValidConfigs,
+        usedFreshExecutionRead: false
+      };
+    }
+
+    const refreshedRawConfigs = getRawConfigs(refreshedResult);
+    const refreshedValidConfigs = getValidConfigs(refreshedRawConfigs);
+    return {
+      rawConfigs: refreshedRawConfigs,
+      validConfigs: refreshedValidConfigs,
+      usedFreshExecutionRead: true
+    };
   }
 
   async function resolveComputerPrereqEvaluation(result, operationName = 'Computer prerequisite checks') {
@@ -1418,8 +1646,6 @@ function renderPrerequisitesPage() {
   (async () => {
       // This is where everything actually kicks off. All checks run in sequence because each
       // step depends on the one before it (company → user email → CWM config → computer).
-    debugLog('Starting prerequisites checks...');
-
     setCheckPending(companyCheckElements['ca_name'], 'CA Name', 'Queued to start.');
     setCheckPending(companyCheckElements['ad_domain'], 'AD Domain', 'Waiting for CA Name to complete.');
     setCheckPending(emailVerificationCheckItem, 'Email verification', 'Waiting for company checks to complete.');
