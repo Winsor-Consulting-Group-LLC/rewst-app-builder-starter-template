@@ -3891,6 +3891,139 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
   color: rgba(201, 211, 223, 0.82);
 }
 
+.vpnsetup-functional-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vpnsetup-command-card {
+  margin-bottom: 0;
+}
+
+.vpnsetup-adapter-card {
+  padding: 1rem;
+}
+
+.vpnsetup-adapter-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.vpnsetup-adapter-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.vpnsetup-adapter-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--rewst-dark-gray);
+}
+
+.vpnsetup-adapter-status-text {
+  margin: 0.25rem 0 0;
+  color: var(--rewst-gray);
+  font-size: 0.9rem;
+}
+
+.vpnsetup-adapter-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.vpnsetup-adapter-pill.is-installed {
+  color: #1f7a32;
+  background: rgba(99, 176, 72, 0.14);
+  border-color: rgba(99, 176, 72, 0.4);
+}
+
+.vpnsetup-adapter-pill.is-missing {
+  color: #9f2e2e;
+  background: rgba(196, 79, 79, 0.14);
+  border-color: rgba(196, 79, 79, 0.35);
+}
+
+.vpnsetup-adapter-pill.is-running,
+.vpnsetup-adapter-pill.is-pending {
+  color: var(--rewst-fandango);
+  background: rgba(7, 55, 99, 0.08);
+  border-color: rgba(7, 55, 99, 0.22);
+}
+
+.vpnsetup-action-row {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.vpnsetup-detail-grid {
+  margin-top: 1rem;
+  border-top: 1px solid var(--rewst-light-gray);
+  padding-top: 0.65rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.vpnsetup-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vpnsetup-detail-label {
+  color: var(--rewst-gray);
+  font-size: 0.85rem;
+}
+
+.vpnsetup-detail-value {
+  color: var(--rewst-dark-gray);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .vpnsetup-detail-row {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .vpnsetup-detail-value {
+    text-align: left;
+  }
+}
+
+html[data-theme='dark'] .vpnsetup-adapter-title {
+  color: #f1f5f9;
+}
+
+html[data-theme='dark'] .vpnsetup-adapter-status-text,
+html[data-theme='dark'] .vpnsetup-detail-label {
+  color: #c9d3df;
+}
+
+html[data-theme='dark'] .vpnsetup-detail-value {
+  color: #f1f5f9;
+}
+
+html[data-theme='dark'] .vpnsetup-detail-grid {
+  border-top-color: rgba(122, 150, 181, 0.35);
+}
+
 /* ============================================
    INSIGHTS PAGE STYLES
    ============================================ */
