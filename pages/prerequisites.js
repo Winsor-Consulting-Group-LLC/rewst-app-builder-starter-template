@@ -12,6 +12,36 @@ function renderPrerequisitesPage() {
     return card;
   }
 
+  const commandDeck = createCardContainer(`
+    <div class="prereq-command-row">
+      <div class="prereq-command-left">
+        <div class="prereq-command-badge">
+          <span class="material-icons">radar</span>
+          <span>Validation Command Deck</span>
+        </div>
+        <h2 class="prereq-command-title">Systems are scanning for launch authority</h2>
+        <p class="prereq-command-copy">
+          Every passing check unlocks the next layer of VPN readiness. Watch the sequence harden in real time.
+        </p>
+      </div>
+      <div class="prereq-command-right">
+        <div class="prereq-progress-header">
+          <span class="prereq-progress-label">Readiness Progress</span>
+          <span id="prereq-progress-value" class="prereq-progress-value">0/7</span>
+        </div>
+        <div class="prereq-progress-track" aria-hidden="true">
+          <span id="prereq-progress-fill" class="prereq-progress-fill"></span>
+        </div>
+        <p id="prereq-cadence-label" class="prereq-cadence-label">Standing by for first validation pulse.</p>
+      </div>
+    </div>
+  `, 'card prereq-command-card');
+  container.appendChild(commandDeck);
+
+  const progressValueElement = commandDeck.querySelector('#prereq-progress-value');
+  const progressFillElement = commandDeck.querySelector('#prereq-progress-fill');
+  const cadenceLabelElement = commandDeck.querySelector('#prereq-cadence-label');
+
   // ---- Checklist items container ----
   const checklistContainer = document.createElement('div');
   checklistContainer.className = 'prereq-checklist';
@@ -29,14 +59,21 @@ function renderPrerequisitesPage() {
     headerBtn.setAttribute('aria-expanded', 'true');
     headerBtn.innerHTML = `
       <h3 class="prereq-section-title">${title}</h3>
-      <span class="material-icons prereq-section-toggle-icon">expand_less</span>
+      <span class="prereq-section-actions">
+        <span class="prereq-section-success-chip" aria-hidden="true">
+          <span class="material-icons">task_alt</span>
+          <span>Complete</span>
+        </span>
+        <span class="material-icons prereq-section-toggle-icon">expand_less</span>
+      </span>
     `;
 
     const body = document.createElement('div');
     body.className = 'prereq-category-body';
 
-    const setCollapsed = (collapsed, persistState = false) => {
+    const setCollapsed = (collapsed, persistState = false, reason = 'system') => {
       section.classList.toggle('is-collapsed', collapsed);
+      section.classList.toggle('is-auto-collapsed', collapsed && reason === 'auto');
       headerBtn.setAttribute('aria-expanded', (!collapsed).toString());
 
       const icon = headerBtn.querySelector('.prereq-section-toggle-icon');
@@ -47,11 +84,15 @@ function renderPrerequisitesPage() {
       if (persistState) {
         section.dataset.collapseState = collapsed ? 'collapsed' : 'expanded';
       }
+
+      if (reason === 'manual') {
+        section.classList.remove('is-auto-collapsed');
+      }
     };
 
     headerBtn.addEventListener('click', () => {
       const collapsed = section.classList.contains('is-collapsed');
-      setCollapsed(!collapsed, true);
+      setCollapsed(!collapsed, true, 'manual');
     });
 
     section.appendChild(headerBtn);
@@ -209,16 +250,43 @@ function renderPrerequisitesPage() {
       if (!category) return;
 
       const isComplete = checkKeys.every((key) => checkStates[key] === true);
+      category.section.classList.toggle('is-complete', isComplete);
 
       if (isComplete) {
         // Auto-collapse complete categories unless the user explicitly expanded them.
         const shouldCollapse = category.section.dataset.collapseState !== 'expanded';
-        category.setCollapsed(shouldCollapse, false);
+        category.setCollapsed(shouldCollapse, false, shouldCollapse ? 'auto' : 'system');
       } else {
-        category.setCollapsed(false, false);
+        category.setCollapsed(false, false, 'system');
+        category.section.classList.remove('is-auto-collapsed');
         delete category.section.dataset.collapseState;
       }
     });
+  }
+
+  function updatePrereqCommandDeck() {
+    const totalChecks = Object.keys(checkStates).length;
+    const completedChecks = Object.values(checkStates).filter((state) => state === true).length;
+    const percent = Math.round((completedChecks / totalChecks) * 100);
+
+    if (progressValueElement) {
+      progressValueElement.textContent = `${completedChecks}/${totalChecks}`;
+    }
+
+    if (progressFillElement) {
+      progressFillElement.style.width = `${percent}%`;
+      progressFillElement.classList.toggle('is-complete', completedChecks === totalChecks);
+    }
+
+    if (cadenceLabelElement) {
+      if (completedChecks === 0) {
+        cadenceLabelElement.textContent = 'Standing by for first validation pulse.';
+      } else if (completedChecks < totalChecks) {
+        cadenceLabelElement.textContent = `${percent}% secured. Continuing scan cycle.`;
+      } else {
+        cadenceLabelElement.textContent = 'All prerequisites verified. VPN setup lane is unlocked.';
+      }
+    }
   }
 
   function getWorkflowId(key) {
@@ -363,6 +431,9 @@ function renderPrerequisitesPage() {
     const showRetry = !passed && typeof onRetry === 'function';
     const statusModifierClass = `is-${statusType}`;
 
+    element.classList.remove('is-passed', 'is-failed', 'is-info', 'is-pending', 'is-running');
+    element.classList.add(statusModifierClass);
+
     element.innerHTML = `
       <div class="prereq-check-icon ${statusModifierClass}">
         <span class="material-icons ${iconAnimationClass}">${statusIcon}</span>
@@ -382,6 +453,7 @@ function renderPrerequisitesPage() {
     }
 
     updateCategoryCollapseStates();
+    updatePrereqCommandDeck();
   }
 
   function hasAutoNavigatedToVpnAlready() {
@@ -706,16 +778,13 @@ function renderPrerequisitesPage() {
 
     try {
       const attemptResult = await runWithRetries(
-        () => rewst.runWorkflowSmart(getWorkflowId('COMPANY_PREREQUISITES')),
-        (result) => {
-          const value = getFirstFieldValue(result, ['ca_name', 'caName']);
-          return !!value;
-        },
+        () => rewst.getOrgVariable('ca_name'),
+        (result) => !!result,
         'Company prerequisite: CA Name'
       );
 
       if (attemptResult.ok) {
-        const value = getFirstFieldValue(attemptResult.result, ['ca_name', 'caName']);
+        const value = attemptResult.result;
         checkStates.ca_name = true;
         checkResultDetails.ca_name = `Data: ${value}`;
         renderCheckResult(element, true, 'CA Name', checkResultDetails.ca_name);
@@ -739,16 +808,13 @@ function renderPrerequisitesPage() {
 
     try {
       const attemptResult = await runWithRetries(
-        () => rewst.runWorkflowSmart(getWorkflowId('COMPANY_PREREQUISITES')),
-        (result) => {
-          const value = getFirstFieldValue(result, ['ad_domain', 'adDomain']);
-          return !!value;
-        },
+        () => rewst.getOrgVariable('ad_domain'),
+        (result) => !!result,
         'Company prerequisite: AD Domain'
       );
 
       if (attemptResult.ok) {
-        const value = getFirstFieldValue(attemptResult.result, ['ad_domain', 'adDomain']);
+        const value = attemptResult.result;
         checkStates.ad_domain = true;
         checkResultDetails.ad_domain = `Data: ${value}`;
         renderCheckResult(element, true, 'AD Domain', checkResultDetails.ad_domain);
