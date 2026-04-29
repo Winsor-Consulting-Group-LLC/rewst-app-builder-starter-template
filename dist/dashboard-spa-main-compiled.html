@@ -14057,6 +14057,13 @@ window.WORKFLOW_IDS = WORKFLOW_IDS;
         toggleIcon.textContent = sidebar.classList.contains('collapsed') ? 'chevron_right' : 'chevron_left';
       }
 
+      // Collapse the sidebar by default on small screens (< 768px).
+      if (window.innerWidth < 768) {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('sidebar-collapsed');
+        toggleIcon.textContent = 'chevron_right';
+      }
+
       // ============================================
       // PAGE NAVIGATION
       // ============================================
