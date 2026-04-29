@@ -149,52 +149,37 @@ function renderRemediationPage() {
     statusText: 'Preparing remediation workflow...'
   };
 
-  function getCurrentStage() {
-    if (state.taskCount < 13) return 1;
-    if (state.taskCount < 23) return 2;
-    return 3;
+  // Load step definitions from shared workflow-step config.
+  const workflowSteps = getWorkflowStepDefinitions('MACHINE_CERT_REMEDIATION_APPLY', [
+    { minTasks: 0, maxTasks: Infinity, progressLabel: 'Run remediation', detail: 'Workflow in progress.' }
+  ]);
+
+  function getCurrentStepIndex() {
+    return resolveWorkflowStepByTaskCount('MACHINE_CERT_REMEDIATION_APPLY', state.taskCount, workflowSteps).index;
   }
 
   function getStepCards() {
-    const currentStage = getCurrentStage();
+    const currentIndex = getCurrentStepIndex();
     const isFailed = state.phase === 'failed';
     const isDone = state.phase === 'done';
 
-    return [
-      {
-        title: 'Obtain CSR from remote computer',
-        detail: 'Runs until successful task 13.',
-        status: isDone || state.taskCount >= 13
-          ? 'Done'
-          : isFailed && currentStage === 1
-            ? 'Failed'
-            : currentStage === 1 && state.inFlight
-              ? 'Running'
-              : 'Pending'
-      },
-      {
-        title: 'Obtain signed certificate from CA',
-        detail: 'Runs from task 13 to task 23.',
-        status: isDone || state.taskCount >= 23
-          ? 'Done'
-          : isFailed && currentStage === 2
-            ? 'Failed'
-            : currentStage === 2 && state.inFlight
-              ? 'Running'
-              : 'Pending'
-      },
-      {
-        title: 'Install signed certificate on remote computer',
-        detail: 'Runs from task 23 to workflow completion.',
-        status: isDone
-          ? 'Done'
-          : isFailed && currentStage === 3
-            ? 'Failed'
-            : currentStage === 3 && state.inFlight
-              ? 'Running'
-              : 'Pending'
+    return workflowSteps.map((step, i) => {
+      const maxTasks = Number.isFinite(step?.maxTasks) ? step.maxTasks : Infinity;
+      const stepComplete = isDone || state.taskCount > maxTasks;
+      let status;
+      if (stepComplete) {
+        status = 'Done';
+      } else if (isFailed && i === currentIndex) {
+        status = 'Failed';
+      } else if (i === currentIndex && state.inFlight) {
+        status = 'Running';
+      } else if (i < currentIndex) {
+        status = 'Done';
+      } else {
+        status = 'Pending';
       }
-    ];
+      return { title: step.progressLabel || 'Workflow step', detail: step.detail || '', status };
+    });
   }
 
   function render() {

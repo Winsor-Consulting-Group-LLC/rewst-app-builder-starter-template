@@ -654,6 +654,44 @@
       }
 
       // ============================================
+      // SHARED WORKFLOW STEP HELPERS
+      // ============================================
+      function getWorkflowStepDefinitions(workflowKey, fallbackSteps = []) {
+        const workflowSteps = window.WORKFLOW_STEPS || {};
+        const configured = workflowSteps[workflowKey];
+        return Array.isArray(configured) && configured.length > 0 ? configured : fallbackSteps;
+      }
+
+      function resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks, fallbackSteps = []) {
+        const steps = getWorkflowStepDefinitions(workflowKey, fallbackSteps);
+        if (!Array.isArray(steps) || steps.length === 0) {
+          return { steps: [], index: 0, step: null };
+        }
+
+        if (!Number.isFinite(numSuccessfulTasks)) {
+          return { steps, index: 0, step: steps[0] };
+        }
+
+        const index = steps.findIndex((step) => {
+          const minTasks = Number.isFinite(step?.minTasks) ? step.minTasks : 0;
+          const maxTasks = Number.isFinite(step?.maxTasks) ? step.maxTasks : Infinity;
+          return numSuccessfulTasks >= minTasks && numSuccessfulTasks <= maxTasks;
+        });
+
+        if (index >= 0) {
+          return { steps, index, step: steps[index] };
+        }
+
+        const firstMin = Number.isFinite(steps[0]?.minTasks) ? steps[0].minTasks : 0;
+        if (numSuccessfulTasks < firstMin) {
+          return { steps, index: 0, step: steps[0] };
+        }
+
+        const lastIndex = steps.length - 1;
+        return { steps, index: lastIndex, step: steps[lastIndex] };
+      }
+
+      // ============================================
       // PAGE RENDER FUNCTIONS
       // ============================================
 
