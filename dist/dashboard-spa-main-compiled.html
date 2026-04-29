@@ -14470,6 +14470,8 @@ function renderPrerequisitesPage() {
   container.appendChild(checklistContainer);
 
   const categorySections = {};
+  const CATEGORY_AUTO_COLLAPSE_DELAY_MS = 1200;
+  const categoryAutoCollapseTimers = {};
 
   function createCategorySection(key, title) {
     const section = document.createElement('section');
@@ -14508,6 +14510,7 @@ function renderPrerequisitesPage() {
       }
 
       if (reason === 'manual') {
+        clearCategoryAutoCollapseTimer(key);
         section.classList.remove('is-auto-collapsed');
       }
     };
@@ -14666,6 +14669,14 @@ function renderPrerequisitesPage() {
     computer: ['valid_machine_cert_installed', 'remote_domain_reachable']
   };
 
+  function clearCategoryAutoCollapseTimer(categoryKey) {
+    const timerId = categoryAutoCollapseTimers[categoryKey];
+    if (timerId) {
+      clearTimeout(timerId);
+      delete categoryAutoCollapseTimers[categoryKey];
+    }
+  }
+
   function updateCategoryCollapseStates() {
     Object.entries(CATEGORY_CHECK_KEYS).forEach(([categoryKey, checkKeys]) => {
       const category = categorySections[categoryKey];
@@ -14675,10 +14686,37 @@ function renderPrerequisitesPage() {
       category.section.classList.toggle('is-complete', isComplete);
 
       if (isComplete) {
-        // Auto-collapse complete categories unless the user explicitly expanded them.
-        const shouldCollapse = category.section.dataset.collapseState !== 'expanded';
-        category.setCollapsed(shouldCollapse, false, shouldCollapse ? 'auto' : 'system');
+        const isPinnedOpen = category.section.dataset.collapseState === 'expanded';
+
+        if (isPinnedOpen) {
+          clearCategoryAutoCollapseTimer(categoryKey);
+          category.setCollapsed(false, false, 'system');
+          return;
+        }
+
+        if (category.section.classList.contains('is-collapsed')) {
+          clearCategoryAutoCollapseTimer(categoryKey);
+          category.setCollapsed(true, false, 'auto');
+          return;
+        }
+
+        if (!categoryAutoCollapseTimers[categoryKey]) {
+          categoryAutoCollapseTimers[categoryKey] = setTimeout(() => {
+            delete categoryAutoCollapseTimers[categoryKey];
+
+            const latestCategory = categorySections[categoryKey];
+            if (!latestCategory) return;
+
+            const stillComplete = checkKeys.every((key) => checkStates[key] === true);
+            const stillPinnedOpen = latestCategory.section.dataset.collapseState === 'expanded';
+
+            if (stillComplete && !stillPinnedOpen) {
+              latestCategory.setCollapsed(true, false, 'auto');
+            }
+          }, CATEGORY_AUTO_COLLAPSE_DELAY_MS);
+        }
       } else {
+        clearCategoryAutoCollapseTimer(categoryKey);
         category.setCollapsed(false, false, 'system');
         category.section.classList.remove('is-auto-collapsed');
         delete category.section.dataset.collapseState;
