@@ -182,15 +182,30 @@ class RewstApp {
     this._log('Running workflow (smart mode):', workflowId);
     this._log('Input data:', inputData);
 
-    try {
-      this._log('Attempting simple testWorkflow execution...');
-      return await this.runWorkflow(workflowId, inputData, options);
-
-    } catch (firstError) {
-      this._log('testWorkflow failed:', firstError.message);
-      this._log('Attempting trigger-based execution...');
-
+    let simpleError = null;
+    for (let _attempt = 0; _attempt <= 2; _attempt++) {
       try {
+        this._log(`Attempting simple testWorkflow execution${_attempt > 0 ? ` (retry ${_attempt})` : ''}...`);
+        return await this.runWorkflow(workflowId, inputData, options);
+      } catch (err) {
+        simpleError = err;
+        // Silently retry zero-task failures — these are transient platform startup races
+        // where the execution record is created but immediately marked FAILED before any
+        // tasks run. A brief pause is enough for the platform to recover.
+        if (err.zeroTaskFailure && _attempt < 2) {
+          this._log(`Zero-task failure on attempt ${_attempt + 1}, waiting 1.5s before retry...`);
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        }
+        break;
+      }
+    }
+
+    const firstError = simpleError;
+    this._log('testWorkflow failed:', firstError.message);
+    this._log('Attempting trigger-based execution...');
+
+    try {
         const triggers = await this.getWorkflowTriggers(workflowId);
 
         if (!triggers || triggers.length === 0) {
@@ -235,13 +250,12 @@ class RewstApp {
           options
         );
 
-      } catch (secondError) {
-        this._error('Both execution methods failed', secondError);
-        throw new Error(
-          `Failed to run workflow: ${secondError.message}. ` +
-          `Try using debugWorkflow('${workflowId}') to see workflow details.`
-        );
-      }
+    } catch (secondError) {
+      this._error('Both execution methods failed', secondError);
+      throw new Error(
+        `Failed to run workflow: ${secondError.message}. ` +
+        `Try using debugWorkflow('${workflowId}') to see workflow details.`
+      );
     }
   }
 
@@ -290,10 +304,12 @@ class RewstApp {
 
     } catch (error) {
       this._error(`Failed to execute workflow ${workflowId}`, error);
-      throw new Error(
+      const wrapped = new Error(
         `Workflow execution failed: ${error.message}. ` +
         `This may be because the workflow requires a trigger. Try using runWorkflowSmart() instead.`
       );
+      wrapped.zeroTaskFailure = error.zeroTaskFailure === true;
+      throw wrapped;
     }
   }
 
@@ -351,10 +367,12 @@ class RewstApp {
 
     } catch (error) {
       this._error('Failed to execute workflow with trigger', error);
-      throw new Error(
+      const wrapped = new Error(
         `Workflow execution failed: ${error.message}. ` +
         `Check that trigger IDs are correct using debugWorkflow().`
       );
+      wrapped.zeroTaskFailure = error.zeroTaskFailure === true;
+      throw wrapped;
     }
   }
 
@@ -5196,7 +5214,11 @@ async _fetchTriggerInfoBatched(executions, includeRawContext = false, options = 
         if (isComplete) {
           const isFailed = ['FAILED', 'failed', 'ERROR'].some(s => execution.status.toUpperCase() === s.toUpperCase());
           if (isFailed) {
-            throw new Error(`Workflow failed: ${execution.status}`);
+            const err = new Error(`Workflow failed: ${execution.status}`);
+            // Tag executions that failed before running any tasks — these are likely transient
+            // platform startup races safe to silently retry in runWorkflowSmart.
+            err.zeroTaskFailure = !execution.numSuccessfulTasks;
+            throw err;
           }
           const finalResult = await this.getExecutionStatus(executionId, true, true);
           return { ...finalResult, success: true };
