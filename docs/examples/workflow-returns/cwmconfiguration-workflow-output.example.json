@@ -1,0 +1,226 @@
+{
+  "automation_log": [
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Set workflow variables",
+      "information": "N/A"
+    },
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Successfully looked up user in Entra",
+      "information": "N/A"
+    },
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Successfully found a manage contact for this user",
+      "information": "N/A"
+    }
+  ],
+  "cwm_configurations": [
+    {
+      "id": 26159,
+      "ram": "15664",
+      "name": "WCG5CG112B19X",
+      "site": {
+        "id": 1004,
+        "name": "Buffalo, IA",
+        "_info": {
+          "site_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//company/companies/19299/sites/1004"
+        }
+      },
+      "type": {
+        "id": 24,
+        "name": "Managed Workstation",
+        "_info": {
+          "type_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//company/configurations/types/24"
+        }
+      },
+      "_info": {
+        "enteredBy": "automate",
+        "updatedBy": "automate",
+        "dateEntered": "2025-01-07T00:56:59Z",
+        "lastUpdated": "2026-04-29T05:01:23Z"
+      },
+      "notes": "Sales Order #: 1583\r\nProduct Description: HP ZBook Firefly 14 G8 - 16GB RAM - Intel Core i7",
+      "osInfo": "10.0.26100 ",
+      "osType": "Microsoft Windows 11 Business x64",
+      "status": {
+        "id": 2,
+        "name": "Active",
+        "_info": {
+          "status_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//company/configurations/statuses/2"
+        }
+      },
+      "vendor": {
+        "id": 19334,
+        "name": "Ingram Micro",
+        "_info": {
+          "company_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//company/companies/19334"
+        },
+        "identifier": "IngramMicro"
+      },
+      "company": {
+        "id": 19299,
+        "name": "Winsor Consulting Group, LLC",
+        "_info": {
+          "company_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//company/companies/19299"
+        },
+        "identifier": "Winsor Group"
+      },
+      "contact": {
+        "id": 5189,
+        "name": "John Rogers",
+        "_info": {
+          "contact_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//company/contacts/5189"
+        }
+      },
+      "billFlag": false,
+      "cpuSpeed": "3000",
+      "location": {
+        "id": 11,
+        "name": "Winsor",
+        "_info": {
+          "location_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//system/locations/11"
+        }
+      },
+      "ipAddress": "10.42.79.196",
+      "tagNumber": "101339\r\n",
+      "activeFlag": true,
+      "backupYear": 0,
+      "department": {
+        "id": 1,
+        "name": "Managed Services",
+        "_info": {
+          "department_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//system/departments/1"
+        },
+        "identifier": "Managed Service"
+      },
+      "locationId": 11,
+      "macAddress": "14-CB-19-75-48-B6",
+      "mobileGuid": "986969fe-4ada-45b2-89a5-d1cdd65fa165",
+      "remoteLink": "https://automate.winsorgroup.com/automate/extension-redirect/77d4bab8-294b-11e9-b491-120af8af1412?i=7899&a=A039C02E-4199-4FE6-B658-E40468B8ADE8&",
+      "backupMonth": 0,
+      "modelNumber": "HP ZBook Firefly 14 inch G8 Mobile Workstation PC",
+      "vendorNotes": "",
+      "backupFailed": 0,
+      "customFields": [
+        {
+          "id": 40,
+          "type": "Number",
+          "podId": "config_details",
+          "value": 1887,
+          "rowNum": 3,
+          "caption": "Purchase Price",
+          "entryMethod": "EntryField",
+          "connectWiseId": "7e3500ae-2463-ee11-8281-cfef947cc353",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 40
+        },
+        {
+          "id": 46,
+          "type": "Checkbox",
+          "podId": "config_details",
+          "value": false,
+          "rowNum": 5,
+          "caption": "HAAS Equipment",
+          "entryMethod": "EntryField",
+          "connectWiseId": "7f3500ae-2463-ee11-8281-cfef947cc353",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 46
+        },
+        {
+          "id": 56,
+          "type": "Text",
+          "podId": "config_details",
+          "value": null,
+          "rowNum": 7,
+          "caption": "Unique ID",
+          "entryMethod": "EntryField",
+          "connectWiseId": "01799156-d2dc-ee11-8284-cfc48892d587",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 56
+        },
+        {
+          "id": 57,
+          "type": "Text",
+          "podId": "config_details",
+          "value": "No",
+          "rowNum": 6,
+          "caption": "DR Asset?",
+          "entryMethod": "List",
+          "connectWiseId": "1436acb5-80e8-ee11-8284-cfc48892d587",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 57
+        },
+        {
+          "id": 58,
+          "type": "Text",
+          "podId": "config_details",
+          "value": "N/A",
+          "rowNum": 8,
+          "caption": "CMMC Compliance",
+          "entryMethod": "List",
+          "connectWiseId": "559e59c6-c412-ef11-8285-a3c47a55c074",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 58
+        },
+        {
+          "id": 63,
+          "type": "Text",
+          "podId": "config_details",
+          "value": "N/A",
+          "rowNum": 2,
+          "caption": "Secondary Status",
+          "entryMethod": "List",
+          "connectWiseId": "b68ce9ed-2675-ef11-babf-0e0e87cbc8b1",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 63
+        },
+        {
+          "id": 64,
+          "type": "Date",
+          "podId": "config_details",
+          "value": null,
+          "rowNum": 4,
+          "caption": "Last Inventory Date",
+          "entryMethod": "EntryField",
+          "connectWiseId": "f66e16ef-124d-f011-bacb-0e0e87cbc8b1",
+          "numberOfDecimals": 0,
+          "userDefinedFieldRecId": 64
+        }
+      ],
+      "manufacturer": {
+        "id": 240,
+        "name": "Hewlett-Packard",
+        "_info": {
+          "manufacturer_href": "https://api-na.myconnectwise.net/v4_6_release/apis/3.0//procurement/manufacturers/240"
+        }
+      },
+      "purchaseDate": "2021-05-05T00:00:00Z",
+      "serialNumber": "5CG112B19X",
+      "lastLoginName": "WINSOR\\jrogers",
+      "backupRestores": 0,
+      "businessUnitId": 1,
+      "defaultGateway": "46.110.114.140",
+      "managementLink": "https://automate.winsorgroup.com/automate/computer/7899",
+      "showRemoteFlag": true,
+      "backupSuccesses": 0,
+      "localHardDrives": "Reported Total Capacity  \r\nC: 454226 MB  \r\nE: 80 MB  \r\nD: 89 MB  \r\n",
+      "backupIncomplete": 0,
+      "backupServerName": "",
+      "deviceIdentifier": "7899",
+      "installationDate": "2024-09-16T07:59:14Z",
+      "needsRenewalFlag": false,
+      "showAutomateFlag": true,
+      "companyLocationId": 11,
+      "displayVendorFlag": true,
+      "backupBillableSpaceGb": 0,
+      "manufacturerPartNumber": "3V366UT#ABA",
+      "warrantyExpirationDate": "2024-05-04T00:00:00Z",
+      "backupProtectedDeviceList": ""
+    }
+  ]
+}
