@@ -1323,8 +1323,13 @@ class RewstApp {
     this._log('Fetching org variable:', name);
 
     try {
-      const variables = await this.getOrgVariables();
-      const variable = variables.find(v => v.name === name);
+      const normalizedName = String(name).trim().toLowerCase();
+      const variables = await this.getOrgVariables(1000);
+      const variable = variables.find((v) => {
+        const byName = typeof v.name === 'string' && v.name.trim().toLowerCase() === normalizedName;
+        const byId = typeof v.id === 'string' && v.id.trim().toLowerCase() === normalizedName;
+        return byName || byId;
+      });
 
       if (variable) {
         this._log(`Found variable "${name}" with value:`, variable.value);
