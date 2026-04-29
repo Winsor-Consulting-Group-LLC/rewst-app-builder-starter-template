@@ -6,10 +6,14 @@ function renderVpnSetupPage() {
   const container = document.getElementById('page-vpnsetup');
   container.innerHTML = '';
 
+  // The entire page lives inside a single "scene" wrapper for layout/animation purposes.
   const scene = document.createElement('div');
   scene.className = 'vpnsetup-scene';
 
   scene.innerHTML = `
+    <!-- Hero card: full-width dramatic banner at the top of the page.
+         The orbit divs are purely decorative animated rings (CSS animation).
+         This section does NOT trigger any real actions. -->
     <section class="vpnsetup-hero card">
       <div class="vpnsetup-hero-orbit vpnsetup-hero-orbit-primary"></div>
       <div class="vpnsetup-hero-orbit vpnsetup-hero-orbit-secondary"></div>
@@ -29,6 +33,7 @@ function renderVpnSetupPage() {
         policy checks, certificate trust paths, and tunnel lifecycle operations behind the curtain.
       </p>
 
+        <!-- Energy cells: purely decorative animated scan bars. aria-hidden so screen readers skip them. -->
       <div class="vpnsetup-energy-grid" role="presentation" aria-hidden="true">
         <span class="vpnsetup-energy-cell"></span>
         <span class="vpnsetup-energy-cell"></span>
@@ -38,6 +43,7 @@ function renderVpnSetupPage() {
       </div>
 
       <div class="vpnsetup-status-strip">
+          <!-- Static status badges — these are decorative, not live data. -->
         <div class="vpnsetup-status-item">
           <span class="material-icons">verified_user</span>
           <span>Identity Chain: Verified</span>
@@ -53,11 +59,13 @@ function renderVpnSetupPage() {
       </div>
 
       <p class="vpnsetup-disclaimer-note">
+          <!-- Small disclaimer reminding anyone who reads the source that this is a demo UI. -->
         Demonstration interface only: this panel is aesthetic telemetry and does not execute real VPN actions yet.
       </p>
     </section>
 
     <section class="vpnsetup-grid">
+        <!-- Pipeline Pressure card: animated readiness meters. All values are static/decorative. -->
       <article class="card vpnsetup-panel vpnsetup-panel-flow">
         <div class="vpnsetup-panel-head">
           <h3 class="vpnsetup-panel-title">Pipeline Pressure</h3>
@@ -85,6 +93,9 @@ function renderVpnSetupPage() {
       </article>
 
       <article class="card vpnsetup-panel">
+          <!-- Operational Sequence: ordered list of VPN setup steps.
+           is-complete = done (green check), is-pending = not yet run (grey).
+           These states are hardcoded for visual effect — the steps don't actually execute. -->
         <div class="vpnsetup-panel-head">
           <h3 class="vpnsetup-panel-title">Operational Sequence</h3>
           <span class="vpnsetup-panel-badge is-ready">Ready</span>
@@ -125,6 +136,7 @@ function renderVpnSetupPage() {
   `;
 
   const infoCard = RewstDOM.createCard(`
+      <!-- Small info banner that summarises why the user is on this page. -->
     <div class="vpnsetup-info-row">
       <div class="vpnsetup-info-icon">
         <span class="material-icons">check_circle</span>
@@ -138,5 +150,6 @@ function renderVpnSetupPage() {
   infoCard.className = 'card vpnsetup-info-card';
 
   scene.appendChild(infoCard);
+    // infoCard goes after the main scene sections, then the whole scene is added to the page.
   container.appendChild(scene);
 }

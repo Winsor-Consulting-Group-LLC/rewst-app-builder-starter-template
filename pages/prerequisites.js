@@ -5,7 +5,9 @@
 function renderPrerequisitesPage() {
   const container = document.getElementById('page-prerequisites');
   container.innerHTML = '';
+  // Wipe the container so we start fresh each time the page is navigated to.
 
+  // Helper: wraps an HTML string in a RewstDOM card element and applies a custom class.
   function createCardContainer(content, className) {
     const card = RewstDOM.createCard(content);
     card.className = className;
@@ -14,7 +16,7 @@ function renderPrerequisitesPage() {
 
   const commandDeck = createCardContainer(`
     <div class="prereq-command-row">
-      <div class="prereq-command-left">
+      <div class="prereq-command-left"> 
         <div class="prereq-command-badge">
           <span class="material-icons">radar</span>
           <span>Validation Command Deck</span>
@@ -38,7 +40,8 @@ function renderPrerequisitesPage() {
   `, 'card prereq-command-card');
   container.appendChild(commandDeck);
 
-  const progressValueElement = commandDeck.querySelector('#prereq-progress-value');
+    // Grab references to the live-updating progress UI elements inside the command deck.
+    const progressValueElement = commandDeck.querySelector('#prereq-progress-value');
   const progressFillElement = commandDeck.querySelector('#prereq-progress-fill');
   const cadenceLabelElement = commandDeck.querySelector('#prereq-cadence-label');
 
@@ -47,11 +50,15 @@ function renderPrerequisitesPage() {
   checklistContainer.className = 'prereq-checklist';
   container.appendChild(checklistContainer);
 
+    // categorySections holds a reference to each collapsible section's DOM and collapse logic.
   const categorySections = {};
+    // How long a completed category stays open before it auto-collapses (ms).
   const CATEGORY_AUTO_COLLAPSE_DELAY_MS = 1200;
+    // Holds the setTimeout IDs for pending auto-collapse actions so we can cancel them.
   const categoryAutoCollapseTimers = {};
 
   function createCategorySection(key, title) {
+      // key = e.g. 'company', 'user', 'computer' — used to look up this section later.
     const section = document.createElement('section');
     section.className = 'prereq-category';
 
@@ -73,6 +80,8 @@ function renderPrerequisitesPage() {
     const body = document.createElement('div');
     body.className = 'prereq-category-body';
 
+      // setCollapsed drives the visual open/close state of this section.
+      // reason='manual' means the user clicked, 'auto' means all checks passed and the timer fired.
     const setCollapsed = (collapsed, persistState = false, reason = 'system') => {
       section.classList.toggle('is-collapsed', collapsed);
       section.classList.toggle('is-auto-collapsed', collapsed && reason === 'auto');
@@ -88,6 +97,7 @@ function renderPrerequisitesPage() {
       }
 
       if (reason === 'manual') {
+          // User manually toggled — cancel any pending auto-close for this section.
         clearCategoryAutoCollapseTimer(key);
         section.classList.remove('is-auto-collapsed');
       }
@@ -113,13 +123,16 @@ function renderPrerequisitesPage() {
   // ---- Company checks section ----
   const companyCategoryBody = createCategorySection('company', 'Company Prerequisites');
 
+    // These two checks pull org-level variables (CA Name, AD Domain) from Rewst.
   const companyChecks = [
     { id: 'ca_name', label: 'CA Name' },
     { id: 'ad_domain', label: 'AD Domain' }
   ];
 
+    // Map from check id → the DOM card element for that check (so we can update it later).
   const companyCheckElements = {};
 
+    // Builds a "pending" check card with the given id and label.
   function createCheckCard(id, label) {
     const checkItem = createCardContainer(`
       <div class="prereq-check-icon is-pending">
@@ -138,12 +151,14 @@ function renderPrerequisitesPage() {
   companyChecks.forEach(check => {
     const checkItem = createCheckCard(`check-${check.id}`, check.label);
     companyCategoryBody.appendChild(checkItem);
+      // Store the element so individual check functions can update it by id.
     companyCheckElements[check.id] = checkItem;
   });
 
   // ---- User checks section ----
   const userCategoryBody = createCategorySection('user', 'User Prerequisites');
 
+    // Email verification must pass first; CWM and computer checks depend on it.
   const emailVerificationCheckItem = createCheckCard('check-email-verification', 'Email verification');
   userCategoryBody.appendChild(emailVerificationCheckItem);
 
@@ -156,6 +171,7 @@ function renderPrerequisitesPage() {
   // ---- Computer checks section ----
   const computerCategoryBody = createCategorySection('computer', 'Computer Prerequisites');
 
+    // These two checks run against the specific computer identified by the CWM config check.
   const validMachineCertCheckItem = createCheckCard('check-valid-machine-cert', 'Valid machine certificate installed');
   computerCategoryBody.appendChild(validMachineCertCheckItem);
 
@@ -175,6 +191,7 @@ function renderPrerequisitesPage() {
   `;
   continueButton.innerHTML = defaultContinueButtonHtml;
   continueButton.addEventListener('click', () => {
+      // If a countdown was in progress, cancel it and navigate immediately.
     if (autoProceedCountdownTimer) {
       stopAutoProceedCountdown();
       autoProceedTriggered = true;
@@ -191,6 +208,8 @@ function renderPrerequisitesPage() {
   container.appendChild(buttonContainer);
 
   const checkStates = {
+    // Tracks the current pass/fail result for each individual check.
+    // false = not yet passed, true = passed.
     ca_name: false,
     ad_domain: false,
     email_verification: false,
@@ -202,25 +221,34 @@ function renderPrerequisitesPage() {
 
   const MAX_CHECK_ATTEMPTS = 3; // Initial run + 2 retries
   const RETRY_DELAY_MS = 600;
+    // Email lookup can take a while because it may need to wait for a workflow to provision.
   const EMAIL_LOOKUP_MAX_ATTEMPTS = 8;
   const EMAIL_LOOKUP_RETRY_DELAY_MS = 1500;
   const EMAIL_LOOKUP_MAX_WAIT_MS = 2 * 60 * 1000;
+    // Computer checks can take up to 5 minutes if the machine is waking up or slow to respond.
   const COMPUTER_CHECK_MAX_WAIT_MS = 5 * 60 * 1000;
   const COMPUTER_CHECK_RETRY_DELAY_MS = 5000;
   const COMPUTER_CHECK_MAX_ATTEMPTS = 60;
+    // Cache key used in sessionStorage so passing checks survive a page refresh.
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
 
+    // Allow the Rewst app to configure the auto-proceed countdown via APP_CONFIG.
   const configuredCountdown = Number(window.APP_CONFIG?.autoProceedCountdownSeconds);
   const AUTO_PROCEED_COUNTDOWN_SECONDS = Number.isInteger(configuredCountdown) && configuredCountdown > 0
     ? configuredCountdown
     : 3;
 
+    // currentUserEmail is fetched once and reused by multiple checks that need the user's email.
   let currentUserEmail = null;
+    // emailLookupInFlight prevents duplicate simultaneous email lookup requests.
   let emailLookupInFlight = null;
+    // selectedConfig is the CWM configuration chosen for this user's computer.
   let selectedConfig = null;
+    // Timer state for the "auto-proceed in N seconds" countdown shown when all checks pass.
   let autoProceedCountdownTimer = null;
   let autoProceedCountdownValue = AUTO_PROCEED_COUNTDOWN_SECONDS;
   let autoProceedTriggered = false;
+    // Stores the human-readable detail string for each check's last result (used for caching).
   const checkResultDetails = {
     ca_name: '',
     ad_domain: '',
@@ -232,6 +260,8 @@ function renderPrerequisitesPage() {
   };
 
   const workflowIds = window.WORKFLOW_IDS || {};
+    // These 6 checks must ALL pass before the Continue button unlocks.
+    // remote_domain_reachable is informational — it doesn't block VPN setup.
   const REQUIRED_PASSING_KEYS = [
     'ca_name',
     'ad_domain',
@@ -242,12 +272,15 @@ function renderPrerequisitesPage() {
   ];
 
   const CATEGORY_CHECK_KEYS = {
+    // Maps each collapsible section to the check keys it owns.
+    // Used to decide when a section is "complete" and can auto-collapse.
     company: ['ca_name', 'ad_domain'],
     user: ['email_verification', 'cwm_config', 'computer_online'],
     computer: ['valid_machine_cert_installed', 'remote_domain_reachable']
   };
 
   function clearCategoryAutoCollapseTimer(categoryKey) {
+      // Cancel a pending auto-collapse if the user manually interacted or checks changed.
     const timerId = categoryAutoCollapseTimers[categoryKey];
     if (timerId) {
       clearTimeout(timerId);
@@ -256,6 +289,8 @@ function renderPrerequisitesPage() {
   }
 
   function updateCategoryCollapseStates() {
+      // Called after every check result update. Marks each section as complete or not,
+      // and schedules/cancels the delayed auto-collapse as appropriate.
     Object.entries(CATEGORY_CHECK_KEYS).forEach(([categoryKey, checkKeys]) => {
       const category = categorySections[categoryKey];
       if (!category) return;
@@ -267,18 +302,21 @@ function renderPrerequisitesPage() {
         const isPinnedOpen = category.section.dataset.collapseState === 'expanded';
 
         if (isPinnedOpen) {
+            // User forced this section open; don't auto-close it.
           clearCategoryAutoCollapseTimer(categoryKey);
           category.setCollapsed(false, false, 'system');
           return;
         }
 
         if (category.section.classList.contains('is-collapsed')) {
+            // Already collapsed (possibly user-collapsed); keep it that way.
           clearCategoryAutoCollapseTimer(categoryKey);
           category.setCollapsed(true, false, 'auto');
           return;
         }
 
         if (!categoryAutoCollapseTimers[categoryKey]) {
+            // Section is open and complete — schedule the linger-then-collapse.
           categoryAutoCollapseTimers[categoryKey] = setTimeout(() => {
             delete categoryAutoCollapseTimers[categoryKey];
 
@@ -294,6 +332,7 @@ function renderPrerequisitesPage() {
           }, CATEGORY_AUTO_COLLAPSE_DELAY_MS);
         }
       } else {
+          // Not complete: make sure the section is expanded and has no completion state.
         clearCategoryAutoCollapseTimer(categoryKey);
         category.setCollapsed(false, false, 'system');
         category.section.classList.remove('is-auto-collapsed');
@@ -303,6 +342,7 @@ function renderPrerequisitesPage() {
   }
 
   function updatePrereqCommandDeck() {
+      // Recalculates the progress bar percentage and status text based on current checkStates.
     const totalChecks = Object.keys(checkStates).length;
     const completedChecks = Object.values(checkStates).filter((state) => state === true).length;
     const percent = Math.round((completedChecks / totalChecks) * 100);
@@ -328,6 +368,8 @@ function renderPrerequisitesPage() {
   }
 
   function getWorkflowId(key) {
+      // Looks up a workflow ID by key from the local config.
+      // Throws a helpful error if the developer forgot to add it to workflow-ids.local.js.
     const id = workflowIds[key];
     if (!id) {
       throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
@@ -336,6 +378,7 @@ function renderPrerequisitesPage() {
   }
 
   function getCachedPrereqs() {
+      // Returns the cached check results from sessionStorage, or null if none exist.
     try {
       const raw = sessionStorage.getItem(PREREQS_CACHE_KEY);
       if (!raw) return null;
@@ -354,6 +397,8 @@ function renderPrerequisitesPage() {
   }
 
   function persistPrereqsIfPassed() {
+      // When all checks pass, save results to sessionStorage so the user doesn't have to
+      // re-run checks if they navigate away and come back in the same browser session.
     const allPassed = Object.values(checkStates).every(state => state === true);
     if (!allPassed) return;
 
@@ -370,6 +415,8 @@ function renderPrerequisitesPage() {
   }
 
   function applyCachedPrereqs(cache) {
+      // Restores check UI from a previously cached result. Returns true if it worked,
+      // false if the cache is invalid or incomplete (triggering a fresh run).
     const states = cache?.checkStates;
     const details = cache?.checkResultDetails;
     if (!states || !details) return false;
@@ -425,6 +472,7 @@ function renderPrerequisitesPage() {
   }
 
   function formatDuration(ms) {
+      // Converts milliseconds to a human-readable string like "2m 5s" or "45s".
     const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -432,6 +480,7 @@ function renderPrerequisitesPage() {
   }
 
   function setCheckLoading(element, label, details = 'Validating...', statusText = 'Running') {
+      // Puts a check card into the "running" state with a spinner icon.
     renderCheckResult(element, false, label, details, null, {
       statusType: 'running',
       statusText
@@ -439,6 +488,7 @@ function renderPrerequisitesPage() {
   }
 
   function setCheckPending(element, label, details = 'Waiting on previous checks...') {
+      // Puts a check card into a grey "pending" state — used before the check has started.
     renderCheckResult(element, false, label, details, null, {
       statusType: 'pending',
       statusText: 'Pending'
@@ -446,6 +496,8 @@ function renderPrerequisitesPage() {
   }
 
   function renderCheckResult(element, passed, label, details = '', onRetry = null, options = {}) {
+      // Core rendering function — updates a check card's icon, color, status text,
+      // and optional retry button. Also updates the progress bar and category collapse state.
     const statusType = options.statusType || (passed ? 'passed' : 'failed');
     const statusIcon = statusType === 'passed'
       ? 'check_circle'
@@ -495,6 +547,7 @@ function renderPrerequisitesPage() {
   }
 
   function hasAutoNavigatedToVpnAlready() {
+      // Checks sessionStorage to prevent auto-navigating to VPN setup more than once per session.
     try {
       return sessionStorage.getItem('autoNavigatedToVpnSetupV1') === 'true';
     } catch (e) {
@@ -522,6 +575,8 @@ function renderPrerequisitesPage() {
   }
 
   function startAutoProceedCountdown() {
+      // Starts the N-second countdown that automatically navigates to VPN setup after all checks pass.
+      // Guards against running more than once or re-running if already triggered this session.
     if (autoProceedTriggered || autoProceedCountdownTimer || hasAutoNavigatedToVpnAlready()) {
       return;
     }
@@ -553,6 +608,8 @@ function renderPrerequisitesPage() {
   }
 
   function updateButtonState() {
+      // Re-evaluates whether the Continue button should be enabled.
+      // Also starts or stops the auto-proceed countdown, and notifies the sidebar nav.
     const allPassed = REQUIRED_PASSING_KEYS.every(key => checkStates[key] === true);
 
     if (!allPassed) {
@@ -585,6 +642,9 @@ function renderPrerequisitesPage() {
   }
 
   async function runWithRetries(task, isSuccess, operationName = 'workflow', options = {}) {
+      // Generic retry wrapper. Calls `task()` up to maxAttempts times, checking the result
+      // with `isSuccess`. Returns a result object with `ok`, `result`, `attempts`, `error`.
+      // Supports a total time budget (maxTotalMs) to avoid waiting forever.
     const maxAttempts = options.maxAttempts || MAX_CHECK_ATTEMPTS;
     const retryDelayMs = options.retryDelayMs || RETRY_DELAY_MS;
     const maxTotalMs = options.maxTotalMs || null;
@@ -657,6 +717,8 @@ function renderPrerequisitesPage() {
   }
 
   function buildResultDataCandidates(result) {
+      // Rewst workflow outputs can be nested in various shapes depending on how they're configured.
+      // This function returns a list of candidate objects to search for output fields in.
     const candidates = [];
     const pushIfObject = (value) => {
       if (value && typeof value === 'object') {
@@ -681,6 +743,8 @@ function renderPrerequisitesPage() {
   }
 
   function getFirstFieldValue(result, fieldNames) {
+      // Searches across all candidate output objects for the first non-null value
+      // matching any of the given field names. Used to handle varying workflow output shapes.
     const candidates = buildResultDataCandidates(result);
     for (const candidate of candidates) {
       for (const fieldName of fieldNames) {
@@ -696,6 +760,8 @@ function renderPrerequisitesPage() {
   }
 
   function parseBooleanLike(value) {
+      // Normalizes loosely-typed "boolean" values from workflow outputs.
+      // Workflows may return 'true', 'yes', '1', 'online', etc. — this handles all of them.
     if (typeof value === 'boolean') return value;
     if (typeof value === 'number') return value !== 0;
     if (typeof value === 'string') {
@@ -707,6 +773,7 @@ function renderPrerequisitesPage() {
   }
 
   function getBooleanFieldValue(result, fieldNames) {
+      // Convenience wrapper: finds a field in the workflow result and parses it as a boolean.
     const rawValue = getFirstFieldValue(result, fieldNames);
     return {
       rawValue,
@@ -715,9 +782,12 @@ function renderPrerequisitesPage() {
   }
 
   async function ensureUserEmail() {
+      // Fetches the current user's email from the USER_EMAIL workflow.
+      // Multiple callers can await this simultaneously — only one request is made.
     if (currentUserEmail) return currentUserEmail;
 
     if (!emailLookupInFlight) {
+        // Kick off the lookup and store the promise so concurrent callers share it.
       emailLookupInFlight = (async () => {
         const extractUserEmail = (result) => {
             const candidates = [
@@ -767,6 +837,8 @@ function renderPrerequisitesPage() {
   }
 
   function startUserEmailPrefetch() {
+      // Fire-and-forget call to kick off email lookup in the background so it's ready
+      // by the time runEmailVerificationCheck actually needs it.
     if (currentUserEmail || emailLookupInFlight) {
       return;
     }
@@ -810,6 +882,8 @@ function renderPrerequisitesPage() {
   }
 
   async function runCaNameCheck() {
+      // Fetches the ca_name org variable from Rewst. This is a company-level setting
+      // that must be configured before VPN certificates can work.
     const element = companyCheckElements['ca_name'];
     setCheckLoading(element, 'CA Name', 'Fetching company configuration data...');
     checkResultDetails.ca_name = '';
@@ -840,6 +914,7 @@ function renderPrerequisitesPage() {
   }
 
   async function runAdDomainCheck() {
+      // Fetches the ad_domain org variable. Required for domain-joined VPN connections.
     const element = companyCheckElements['ad_domain'];
     setCheckLoading(element, 'AD Domain', 'Fetching company configuration data...');
     checkResultDetails.ad_domain = '';
@@ -870,6 +945,9 @@ function renderPrerequisitesPage() {
   }
 
   async function runCwmConfigurationCheck() {
+      // Asks a Rewst workflow for the user's CWM (ConnectWise Manage) device configurations.
+      // If exactly one is found, it's selected automatically. If multiple are found, the first is used.
+      // The selectedConfig is stored globally for downstream checks (computer online, cert check).
     setCheckLoading(cwmCheckItem, 'CWM Configuration', 'Communicating with CWM to discover valid configurations...');
     checkResultDetails.cwm_config = '';
     selectedConfig = null;
@@ -961,6 +1039,9 @@ function renderPrerequisitesPage() {
   }
 
   async function runComputerOnlineCheck() {
+      // Polls a Rewst workflow to see if the target computer (identified by its CWM device ID)
+      // is currently online. Retries for up to 5 minutes because the machine may be asleep.
+      // If it comes online, immediately kicks off the computer prerequisite checks.
     setCheckLoading(
       computerOnlineCheckItem,
       'Computer Online',
@@ -1047,6 +1128,7 @@ function renderPrerequisitesPage() {
   }
 
   function parsePositiveInteger(value) {
+      // Parses a value as a positive integer. Returns null for anything that isn't one.
     if (typeof value === 'number') {
       return Number.isInteger(value) && value > 0 ? value : null;
     }
@@ -1060,6 +1142,8 @@ function renderPrerequisitesPage() {
   }
 
   function evaluateComputerPrereqs(result) {
+      // Interprets the raw workflow result for the computer prerequisite check.
+      // Looks for ValidCertCount (must be >= 1) and DomainTest.ResponseTime (must be < 10 seconds).
     const directInfo = getFirstFieldValue(result, ['prereq_info', 'prereqInfo']);
     const data = directInfo && typeof directInfo === 'object'
       ? directInfo
@@ -1086,6 +1170,7 @@ function renderPrerequisitesPage() {
   }
 
   function clearComputerPrereqStateAndRenderBlocked() {
+      // Resets the computer check cards to "pending" when the Computer Online check hasn't passed yet.
     checkStates.valid_machine_cert_installed = false;
     checkStates.remote_domain_reachable = false;
     checkResultDetails.valid_machine_cert_installed = 'Waiting for Computer Online to pass';
@@ -1105,6 +1190,8 @@ function renderPrerequisitesPage() {
   }
 
   function renderComputerPrereqResults(evaluation, attemptInfo = null) {
+      // Takes the evaluated computer prereq data and updates both check cards accordingly.
+      // Note: remote_domain_reachable is informational — a failure here doesn't block the Continue button.
     checkStates.valid_machine_cert_installed = evaluation.certPassed;
     checkStates.remote_domain_reachable = evaluation.responseTimePassed;
 
@@ -1143,6 +1230,8 @@ function renderPrerequisitesPage() {
   }
 
   async function runComputerPrerequisitesChecks() {
+      // Runs the COMPUTER_PREREQUISITES workflow to check cert count and domain reachability.
+      // Like the computer online check, this retries for up to 5 minutes.
     if (!checkStates.computer_online) {
       clearComputerPrereqStateAndRenderBlocked();
       updateButtonState();
@@ -1248,6 +1337,8 @@ function renderPrerequisitesPage() {
 
   // ---- Run workflow and check results ----
   (async () => {
+      // This is where everything actually kicks off. All checks run in sequence because each
+      // step depends on the one before it (company → user email → CWM config → computer).
     debugLog('Starting prerequisites checks...');
 
     setCheckPending(companyCheckElements['ca_name'], 'CA Name', 'Queued to start.');
@@ -1272,6 +1363,9 @@ function renderPrerequisitesPage() {
     await runAdDomainCheck();
 
     // User checks second
+      // runEmailVerificationCheck → runCwmConfigurationCheck → runComputerOnlineCheck
+      // are chained inside each function using continuePipeline, but we call them
+      // sequentially here to be explicit about the order.
     await runEmailVerificationCheck();
     await runCwmConfigurationCheck();
     await runComputerOnlineCheck();
