@@ -247,6 +247,9 @@ function renderPrerequisitesPage() {
     valid_machine_cert_installed: ''
   };
 
+  const REMEDIATION_CONTEXT_KEY = 'prereqMachineCertRemediationContextV1';
+  const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
+
   const workflowIds = window.WORKFLOW_IDS || {};
     // These checks must ALL pass before the Continue button unlocks.
   const REQUIRED_PASSING_KEYS = [
@@ -265,6 +268,91 @@ function renderPrerequisitesPage() {
     user: ['email_verification', 'cwm_config'],
     computer: ['computer_online', 'valid_machine_cert_installed']
   };
+
+  function getStoredJson(key) {
+    try {
+      const raw = sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      debugWarn(`Failed to parse session key ${key}:`, error);
+      return null;
+    }
+  }
+
+  function clearMachineCertRemediationStorage() {
+    try {
+      sessionStorage.removeItem(REMEDIATION_CONTEXT_KEY);
+      sessionStorage.removeItem(REMEDIATION_RETURN_KEY);
+    } catch (error) {
+      debugWarn('Failed to clear remediation session state:', error);
+    }
+  }
+
+  function saveMachineCertRemediationContext() {
+    if (!selectedConfig?.deviceIdentifier) return;
+
+    try {
+      sessionStorage.setItem(REMEDIATION_CONTEXT_KEY, JSON.stringify({
+        checkKey: 'valid_machine_cert_installed',
+        checkLabel: 'Valid machine certificate installed',
+        cwaId: selectedConfig.deviceIdentifier,
+        currentUserEmail,
+        selectedConfig,
+        checkStates: {
+          ca_name: checkStates.ca_name,
+          ad_domain: checkStates.ad_domain,
+          email_verification: checkStates.email_verification,
+          cwm_config: checkStates.cwm_config,
+          computer_online: checkStates.computer_online
+        },
+        checkResultDetails: {
+          ca_name: checkResultDetails.ca_name,
+          ad_domain: checkResultDetails.ad_domain,
+          email_verification: checkResultDetails.email_verification,
+          cwm_config: checkResultDetails.cwm_config,
+          computer_online: checkResultDetails.computer_online
+        }
+      }));
+    } catch (error) {
+      debugWarn('Failed to store remediation context:', error);
+    }
+  }
+
+  function applyMachineCertResumeContext(context) {
+    if (!context || context.checkKey !== 'valid_machine_cert_installed' || !context.selectedConfig?.deviceIdentifier) {
+      return false;
+    }
+
+    currentUserEmail = context.currentUserEmail || null;
+    selectedConfig = context.selectedConfig;
+    window.selectedConfig = selectedConfig;
+
+    try {
+      sessionStorage.setItem('selectedConfig', JSON.stringify(selectedConfig));
+    } catch (error) {
+      debugWarn('Failed to persist resumed selected config:', error);
+    }
+
+    const resumeKeys = ['ca_name', 'ad_domain', 'email_verification', 'cwm_config', 'computer_online'];
+    resumeKeys.forEach((key) => {
+      checkStates[key] = context.checkStates?.[key] === true;
+      checkResultDetails[key] = context.checkResultDetails?.[key] || '';
+    });
+
+    renderCheckResult(companyCheckElements['ca_name'], checkStates.ca_name, 'CA Name', checkResultDetails.ca_name, runCaNameCheck);
+    renderCheckResult(companyCheckElements['ad_domain'], checkStates.ad_domain, 'AD Domain', checkResultDetails.ad_domain, runAdDomainCheck);
+    renderCheckResult(
+      emailVerificationCheckItem,
+      checkStates.email_verification,
+      'Email verification',
+      checkResultDetails.email_verification,
+      () => runEmailVerificationCheck({ continuePipeline: true })
+    );
+    renderCheckResult(cwmCheckItem, checkStates.cwm_config, 'CWM Configuration', checkResultDetails.cwm_config, runCwmConfigurationCheck);
+    renderCheckResult(computerOnlineCheckItem, checkStates.computer_online, 'Computer Online', checkResultDetails.computer_online, runComputerOnlineCheck);
+    setCheckPending(validMachineCertCheckItem, 'Valid machine certificate installed', 'Resuming after remediation...');
+    return true;
+  }
 
   function clearCategoryAutoCollapseTimer(categoryKey) {
       // Cancel a pending auto-collapse if the user manually interacted or checks changed.
@@ -1099,7 +1187,8 @@ function renderPrerequisitesPage() {
 
     return {
       certPassed,
-      validCertCountRaw
+      validCertCountRaw,
+      validCertCount: Number.isFinite(validCertCount) ? validCertCount : null
     };
   }
 
@@ -1137,6 +1226,11 @@ function renderPrerequisitesPage() {
       checkResultDetails.valid_machine_cert_installed,
       runComputerPrerequisitesChecks
     );
+
+    if (!evaluation.certPassed && evaluation.validCertCount === 0 && selectedConfig?.deviceIdentifier) {
+      saveMachineCertRemediationContext();
+      switchPage('remediation');
+    }
   }
 
   async function runComputerPrerequisitesChecks() {
@@ -1229,6 +1323,18 @@ function renderPrerequisitesPage() {
 
     // Start user email lookup immediately so it is ready when the check is reached.
     startUserEmailPrefetch();
+
+    const remediationReturn = getStoredJson(REMEDIATION_RETURN_KEY);
+    if (applyMachineCertResumeContext(remediationReturn)) {
+      try {
+        sessionStorage.removeItem(REMEDIATION_RETURN_KEY);
+      } catch (error) {
+        debugWarn('Failed to clear remediation return context:', error);
+      }
+      await runComputerPrerequisitesChecks();
+      updateButtonState();
+      return;
+    }
 
     const cached = getCachedPrereqs();
     if (applyCachedPrereqs(cached)) {

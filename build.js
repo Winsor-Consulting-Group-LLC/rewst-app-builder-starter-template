@@ -25,6 +25,7 @@ const MARKERS = {
   '{{ DOM_BUILDER }}': 'src/rewst-dom-builder.js',
   '{{ WORKFLOW_IDS }}': WORKFLOW_IDS_SOURCE,
   '{{ PAGE_PREREQUISITES }}': 'pages/prerequisites.js',
+  '{{ PAGE_REMEDIATION }}': 'pages/remediation.js',
   '{{ PAGE_VPNSETUP }}': 'pages/vpnsetup.js',
 };
 

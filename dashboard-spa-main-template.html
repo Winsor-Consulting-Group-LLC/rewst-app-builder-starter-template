@@ -166,6 +166,11 @@
         <!-- Rendered by vpnsetup.js -->
       </div>
 
+      <!-- Remediation Page -->
+      <div id="page-remediation" class="page-content" style="display: none;">
+        <!-- Rendered by remediation.js -->
+      </div>
+
     </div>
 
   </div>
@@ -248,6 +253,11 @@
           title: 'Prerequisites',
           subtitle: 'Company and user-level validation checks',
           render: renderPrerequisitesPage
+        },
+        remediation: {
+          title: 'Remediation',
+          subtitle: 'Guided repair workflow for blocked prerequisite checks',
+          render: renderRemediationPage
         },
         vpnsetup: {
           title: 'VPN Setup',
@@ -383,7 +393,10 @@
 
         // Update active state in sidebar
         navLinks.forEach(l => l.classList.remove('active'));
-        document.querySelector(`[data-page="${pageName}"]`).classList.add('active');
+        const activeLink = document.querySelector(`[data-page="${pageName}"]`);
+        if (activeLink) {
+          activeLink.classList.add('active');
+        }
 
         // Hide all pages, show selected
         pageContainers.forEach(page => page.style.display = 'none');
@@ -595,6 +608,8 @@
           sessionStorage.removeItem('vpnSetupChecksCacheV1');
           sessionStorage.removeItem('selectedConfig');
           sessionStorage.removeItem(AUTO_NAVIGATED_TO_VPN_KEY);
+          sessionStorage.removeItem('prereqMachineCertRemediationContextV1');
+          sessionStorage.removeItem('prereqMachineCertRemediationReturnV1');
         } catch (error) {
           debugWarn('Failed to clear one or more session cache keys:', error);
         }
@@ -643,6 +658,8 @@
       // ============================================
 
       {{ PAGE_PREREQUISITES }}
+
+      {{ PAGE_REMEDIATION }}
 
       {{ PAGE_VPNSETUP }}
 
