@@ -339,14 +339,14 @@
         vpnSetupNavLink.classList.toggle('app-nav-item-disabled', !enabled);
       }
 
-      function maybeAutoNavigateToVpnSetup() {
+      function maybeAutoNavigateToVpnSetup(options = {}) {
         const prerequisitesComplete = arePrerequisitesCompleteFromCache();
         if (!prerequisitesComplete || currentPage !== 'prerequisites') {
           return;
         }
 
         try {
-          if (sessionStorage.getItem(AUTO_NAVIGATED_TO_VPN_KEY) === 'true') {
+          if (!options.ignoreSessionGuard && sessionStorage.getItem(AUTO_NAVIGATED_TO_VPN_KEY) === 'true') {
             return;
           }
           sessionStorage.setItem(AUTO_NAVIGATED_TO_VPN_KEY, 'true');
@@ -363,7 +363,8 @@
       const prerequisitesCompleteOnLoad = arePrerequisitesCompleteFromCache();
       setVpnSetupNavEnabled(prerequisitesCompleteOnLoad);
       if (prerequisitesCompleteOnLoad) {
-        maybeAutoNavigateToVpnSetup();
+        // On startup, always default completed users to VPN setup.
+        maybeAutoNavigateToVpnSetup({ ignoreSessionGuard: true });
       }
 
       navLinks.forEach(link => {

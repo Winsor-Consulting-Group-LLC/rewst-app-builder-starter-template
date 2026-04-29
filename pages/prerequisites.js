@@ -220,6 +220,7 @@ function renderPrerequisitesPage() {
   const WORKFLOW_RESPONSE_MAX_WAIT_MS = 5 * 60 * 1000;
     // Cache key used in sessionStorage so passing checks survive a page refresh.
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
+  const VPN_SETUP_CACHE_KEY = 'vpnSetupChecksCacheV1';
 
     // Allow the Rewst app to configure the auto-proceed countdown via APP_CONFIG.
   const configuredCountdown = Number(window.APP_CONFIG?.autoProceedCountdownSeconds);
@@ -246,6 +247,7 @@ function renderPrerequisitesPage() {
     computer_online: '',
     valid_machine_cert_installed: ''
   };
+  let latestVpnConnections = null;
 
   const REMEDIATION_CONTEXT_KEY = 'prereqMachineCertRemediationContextV1';
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
@@ -471,6 +473,31 @@ function renderPrerequisitesPage() {
     }
   }
 
+  function persistVpnSetupSnapshot(vpnConnections, statusText = '') {
+    if (!selectedConfig?.deviceIdentifier) return;
+    latestVpnConnections = vpnConnections || {};
+
+    try {
+      sessionStorage.setItem(VPN_SETUP_CACHE_KEY, JSON.stringify({
+        computerId: selectedConfig.deviceIdentifier,
+        vpnConnections: vpnConnections || {},
+        statusText,
+        lastUpdatedAt: new Date().toISOString()
+      }));
+    } catch (error) {
+      debugWarn('Failed to persist VPN setup snapshot:', error);
+    }
+  }
+
+  function clearVpnSetupSnapshot() {
+    latestVpnConnections = null;
+    try {
+      sessionStorage.removeItem(VPN_SETUP_CACHE_KEY);
+    } catch (error) {
+      debugWarn('Failed to clear VPN setup snapshot:', error);
+    }
+  }
+
   function persistPrereqsIfPassed() {
       // When all checks pass, save results to sessionStorage so the user doesn't have to
       // re-run checks if they navigate away and come back in the same browser session.
@@ -482,7 +509,8 @@ function renderPrerequisitesPage() {
         checkStates,
         checkResultDetails,
         selectedConfig,
-        currentUserEmail
+        currentUserEmail,
+        vpnConnections: latestVpnConnections
       }));
     } catch (e) {
       // Ignore storage errors.
@@ -516,6 +544,10 @@ function renderPrerequisitesPage() {
       } catch (e) {
         // Ignore storage errors.
       }
+    }
+
+    if (cache.vpnConnections !== undefined && selectedConfig?.deviceIdentifier) {
+      persistVpnSetupSnapshot(cache.vpnConnections, 'Adapter status restored from cached prerequisite pass.');
     }
 
     renderCheckResult(companyCheckElements['ca_name'], true, 'CA Name', checkResultDetails.ca_name);
@@ -1199,11 +1231,13 @@ function renderPrerequisitesPage() {
     const validCertCountRaw = data?.ValidCertCount;
     const validCertCount = Number(validCertCountRaw);
     const certPassed = Number.isFinite(validCertCount) && validCertCount >= 1;
+    const vpnConnections = getFirstFieldValue(result, ['VPNConnections', 'vpn_connections', 'vpnConnections']) || data?.VPNConnections || {};
 
     return {
       certPassed,
       validCertCountRaw,
-      validCertCount: Number.isFinite(validCertCount) ? validCertCount : null
+      validCertCount: Number.isFinite(validCertCount) ? validCertCount : null,
+      vpnConnections
     };
   }
 
@@ -1259,6 +1293,7 @@ function renderPrerequisitesPage() {
       // Resets the computer check card to "pending" when the Computer Online check hasn't passed yet.
     checkStates.valid_machine_cert_installed = false;
     checkResultDetails.valid_machine_cert_installed = 'Waiting for Computer Online to pass';
+    clearVpnSetupSnapshot();
 
     setCheckPending(
       validMachineCertCheckItem,
@@ -1320,6 +1355,7 @@ function renderPrerequisitesPage() {
     if (!selectedConfig || !selectedConfig.deviceIdentifier) {
       checkStates.valid_machine_cert_installed = false;
       checkResultDetails.valid_machine_cert_installed = 'Missing CWA ID from selected configuration';
+      clearVpnSetupSnapshot();
 
       setCheckPending(
         validMachineCertCheckItem,
@@ -1347,6 +1383,7 @@ function renderPrerequisitesPage() {
 
     if (attemptResult.ok) {
       const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
+      persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.');
       renderComputerPrereqResults(evaluation);
       updateButtonState();
       return;
@@ -1365,11 +1402,13 @@ function renderPrerequisitesPage() {
         runComputerPrerequisitesChecks
       );
       clearCachedPrereqs();
+      clearVpnSetupSnapshot();
       updateButtonState();
       return;
     }
 
     const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
+    persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.');
     renderComputerPrereqResults(evaluation, attemptResult);
     clearCachedPrereqs();
     updateButtonState();
