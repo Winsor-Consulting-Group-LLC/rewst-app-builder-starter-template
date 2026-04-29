@@ -3579,6 +3579,13 @@ html[data-theme='dark'] #theme-transition-overlay {
   color: var(--rewst-teal);
 }
 
+.vpnsetup-disclaimer-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.74rem;
+  color: rgba(7, 55, 99, 0.72);
+  letter-spacing: 0.01em;
+}
+
 .vpnsetup-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3876,6 +3883,10 @@ html[data-theme='dark'] .vpnsetup-panel-badge {
 
 html[data-theme='dark'] .vpnsetup-meter-track {
   background: rgba(133, 139, 155, 0.36);
+}
+
+html[data-theme='dark'] .vpnsetup-disclaimer-note {
+  color: rgba(201, 211, 223, 0.82);
 }
 
 /* ============================================

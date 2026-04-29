@@ -51,6 +51,10 @@ function renderVpnSetupPage() {
           <span>Security Posture: Hardened</span>
         </div>
       </div>
+
+      <p class="vpnsetup-disclaimer-note">
+        Demonstration interface only: this panel is aesthetic telemetry and does not execute real VPN actions yet.
+      </p>
     </section>
 
     <section class="vpnsetup-grid">
@@ -111,8 +115,8 @@ function renderVpnSetupPage() {
           <li class="vpnsetup-sequence-item is-pending">
             <span class="material-icons">lan</span>
             <div>
-              <p class="vpnsetup-sequence-title">Connectivity Verification</p>
-              <p class="vpnsetup-sequence-detail">Final endpoint checks trigger post-deploy.</p>
+              <p class="vpnsetup-sequence-title">Interocitor Connectivity Verification</p>
+              <p class="vpnsetup-sequence-detail">Final Metalunan endpoint checks trigger post-Zagon destruction of the planet.</p>
             </div>
           </li>
         </ol>

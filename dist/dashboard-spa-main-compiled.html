@@ -3606,6 +3606,13 @@ html[data-theme='dark'] #theme-transition-overlay {
   color: var(--rewst-teal);
 }
 
+.vpnsetup-disclaimer-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.74rem;
+  color: rgba(7, 55, 99, 0.72);
+  letter-spacing: 0.01em;
+}
+
 .vpnsetup-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3903,6 +3910,10 @@ html[data-theme='dark'] .vpnsetup-panel-badge {
 
 html[data-theme='dark'] .vpnsetup-meter-track {
   background: rgba(133, 139, 155, 0.36);
+}
+
+html[data-theme='dark'] .vpnsetup-disclaimer-note {
+  color: rgba(201, 211, 223, 0.82);
 }
 
 /* ============================================
@@ -15705,6 +15716,10 @@ function renderVpnSetupPage() {
           <span>Security Posture: Hardened</span>
         </div>
       </div>
+
+      <p class="vpnsetup-disclaimer-note">
+        Demonstration interface only: this panel is aesthetic telemetry and does not execute real VPN actions yet.
+      </p>
     </section>
 
     <section class="vpnsetup-grid">
@@ -15765,8 +15780,8 @@ function renderVpnSetupPage() {
           <li class="vpnsetup-sequence-item is-pending">
             <span class="material-icons">lan</span>
             <div>
-              <p class="vpnsetup-sequence-title">Connectivity Verification</p>
-              <p class="vpnsetup-sequence-detail">Final endpoint checks trigger post-deploy.</p>
+              <p class="vpnsetup-sequence-title">Interocitor Connectivity Verification</p>
+              <p class="vpnsetup-sequence-detail">Final Metalunan endpoint checks trigger post-Zagon destruction of the planet.</p>
             </div>
           </li>
         </ol>
