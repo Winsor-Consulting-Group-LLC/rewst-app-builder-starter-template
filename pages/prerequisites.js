@@ -1388,9 +1388,6 @@ function renderPrerequisitesPage() {
     setCheckPending(computerOnlineCheckItem, 'Computer Online', 'Waiting for CWM Configuration to complete.');
     setCheckPending(validMachineCertCheckItem, 'Valid machine certificate installed', 'Waiting for Computer Online to pass.');  
 
-    // Start user email lookup immediately so it is ready when the check is reached.
-    startUserEmailPrefetch();
-
     const remediationReturn = getStoredJson(REMEDIATION_RETURN_KEY);
     if (applyMachineCertResumeContext(remediationReturn)) {
       try {
@@ -1408,6 +1405,9 @@ function renderPrerequisitesPage() {
       debugLog('Loaded prerequisites checks from session cache');
       return;
     }
+
+    // Start user email lookup only when we are running a fresh pipeline.
+    startUserEmailPrefetch();
 
     // Company checks first
     await runCaNameCheck();
