@@ -308,6 +308,9 @@ function renderVpnSetupPage() {
     state.statusText = statusOverride || (action === 'check'
       ? 'Running adapter check workflow...'
       : `Submitting VPN adapter ${action} command...`);
+    if (typeof window.AppUI?.setRefreshButtonBusy === 'function') {
+      window.AppUI.setRefreshButtonBusy(true);
+    }
   }
 
   function updateStatusTextInPlace(nextText) {
@@ -458,6 +461,9 @@ function renderVpnSetupPage() {
     } finally {
       state.inFlight = false;
       state.activeAction = null;
+      if (typeof window.AppUI?.setRefreshButtonBusy === 'function') {
+        window.AppUI.setRefreshButtonBusy(false);
+      }
       render();
     }
   }

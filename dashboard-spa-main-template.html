@@ -145,7 +145,7 @@
           <div id="refresh-button-container">
             <button id="refresh-btn" class="btn-primary app-refresh-btn" hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()">
               <span class="material-icons">refresh</span>
-              <span class="btn-text">Re-check all</span>
+              <span class="btn-text">Force Refresh</span>
             </button>
           </div>
 
@@ -604,6 +604,11 @@
       function refreshPrerequisites() {
         debugLog('Refresh clicked - resetting prerequisite session cache');
 
+        if (window.checkInFlight) {
+          RewstDOM.showWarning('A check is already in progress. Please wait for it to finish before refreshing.');
+          return;
+        }
+
         try {
           sessionStorage.removeItem('prerequisitesChecksCacheV1');
           sessionStorage.removeItem('vpnSetupChecksCacheV1');
@@ -620,6 +625,21 @@
 
         RewstDOM.showInfo('Session cache reset. Re-running prerequisites checks...');
         switchPage('prerequisites');
+      }
+
+      // ============================================
+      // REFRESH BUTTON BUSY STATE
+      // ============================================
+      function setRefreshButtonBusy(busy) {
+        window.checkInFlight = busy;
+        const btn = document.getElementById('refresh-btn');
+        if (!btn) return;
+        btn.disabled = busy;
+        if (busy) {
+          btn.classList.add('is-disabled');
+        } else {
+          btn.classList.remove('is-disabled');
+        }
       }
 
       // ============================================
@@ -645,6 +665,7 @@
       window.AppUI = {
         toggleSidebar,
         refreshPrerequisites,
+        setRefreshButtonBusy,
         openFilterDrawer,
         closeFilterDrawer,
         toggleDarkMode

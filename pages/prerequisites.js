@@ -1769,6 +1769,11 @@ function renderPrerequisitesPage() {
   (async () => {
       // This is where everything actually kicks off. All checks run in sequence because each
       // step depends on the one before it (company → user email → CWM config → computer).
+    if (typeof window.AppUI?.setRefreshButtonBusy === 'function') {
+      window.AppUI.setRefreshButtonBusy(true);
+    }
+
+    try {
     companyChecks.forEach((check, index) => {
       const pendingDetail = index === 0
         ? 'Queued to start.'
@@ -1816,5 +1821,10 @@ function renderPrerequisitesPage() {
 
     // Computer checks last — Computer Online must pass before the cert check runs.
     await runComputerOnlineCheck();
+    } finally {
+      if (typeof window.AppUI?.setRefreshButtonBusy === 'function') {
+        window.AppUI.setRefreshButtonBusy(false);
+      }
+    }
   })();
 }
