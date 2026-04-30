@@ -618,6 +618,19 @@ function renderPrerequisitesPage() {
     });
   }
 
+  function updateCheckLoadingText(element, label, details = 'Validating...', statusText = 'Running') {
+      // Progress callbacks should only update the running detail line so card animations do not replay.
+    const detailElement = element?.querySelector('.prereq-check-detail');
+    const titleElement = element?.querySelector('.prereq-check-title');
+
+    if (element?.classList.contains('is-running') && detailElement && titleElement && titleElement.textContent === label) {
+      detailElement.textContent = `${statusText}${details ? ` - ${details}` : ''}`;
+      return;
+    }
+
+    setCheckLoading(element, label, details, statusText);
+  }
+
   function setCheckPending(element, label, details = 'Waiting on previous checks...') {
       // Puts a check card into a grey "pending" state — used before the check has started.
     renderCheckResult(element, false, label, details, null, {
@@ -972,7 +985,7 @@ function renderPrerequisitesPage() {
         const runEmailLookupAttempt = async (operationName, loadingStatus = 'Communicating with Rewst') => runSingleAttempt(
           () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL'), {}, {
             onProgress: (status, numSuccessfulTasks) => {
-              setCheckLoading(
+              updateCheckLoadingText(
                 emailVerificationCheckItem,
                 'Email verification',
                 formatWorkflowProgressDetails(status, numSuccessfulTasks),
@@ -1237,7 +1250,7 @@ function renderPrerequisitesPage() {
           user_principal_name: userEmail
         }, {
           onProgress: (status, numSuccessfulTasks) => {
-            setCheckLoading(
+            updateCheckLoadingText(
               cwmCheckItem,
               'CWM Configuration',
               formatWorkflowProgressDetails(status, numSuccessfulTasks),
@@ -1389,7 +1402,7 @@ function renderPrerequisitesPage() {
           cwa_computer_id: selectedConfig.deviceIdentifier
         }, {
           onProgress: (status, numSuccessfulTasks) => {
-            setCheckLoading(
+            updateCheckLoadingText(
               computerOnlineCheckItem,
               'Computer Online',
               formatWorkflowProgressDetails(status, numSuccessfulTasks),
@@ -1708,7 +1721,7 @@ function renderPrerequisitesPage() {
     const attemptResult = await runSingleAttempt(
       () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }, {
         onProgress: (status, numSuccessfulTasks) => {
-          setCheckLoading(
+          updateCheckLoadingText(
             validMachineCertCheckItem,
             'Valid machine certificate installed',
             formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),

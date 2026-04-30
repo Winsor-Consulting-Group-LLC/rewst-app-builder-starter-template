@@ -3929,7 +3929,7 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
 }
 
 .vpnsetup-adapter-card {
-  padding: 1rem;
+  padding: 1.5rem 1.75rem;
 }
 
 .vpnsetup-adapter-header {
@@ -3990,65 +3990,159 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
 }
 
 .vpnsetup-action-row {
-  margin-top: 0.9rem;
+  margin-top: 1.25rem;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
 
+/* ---- VPN Config comparison table ---- */
+
 .vpnsetup-detail-grid {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   border-top: 1px solid var(--rewst-light-gray);
-  padding-top: 0.65rem;
-  display: grid;
-  gap: 0.45rem;
+  padding-top: 1rem;
 }
 
-.vpnsetup-detail-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
+.vpnsetup-config-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.875rem;
 }
 
-.vpnsetup-detail-label {
+.vpnsetup-config-table col.col-label  { width: 30%; }
+.vpnsetup-config-table col.col-value  { width: 35%; }
+
+/* Header row */
+.vpnsetup-config-th {
+  padding: 0.5rem 0.75rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--rewst-light-gray);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.vpnsetup-config-th-label {
+  color: var(--rewst-gray);
+  width: 28%;
+}
+
+.vpnsetup-config-th-desired {
+  color: var(--rewst-teal);
+  width: 36%;
+}
+
+.vpnsetup-config-th-desired .material-icons,
+.vpnsetup-config-th-reported .material-icons {
+  font-size: 0.95rem;
+  vertical-align: -2px;
+  margin-right: 0.2rem;
+}
+
+.vpnsetup-config-th-reported {
+  color: var(--rewst-gray);
+  width: 36%;
+}
+
+/* Data rows */
+.vpnsetup-config-row:not(:last-child) td {
+  border-bottom: 1px solid var(--rewst-light);
+}
+
+.vpnsetup-config-cell-label {
+  padding: 0.85rem 0.75rem;
   color: var(--rewst-gray);
   font-size: 0.85rem;
-}
-
-.vpnsetup-detail-value {
-  color: var(--rewst-dark-gray);
-  font-size: 0.85rem;
   font-weight: 500;
-  text-align: right;
+  vertical-align: top;
 }
 
-@media (max-width: 640px) {
-  .vpnsetup-detail-row {
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  .vpnsetup-detail-value {
-    text-align: left;
-  }
+.vpnsetup-config-cell-desired {
+  padding: 0.85rem 0.75rem;
+  color: var(--rewst-teal);
+  font-weight: 600;
+  vertical-align: top;
 }
+
+.vpnsetup-config-cell-reported {
+  padding: 0.85rem 0.75rem;
+  font-weight: 500;
+  vertical-align: top;
+}
+
+.vpnsetup-config-cell-reported.is-match {
+  color: var(--rewst-dark-gray);
+}
+
+.vpnsetup-config-cell-reported.is-mismatch {
+  color: var(--rewst-error);
+  font-weight: 600;
+}
+
+/* Subnet / CIDR chip list */
+
+.vpnsetup-subnet-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.vpnsetup-subnet-chip {
+  display: inline-block;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(0, 148, 144, 0.08);
+  border: 1px solid rgba(0, 148, 144, 0.25);
+  color: var(--rewst-teal);
+  line-height: 1.5;
+}
+
+.vpnsetup-config-cell-reported.is-mismatch .vpnsetup-subnet-chip {
+  background: rgba(196, 79, 79, 0.08);
+  border-color: rgba(196, 79, 79, 0.3);
+  color: var(--rewst-error);
+}
+
+/* Dark theme overrides */
 
 html[data-theme='dark'] .vpnsetup-adapter-title {
   color: #f1f5f9;
 }
 
 html[data-theme='dark'] .vpnsetup-adapter-status-text,
-html[data-theme='dark'] .vpnsetup-detail-label {
+html[data-theme='dark'] .vpnsetup-config-cell-label,
+html[data-theme='dark'] .vpnsetup-config-th-label,
+html[data-theme='dark'] .vpnsetup-config-th-reported {
   color: #c9d3df;
 }
 
-html[data-theme='dark'] .vpnsetup-detail-value {
+html[data-theme='dark'] .vpnsetup-config-cell-reported.is-match {
   color: #f1f5f9;
+}
+
+html[data-theme='dark'] .vpnsetup-config-th {
+  border-bottom-color: rgba(122, 150, 181, 0.35);
+}
+
+html[data-theme='dark'] .vpnsetup-config-row:not(:last-child) td {
+  border-bottom-color: rgba(122, 150, 181, 0.18);
 }
 
 html[data-theme='dark'] .vpnsetup-detail-grid {
   border-top-color: rgba(122, 150, 181, 0.35);
+}
+
+html[data-theme='dark'] .vpnsetup-subnet-chip {
+  background: rgba(0, 148, 144, 0.15);
+  border-color: rgba(0, 148, 144, 0.35);
 }
 
 /* ============================================
@@ -4238,6 +4332,15 @@ html[data-theme='dark'] .rewst-chart-container,
 html[data-theme='dark'] .loading-content {
   border-color: #374151 !important;
 }
+
+/* Restore accent border-left colors overridden by the generic .card dark rule above */
+html[data-theme='dark'] .card.card-accent-teal     { border-left-color: var(--rewst-teal) !important; }
+html[data-theme='dark'] .card.card-accent-fandango { border-left-color: var(--rewst-fandango) !important; }
+html[data-theme='dark'] .card.card-accent-orange   { border-left-color: var(--rewst-orange) !important; }
+html[data-theme='dark'] .card.card-accent-error    { border-left-color: var(--rewst-error) !important; }
+html[data-theme='dark'] .card.card-accent-warning  { border-left-color: var(--rewst-warning) !important; }
+html[data-theme='dark'] .card.card-accent-snooze   { border-left-color: var(--rewst-snooze) !important; }
+html[data-theme='dark'] .card.card-accent-bask     { border-left-color: var(--rewst-bask) !important; }
 
 html[data-theme='dark'] .sticky-header {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
@@ -15308,6 +15411,19 @@ function renderPrerequisitesPage() {
     });
   }
 
+  function updateCheckLoadingText(element, label, details = 'Validating...', statusText = 'Running') {
+      // Progress callbacks should only update the running detail line so card animations do not replay.
+    const detailElement = element?.querySelector('.prereq-check-detail');
+    const titleElement = element?.querySelector('.prereq-check-title');
+
+    if (element?.classList.contains('is-running') && detailElement && titleElement && titleElement.textContent === label) {
+      detailElement.textContent = `${statusText}${details ? ` - ${details}` : ''}`;
+      return;
+    }
+
+    setCheckLoading(element, label, details, statusText);
+  }
+
   function setCheckPending(element, label, details = 'Waiting on previous checks...') {
       // Puts a check card into a grey "pending" state — used before the check has started.
     renderCheckResult(element, false, label, details, null, {
@@ -15662,7 +15778,7 @@ function renderPrerequisitesPage() {
         const runEmailLookupAttempt = async (operationName, loadingStatus = 'Communicating with Rewst') => runSingleAttempt(
           () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL'), {}, {
             onProgress: (status, numSuccessfulTasks) => {
-              setCheckLoading(
+              updateCheckLoadingText(
                 emailVerificationCheckItem,
                 'Email verification',
                 formatWorkflowProgressDetails(status, numSuccessfulTasks),
@@ -15927,7 +16043,7 @@ function renderPrerequisitesPage() {
           user_principal_name: userEmail
         }, {
           onProgress: (status, numSuccessfulTasks) => {
-            setCheckLoading(
+            updateCheckLoadingText(
               cwmCheckItem,
               'CWM Configuration',
               formatWorkflowProgressDetails(status, numSuccessfulTasks),
@@ -16079,7 +16195,7 @@ function renderPrerequisitesPage() {
           cwa_computer_id: selectedConfig.deviceIdentifier
         }, {
           onProgress: (status, numSuccessfulTasks) => {
-            setCheckLoading(
+            updateCheckLoadingText(
               computerOnlineCheckItem,
               'Computer Online',
               formatWorkflowProgressDetails(status, numSuccessfulTasks),
@@ -16398,7 +16514,7 @@ function renderPrerequisitesPage() {
     const attemptResult = await runSingleAttempt(
       () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }, {
         onProgress: (status, numSuccessfulTasks) => {
-          setCheckLoading(
+          updateCheckLoadingText(
             validMachineCertCheckItem,
             'Valid machine certificate installed',
             formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),
@@ -16883,19 +16999,32 @@ function renderVpnSetupPage() {
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
   const VPN_SETUP_CACHE_KEY = 'vpnSetupChecksCacheV1';
   const SELECTED_CONFIG_KEY = 'selectedConfig';
+  const VPN_VARIABLE_DEFS = [
+    { key: 'vpn_adapter_name', label: 'VPN Adapter Name' },
+    { key: 'vpn_server_address', label: 'VPN Server Address' },
+    { key: 'vpn_remote_domain', label: 'VPN Remote Domain' },
+    { key: 'vpn_remote_networks', label: 'VPN Remote Networks' },
+    { key: 'vpn_nameservers', label: 'VPN Nameservers' }
+  ];
+
+  const WORKFLOW_VALUE_ALIASES = {
+    vpn_adapter_name: ['vpn_adapter_name', 'vpnAdapterName', 'VPNAdapterName', 'adapter_name', 'adapterName', 'AdapterName'],
+    vpn_server_address: ['vpn_server_address', 'vpnServerAddress', 'VPNServerAddress', 'server_address', 'serverAddress', 'RemoteAddress', 'remote_address'],
+    vpn_remote_networks: ['vpn_remote_networks', 'vpnRemoteNetworks', 'VPNRemoteNetworks', 'remote_networks', 'remoteNetworks'],
+    vpn_nameservers: ['vpn_nameservers', 'vpnNameservers', 'VPNNameservers', 'dns_entries', 'dnsEntries', 'name_servers', 'nameServers'],
+    vpn_remote_domain: ['vpn_remote_domain', 'vpnRemoteDomain', 'VPNRemoteDomain', 'remote_domain', 'remoteDomain']
+  };
 
   const state = {
     statusType: 'pending',
     statusText: 'Waiting for adapter status check.',
     statusLabel: 'Unknown',
     vpnConnections: null,
+    desiredVpnConfig: {},
+    observedVpnConfig: {},
     inFlight: false,
     activeAction: null,
-    lastUpdatedAt: null,
-    remoteAddress: '203.0.113.14',
-    dnsEntries: '10.0.0.53, 10.0.0.54',
-    connectionState: 'Disconnected',
-    adapterProfile: 'Winsor Secure Tunnel'
+    lastUpdatedAt: null
   };
 
   function getWorkflowId(key) {
@@ -16982,6 +17111,162 @@ function renderVpnSetupPage() {
     return String(value || 'None');
   }
 
+  function formatValueForDisplay(value) {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed ? trimmed : 'N/A';
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'N/A';
+      return value.map((item) => formatValueForDisplay(item)).join(', ');
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value);
+      if (entries.length === 0) return 'N/A';
+      return entries.map(([k, v]) => `${k}: ${formatValueForDisplay(v)}`).join(', ');
+    }
+    return 'N/A';
+  }
+
+  function parseOrgVariableDetailText(detailText) {
+    if (typeof detailText !== 'string' || !detailText.trim()) return null;
+    const match = detailText.match(/^Data:\s*(.*)$/i);
+    if (!match) return null;
+    const value = match[1] || '';
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  function getDesiredConfigFromPrereqCache() {
+    const cache = getStoredJson(PREREQS_CACHE_KEY);
+    const details = cache?.checkResultDetails || {};
+    const desired = {};
+
+    VPN_VARIABLE_DEFS.forEach((def) => {
+      const parsed = parseOrgVariableDetailText(details[def.key]);
+      desired[def.key] = parsed || 'N/A';
+    });
+
+    return desired;
+  }
+
+  async function refreshDesiredConfigFromOrgVariables() {
+    const cachedDesired = getDesiredConfigFromPrereqCache();
+    state.desiredVpnConfig = cachedDesired;
+    render();
+
+    const results = await Promise.all(VPN_VARIABLE_DEFS.map(async (def) => {
+      try {
+        const value = await rewst.getOrgVariable(def.key);
+        return { key: def.key, value, ok: true };
+      } catch (error) {
+        return { key: def.key, value: null, ok: false };
+      }
+    }));
+
+    const nextDesired = { ...cachedDesired };
+    results.forEach((entry) => {
+      if (entry && entry.key && entry.ok) {
+        nextDesired[entry.key] = formatValueForDisplay(entry.value);
+      }
+    });
+    state.desiredVpnConfig = nextDesired;
+    render();
+  }
+
+  function getObservedConfigFromWorkflowResult(result, vpnConnections) {
+    const observed = {};
+
+    VPN_VARIABLE_DEFS.forEach((def) => {
+      const rawValue = getFirstFieldValue(result, WORKFLOW_VALUE_ALIASES[def.key] || [def.key]);
+      observed[def.key] = formatValueForDisplay(rawValue);
+    });
+
+    if (observed.vpn_adapter_name === 'N/A' && !isValueEmpty(vpnConnections)) {
+      observed.vpn_adapter_name = formatVpnConnections(vpnConnections);
+    }
+
+    return observed;
+  }
+
+  const CIDR_LIST_KEYS = new Set(['vpn_remote_networks', 'vpn_nameservers']);
+
+  function formatCidrList(rawValue) {
+    let items = null;
+
+    if (Array.isArray(rawValue)) {
+      items = rawValue;
+    } else if (typeof rawValue === 'string') {
+      const trimmed = rawValue.trim();
+      if (!trimmed || trimmed === 'N/A') return null;
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          items = parsed;
+        }
+      } catch (_) {
+        // fallback: comma-separated
+        items = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
+
+    if (!items || items.length === 0) return null;
+    return items
+      .map((item) => `<span class="vpnsetup-subnet-chip">${String(item).trim()}</span>`)
+      .join('');
+  }
+
+  function renderConfigCellContent(key, rawValue) {
+    if (CIDR_LIST_KEYS.has(key)) {
+      const chips = formatCidrList(rawValue);
+      if (chips) {
+        return `<span class="vpnsetup-subnet-list">${chips}</span>`;
+      }
+    }
+    const display = (rawValue === null || rawValue === undefined || rawValue === '') ? 'N/A' : String(rawValue);
+    return `<span>${display}</span>`;
+  }
+
+  function getObservedConfigRowsHtml() {
+    const rows = VPN_VARIABLE_DEFS.map((def) => {
+      const desiredValue = state.desiredVpnConfig?.[def.key] ?? 'N/A';
+      const observedValue = state.observedVpnConfig?.[def.key] ?? null;
+      const observedDisplay = observedValue === null || observedValue === undefined ? 'N/A' : observedValue;
+
+      const isMatch = desiredValue !== 'N/A' && observedDisplay !== 'N/A' && desiredValue === observedDisplay;
+      const reportedClass = isMatch ? 'vpnsetup-config-cell-reported is-match' : 'vpnsetup-config-cell-reported is-mismatch';
+
+      return `
+        <tr class="vpnsetup-config-row">
+          <td class="vpnsetup-config-cell-label">${def.label}</td>
+          <td class="vpnsetup-config-cell-desired">${renderConfigCellContent(def.key, desiredValue)}</td>
+          <td class="${reportedClass}">${renderConfigCellContent(def.key, observedDisplay)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <table class="vpnsetup-config-table" aria-label="VPN configuration comparison">
+        <thead>
+          <tr>
+            <th class="vpnsetup-config-th vpnsetup-config-th-label"></th>
+            <th class="vpnsetup-config-th vpnsetup-config-th-desired">
+              <span class="material-icons">check_circle_outline</span> Desired
+            </th>
+            <th class="vpnsetup-config-th vpnsetup-config-th-reported">
+              <span class="material-icons">computer</span> Reported
+            </th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
   function getSelectedComputerId() {
     if (window.selectedConfig?.deviceIdentifier) {
       return window.selectedConfig.deviceIdentifier;
@@ -17003,7 +17288,6 @@ function renderVpnSetupPage() {
     state.statusText = statusText || (installed
       ? `Detected adapter connection(s): ${formatVpnConnections(vpnConnections)}`
       : 'No VPN adapter connections were reported for this computer.');
-    state.connectionState = installed ? 'Connected/Available' : 'Disconnected';
   }
 
   function setBusyState(action, statusOverride = null) {
@@ -17014,6 +17298,13 @@ function renderVpnSetupPage() {
     state.statusText = statusOverride || (action === 'check'
       ? 'Running adapter check workflow...'
       : `Submitting VPN adapter ${action} command...`);
+  }
+
+  function updateStatusTextInPlace(nextText) {
+    const statusTextElement = document.getElementById('vpnsetup-status-text');
+    if (statusTextElement) {
+      statusTextElement.textContent = nextText;
+    }
   }
 
   function getStatusCardClass() {
@@ -17055,6 +17346,11 @@ function renderVpnSetupPage() {
     const requiredKeys = [
       'ca_name',
       'ad_domain',
+      'vpn_adapter_name',
+      'vpn_server_address',
+      'vpn_remote_networks',
+      'vpn_nameservers',
+      'vpn_remote_domain',
       'email_verification',
       'cwm_config',
       'computer_online',
@@ -17074,6 +17370,8 @@ function renderVpnSetupPage() {
     }
 
     setAdapterStateFromConnections(snapshot.vpnConnections, snapshot.statusText || null);
+    state.observedVpnConfig = snapshot.observedVpnConfig || {};
+    state.desiredVpnConfig = snapshot.desiredVpnConfig || getDesiredConfigFromPrereqCache();
     state.lastUpdatedAt = snapshot.lastUpdatedAt || null;
     return true;
   }
@@ -17110,7 +17408,7 @@ function renderVpnSetupPage() {
             : 'processing';
           const taskSuffix = Number.isFinite(numSuccessfulTasks) ? ` Successful tasks: ${numSuccessfulTasks}.` : '';
           state.statusText = `Workflow is ${normalizedStatus}.${taskSuffix}`;
-          render();
+          updateStatusTextInPlace(state.statusText);
         }
       });
 
@@ -17127,11 +17425,14 @@ function renderVpnSetupPage() {
       }
 
       setAdapterStateFromConnections(vpnConnections);
+      state.observedVpnConfig = getObservedConfigFromWorkflowResult(resolvedResult, vpnConnections);
       state.lastUpdatedAt = new Date().toISOString();
 
       setStoredJson(VPN_SETUP_CACHE_KEY, {
         computerId,
         vpnConnections,
+        desiredVpnConfig: state.desiredVpnConfig,
+        observedVpnConfig: state.observedVpnConfig,
         statusText: state.statusText,
         lastUpdatedAt: state.lastUpdatedAt
       });
@@ -17226,7 +17527,7 @@ function renderVpnSetupPage() {
             </div>
             <div class="vpnsetup-adapter-title-wrap">
               <h3 class="vpnsetup-adapter-title">VPN adapter status</h3>
-              <p class="vpnsetup-adapter-status-text">${state.statusText}</p>
+              <p id="vpnsetup-status-text" class="vpnsetup-adapter-status-text">${state.statusText}</p>
             </div>
             <span class="vpnsetup-adapter-pill is-${state.statusType}">${state.statusLabel}</span>
           </div>
@@ -17247,22 +17548,7 @@ function renderVpnSetupPage() {
           </div>
 
           <div class="vpnsetup-detail-grid">
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">Remote address</span>
-              <span class="vpnsetup-detail-value">${state.remoteAddress}</span>
-            </div>
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">DNS entries</span>
-              <span class="vpnsetup-detail-value">${state.dnsEntries}</span>
-            </div>
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">Connection state</span>
-              <span class="vpnsetup-detail-value">${state.connectionState}</span>
-            </div>
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">Adapter profile</span>
-              <span class="vpnsetup-detail-value">${state.adapterProfile}</span>
-            </div>
+            ${getObservedConfigRowsHtml()}
           </div>
         </section>
       </div>
@@ -17285,6 +17571,9 @@ function renderVpnSetupPage() {
   }
 
   const loadedFromCache = applyCachedSnapshot();
+  refreshDesiredConfigFromOrgVariables().catch((error) => {
+    debugWarn('Failed to refresh desired VPN config values from org variables:', error);
+  });
   render();
 
   // Backfill adapter status if prerequisites were restored from cache but VPN snapshot is missing.

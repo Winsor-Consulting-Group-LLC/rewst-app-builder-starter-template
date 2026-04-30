@@ -9,19 +9,32 @@ function renderVpnSetupPage() {
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
   const VPN_SETUP_CACHE_KEY = 'vpnSetupChecksCacheV1';
   const SELECTED_CONFIG_KEY = 'selectedConfig';
+  const VPN_VARIABLE_DEFS = [
+    { key: 'vpn_adapter_name', label: 'VPN Adapter Name' },
+    { key: 'vpn_server_address', label: 'VPN Server Address' },
+    { key: 'vpn_remote_domain', label: 'VPN Remote Domain' },
+    { key: 'vpn_remote_networks', label: 'VPN Remote Networks' },
+    { key: 'vpn_nameservers', label: 'VPN Nameservers' }
+  ];
+
+  const WORKFLOW_VALUE_ALIASES = {
+    vpn_adapter_name: ['vpn_adapter_name', 'vpnAdapterName', 'VPNAdapterName', 'adapter_name', 'adapterName', 'AdapterName'],
+    vpn_server_address: ['vpn_server_address', 'vpnServerAddress', 'VPNServerAddress', 'server_address', 'serverAddress', 'RemoteAddress', 'remote_address'],
+    vpn_remote_networks: ['vpn_remote_networks', 'vpnRemoteNetworks', 'VPNRemoteNetworks', 'remote_networks', 'remoteNetworks'],
+    vpn_nameservers: ['vpn_nameservers', 'vpnNameservers', 'VPNNameservers', 'dns_entries', 'dnsEntries', 'name_servers', 'nameServers'],
+    vpn_remote_domain: ['vpn_remote_domain', 'vpnRemoteDomain', 'VPNRemoteDomain', 'remote_domain', 'remoteDomain']
+  };
 
   const state = {
     statusType: 'pending',
     statusText: 'Waiting for adapter status check.',
     statusLabel: 'Unknown',
     vpnConnections: null,
+    desiredVpnConfig: {},
+    observedVpnConfig: {},
     inFlight: false,
     activeAction: null,
-    lastUpdatedAt: null,
-    remoteAddress: '203.0.113.14',
-    dnsEntries: '10.0.0.53, 10.0.0.54',
-    connectionState: 'Disconnected',
-    adapterProfile: 'Winsor Secure Tunnel'
+    lastUpdatedAt: null
   };
 
   function getWorkflowId(key) {
@@ -108,6 +121,162 @@ function renderVpnSetupPage() {
     return String(value || 'None');
   }
 
+  function formatValueForDisplay(value) {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed ? trimmed : 'N/A';
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'N/A';
+      return value.map((item) => formatValueForDisplay(item)).join(', ');
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value);
+      if (entries.length === 0) return 'N/A';
+      return entries.map(([k, v]) => `${k}: ${formatValueForDisplay(v)}`).join(', ');
+    }
+    return 'N/A';
+  }
+
+  function parseOrgVariableDetailText(detailText) {
+    if (typeof detailText !== 'string' || !detailText.trim()) return null;
+    const match = detailText.match(/^Data:\s*(.*)$/i);
+    if (!match) return null;
+    const value = match[1] || '';
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  function getDesiredConfigFromPrereqCache() {
+    const cache = getStoredJson(PREREQS_CACHE_KEY);
+    const details = cache?.checkResultDetails || {};
+    const desired = {};
+
+    VPN_VARIABLE_DEFS.forEach((def) => {
+      const parsed = parseOrgVariableDetailText(details[def.key]);
+      desired[def.key] = parsed || 'N/A';
+    });
+
+    return desired;
+  }
+
+  async function refreshDesiredConfigFromOrgVariables() {
+    const cachedDesired = getDesiredConfigFromPrereqCache();
+    state.desiredVpnConfig = cachedDesired;
+    render();
+
+    const results = await Promise.all(VPN_VARIABLE_DEFS.map(async (def) => {
+      try {
+        const value = await rewst.getOrgVariable(def.key);
+        return { key: def.key, value, ok: true };
+      } catch (error) {
+        return { key: def.key, value: null, ok: false };
+      }
+    }));
+
+    const nextDesired = { ...cachedDesired };
+    results.forEach((entry) => {
+      if (entry && entry.key && entry.ok) {
+        nextDesired[entry.key] = formatValueForDisplay(entry.value);
+      }
+    });
+    state.desiredVpnConfig = nextDesired;
+    render();
+  }
+
+  function getObservedConfigFromWorkflowResult(result, vpnConnections) {
+    const observed = {};
+
+    VPN_VARIABLE_DEFS.forEach((def) => {
+      const rawValue = getFirstFieldValue(result, WORKFLOW_VALUE_ALIASES[def.key] || [def.key]);
+      observed[def.key] = formatValueForDisplay(rawValue);
+    });
+
+    if (observed.vpn_adapter_name === 'N/A' && !isValueEmpty(vpnConnections)) {
+      observed.vpn_adapter_name = formatVpnConnections(vpnConnections);
+    }
+
+    return observed;
+  }
+
+  const CIDR_LIST_KEYS = new Set(['vpn_remote_networks', 'vpn_nameservers']);
+
+  function formatCidrList(rawValue) {
+    let items = null;
+
+    if (Array.isArray(rawValue)) {
+      items = rawValue;
+    } else if (typeof rawValue === 'string') {
+      const trimmed = rawValue.trim();
+      if (!trimmed || trimmed === 'N/A') return null;
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          items = parsed;
+        }
+      } catch (_) {
+        // fallback: comma-separated
+        items = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
+
+    if (!items || items.length === 0) return null;
+    return items
+      .map((item) => `<span class="vpnsetup-subnet-chip">${String(item).trim()}</span>`)
+      .join('');
+  }
+
+  function renderConfigCellContent(key, rawValue) {
+    if (CIDR_LIST_KEYS.has(key)) {
+      const chips = formatCidrList(rawValue);
+      if (chips) {
+        return `<span class="vpnsetup-subnet-list">${chips}</span>`;
+      }
+    }
+    const display = (rawValue === null || rawValue === undefined || rawValue === '') ? 'N/A' : String(rawValue);
+    return `<span>${display}</span>`;
+  }
+
+  function getObservedConfigRowsHtml() {
+    const rows = VPN_VARIABLE_DEFS.map((def) => {
+      const desiredValue = state.desiredVpnConfig?.[def.key] ?? 'N/A';
+      const observedValue = state.observedVpnConfig?.[def.key] ?? null;
+      const observedDisplay = observedValue === null || observedValue === undefined ? 'N/A' : observedValue;
+
+      const isMatch = desiredValue !== 'N/A' && observedDisplay !== 'N/A' && desiredValue === observedDisplay;
+      const reportedClass = isMatch ? 'vpnsetup-config-cell-reported is-match' : 'vpnsetup-config-cell-reported is-mismatch';
+
+      return `
+        <tr class="vpnsetup-config-row">
+          <td class="vpnsetup-config-cell-label">${def.label}</td>
+          <td class="vpnsetup-config-cell-desired">${renderConfigCellContent(def.key, desiredValue)}</td>
+          <td class="${reportedClass}">${renderConfigCellContent(def.key, observedDisplay)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <table class="vpnsetup-config-table" aria-label="VPN configuration comparison">
+        <thead>
+          <tr>
+            <th class="vpnsetup-config-th vpnsetup-config-th-label"></th>
+            <th class="vpnsetup-config-th vpnsetup-config-th-desired">
+              <span class="material-icons">check_circle_outline</span> Desired
+            </th>
+            <th class="vpnsetup-config-th vpnsetup-config-th-reported">
+              <span class="material-icons">computer</span> Reported
+            </th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
   function getSelectedComputerId() {
     if (window.selectedConfig?.deviceIdentifier) {
       return window.selectedConfig.deviceIdentifier;
@@ -129,7 +298,6 @@ function renderVpnSetupPage() {
     state.statusText = statusText || (installed
       ? `Detected adapter connection(s): ${formatVpnConnections(vpnConnections)}`
       : 'No VPN adapter connections were reported for this computer.');
-    state.connectionState = installed ? 'Connected/Available' : 'Disconnected';
   }
 
   function setBusyState(action, statusOverride = null) {
@@ -140,6 +308,13 @@ function renderVpnSetupPage() {
     state.statusText = statusOverride || (action === 'check'
       ? 'Running adapter check workflow...'
       : `Submitting VPN adapter ${action} command...`);
+  }
+
+  function updateStatusTextInPlace(nextText) {
+    const statusTextElement = document.getElementById('vpnsetup-status-text');
+    if (statusTextElement) {
+      statusTextElement.textContent = nextText;
+    }
   }
 
   function getStatusCardClass() {
@@ -181,6 +356,11 @@ function renderVpnSetupPage() {
     const requiredKeys = [
       'ca_name',
       'ad_domain',
+      'vpn_adapter_name',
+      'vpn_server_address',
+      'vpn_remote_networks',
+      'vpn_nameservers',
+      'vpn_remote_domain',
       'email_verification',
       'cwm_config',
       'computer_online',
@@ -200,6 +380,8 @@ function renderVpnSetupPage() {
     }
 
     setAdapterStateFromConnections(snapshot.vpnConnections, snapshot.statusText || null);
+    state.observedVpnConfig = snapshot.observedVpnConfig || {};
+    state.desiredVpnConfig = snapshot.desiredVpnConfig || getDesiredConfigFromPrereqCache();
     state.lastUpdatedAt = snapshot.lastUpdatedAt || null;
     return true;
   }
@@ -236,7 +418,7 @@ function renderVpnSetupPage() {
             : 'processing';
           const taskSuffix = Number.isFinite(numSuccessfulTasks) ? ` Successful tasks: ${numSuccessfulTasks}.` : '';
           state.statusText = `Workflow is ${normalizedStatus}.${taskSuffix}`;
-          render();
+          updateStatusTextInPlace(state.statusText);
         }
       });
 
@@ -253,11 +435,14 @@ function renderVpnSetupPage() {
       }
 
       setAdapterStateFromConnections(vpnConnections);
+      state.observedVpnConfig = getObservedConfigFromWorkflowResult(resolvedResult, vpnConnections);
       state.lastUpdatedAt = new Date().toISOString();
 
       setStoredJson(VPN_SETUP_CACHE_KEY, {
         computerId,
         vpnConnections,
+        desiredVpnConfig: state.desiredVpnConfig,
+        observedVpnConfig: state.observedVpnConfig,
         statusText: state.statusText,
         lastUpdatedAt: state.lastUpdatedAt
       });
@@ -352,7 +537,7 @@ function renderVpnSetupPage() {
             </div>
             <div class="vpnsetup-adapter-title-wrap">
               <h3 class="vpnsetup-adapter-title">VPN adapter status</h3>
-              <p class="vpnsetup-adapter-status-text">${state.statusText}</p>
+              <p id="vpnsetup-status-text" class="vpnsetup-adapter-status-text">${state.statusText}</p>
             </div>
             <span class="vpnsetup-adapter-pill is-${state.statusType}">${state.statusLabel}</span>
           </div>
@@ -373,22 +558,7 @@ function renderVpnSetupPage() {
           </div>
 
           <div class="vpnsetup-detail-grid">
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">Remote address</span>
-              <span class="vpnsetup-detail-value">${state.remoteAddress}</span>
-            </div>
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">DNS entries</span>
-              <span class="vpnsetup-detail-value">${state.dnsEntries}</span>
-            </div>
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">Connection state</span>
-              <span class="vpnsetup-detail-value">${state.connectionState}</span>
-            </div>
-            <div class="vpnsetup-detail-row">
-              <span class="vpnsetup-detail-label">Adapter profile</span>
-              <span class="vpnsetup-detail-value">${state.adapterProfile}</span>
-            </div>
+            ${getObservedConfigRowsHtml()}
           </div>
         </section>
       </div>
@@ -411,6 +581,9 @@ function renderVpnSetupPage() {
   }
 
   const loadedFromCache = applyCachedSnapshot();
+  refreshDesiredConfigFromOrgVariables().catch((error) => {
+    debugWarn('Failed to refresh desired VPN config values from org variables:', error);
+  });
   render();
 
   // Backfill adapter status if prerequisites were restored from cache but VPN snapshot is missing.
