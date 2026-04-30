@@ -51,6 +51,55 @@
     "PrimaryAddressResolutionStatus": 0,
     "TimeStampRecordAddressResolved": null
   },
-  "VPNConnections": {},
+  "VPNConnections": {
+    "Guid": "{73103180-3E33-48BE-B15D-3BE59FAD1859}",
+    "Name": "MachineVPN",
+    "Proxy": null,
+    "Routes": [],
+    "NapState": "NotNapCapable",
+    "DnsSuffix": "winsor.local",
+    "ServerList": [],
+    "TunnelType": "Ikev2",
+    "VpnTrigger": {
+      "CimClass": "root/Microsoft/Windows/RemoteAccess/Client:VpnConnectionTrigger",
+      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties",
+      "CimInstanceProperties": "ApplicationID ConnectionName = \"MachineVPN\" dnsConfig DnsSuffixSearchList TrustedNetwork"
+    },
+    "ProfileType": "Inbox",
+    "L2tpIPsecAuth": null,
+    "ServerAddress": "vpnbuf.winsorgroup.com",
+    "PSComputerName": null,
+    "SplitTunneling": true,
+    "EncryptionLevel": "Custom",
+    "ConnectionStatus": "Connected",
+    "AllUserConnection": true,
+    "IPSecCustomPolicy": {
+      "Count": 1,
+      "value": [
+        "VpnConnectionIPsecConfiguration"
+      ]
+    },
+    "EapConfigXmlStream": null,
+    "RememberCredential": true,
+    "CimSystemProperties": {
+      "Path": null,
+      "ClassName": "VpnConnection",
+      "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+      "ServerName": "WCG5CG112B19X"
+    },
+    "VpnConfigurationXml": [
+      "System.Xml.XmlElement"
+    ],
+    "AuthenticationMethod": [
+      "MachineCertificate"
+    ],
+    "IsAutoTriggerEnabled": false,
+    "CimInstanceProperties": [],
+    "IdleDisconnectSeconds": 86400,
+    "ProvisioningAuthority": null,
+    "UseWinlogonCredential": false,
+    "MachineCertificateEKUFilter": null,
+    "MachineCertificateIssuerFilter": null
+  },
   "ValidCertCount": 1
 }

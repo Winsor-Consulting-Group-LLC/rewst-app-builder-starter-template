@@ -17087,30 +17087,85 @@ function renderVpnSetupPage() {
 
   function buildResultDataCandidates(result) {
     const candidates = [];
-    const pushIfObject = (value) => {
-      if (value && typeof value === 'object') {
-        candidates.push(value);
+    const seen = new Set();
+
+    const pushCandidate = (value) => {
+      let normalized = value;
+
+      if (typeof normalized === 'string') {
+        const trimmed = normalized.trim();
+        if (!trimmed) return;
+        try {
+          normalized = JSON.parse(trimmed);
+        } catch (_) {
+          return;
+        }
       }
+
+      if (!normalized || typeof normalized !== 'object') return;
+      if (seen.has(normalized)) return;
+
+      seen.add(normalized);
+      candidates.push(normalized);
+
+      // Workflow APIs commonly wrap actual payloads under one of these fields.
+      ['output', 'result', 'data', 'payload'].forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(normalized, key)) {
+          pushCandidate(normalized[key]);
+        }
+      });
     };
 
-    pushIfObject(result);
-    pushIfObject(result?.output);
-    pushIfObject(result?.execution?.conductor?.output);
-    pushIfObject(result?.execution?.output);
-
-    const base = candidates.slice();
-    base.forEach((candidate) => {
-      pushIfObject(candidate.output);
-      pushIfObject(candidate.result);
-      pushIfObject(candidate.data);
-      pushIfObject(candidate.payload);
-    });
+    pushCandidate(result);
+    pushCandidate(result?.output);
+    pushCandidate(result?.execution?.conductor?.output);
+    pushCandidate(result?.execution?.output);
 
     return candidates;
   }
 
   function getFirstFieldValue(result, fieldNames) {
     const candidates = buildResultDataCandidates(result);
+
+    const findFieldValueDeep = (root, targetFieldNames) => {
+      if (!root || typeof root !== 'object') return null;
+
+      const visited = new Set();
+      const stack = [root];
+
+      while (stack.length > 0) {
+        const current = stack.pop();
+        if (!current || typeof current !== 'object') continue;
+        if (visited.has(current)) continue;
+        visited.add(current);
+
+        for (const fieldName of targetFieldNames) {
+          if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
+            const value = current[fieldName];
+            if (value !== undefined && value !== null) {
+              return value;
+            }
+          }
+        }
+
+        if (Array.isArray(current)) {
+          current.forEach((item) => {
+            if (item && typeof item === 'object') {
+              stack.push(item);
+            }
+          });
+        } else {
+          Object.values(current).forEach((value) => {
+            if (value && typeof value === 'object') {
+              stack.push(value);
+            }
+          });
+        }
+      }
+
+      return null;
+    };
+
     for (const candidate of candidates) {
       for (const fieldName of fieldNames) {
         if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
@@ -17119,6 +17174,11 @@ function renderVpnSetupPage() {
             return value;
           }
         }
+      }
+
+      const nestedMatch = findFieldValueDeep(candidate, fieldNames);
+      if (nestedMatch !== null && nestedMatch !== undefined) {
+        return nestedMatch;
       }
     }
     return null;
@@ -17209,11 +17269,39 @@ function renderVpnSetupPage() {
     render();
   }
 
+  function getObjectFieldValue(value, fieldNames) {
+    if (!value || typeof value !== 'object') return null;
+
+    for (const fieldName of fieldNames) {
+      if (Object.prototype.hasOwnProperty.call(value, fieldName)) {
+        const fieldValue = value[fieldName];
+        if (fieldValue !== undefined && fieldValue !== null) {
+          return fieldValue;
+        }
+      }
+    }
+
+    return null;
+  }
+
   function getObservedConfigFromWorkflowResult(result, vpnConnections) {
     const observed = {};
+    const vpnConnectionObject = (vpnConnections && typeof vpnConnections === 'object' && !Array.isArray(vpnConnections))
+      ? vpnConnections
+      : null;
+
+    const vpnConnectionFieldMap = {
+      vpn_adapter_name: ['Name'],
+      vpn_server_address: ['ServerAddress'],
+      vpn_remote_domain: ['DnsSuffix'],
+      vpn_remote_networks: ['Routes'],
+      vpn_nameservers: ['ServerList']
+    };
 
     VPN_VARIABLE_DEFS.forEach((def) => {
-      const rawValue = getFirstFieldValue(result, WORKFLOW_VALUE_ALIASES[def.key] || [def.key]);
+      const connectionValue = getObjectFieldValue(vpnConnectionObject, vpnConnectionFieldMap[def.key] || []);
+      const fallbackValue = getFirstFieldValue(result, WORKFLOW_VALUE_ALIASES[def.key] || [def.key]);
+      const rawValue = !isValueEmpty(connectionValue) ? connectionValue : fallbackValue;
       observed[def.key] = formatValueForDisplay(rawValue);
     });
 
@@ -17311,14 +17399,68 @@ function renderVpnSetupPage() {
     return null;
   }
 
-  function setAdapterStateFromConnections(vpnConnections, statusText = null) {
+  function normalizeCompareValue(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).trim().toLowerCase();
+  }
+
+  function evaluateAdapterSuccess(desiredConfig, observedConfig, vpnConnections) {
+    const requiredMatches = [
+      { key: 'vpn_adapter_name', label: 'adapter name' },
+      { key: 'vpn_server_address', label: 'server address' },
+      { key: 'vpn_remote_domain', label: 'DNS name' }
+    ];
+
+    const mismatchedLabels = [];
+    requiredMatches.forEach(({ key, label }) => {
+      const desired = desiredConfig?.[key] ?? 'N/A';
+      const observed = observedConfig?.[key] ?? 'N/A';
+      const desiredNormalized = normalizeCompareValue(desired);
+      const observedNormalized = normalizeCompareValue(observed);
+
+      if (!desiredNormalized || desiredNormalized === 'n/a' || !observedNormalized || observedNormalized === 'n/a' || desiredNormalized !== observedNormalized) {
+        mismatchedLabels.push(label);
+      }
+    });
+
+    const connectionStatus = formatValueForDisplay(getObjectFieldValue(vpnConnections, ['ConnectionStatus']));
+    const isConnected = normalizeCompareValue(connectionStatus) === 'connected';
+
+    return {
+      isSuccess: mismatchedLabels.length === 0 && isConnected,
+      mismatchedLabels,
+      connectionStatus
+    };
+  }
+
+  function setAdapterStateFromConnections(vpnConnections, observedConfig = state.observedVpnConfig, desiredConfig = state.desiredVpnConfig, statusText = null) {
     const installed = !isValueEmpty(vpnConnections);
     state.vpnConnections = vpnConnections;
-    state.statusType = installed ? 'installed' : 'missing';
-    state.statusLabel = installed ? 'Installed' : 'Not installed';
-    state.statusText = statusText || (installed
-      ? `Detected adapter connection(s): ${formatVpnConnections(vpnConnections)}`
-      : 'No VPN adapter connections were reported for this computer.');
+
+    if (!installed) {
+      state.statusType = 'missing';
+      state.statusLabel = 'Not installed';
+      state.statusText = statusText || 'No VPN adapter connections were reported for this computer.';
+      return;
+    }
+
+    const evaluation = evaluateAdapterSuccess(desiredConfig, observedConfig, vpnConnections);
+
+    if (evaluation.isSuccess) {
+      state.statusType = 'installed';
+      state.statusLabel = 'Installed';
+      state.statusText = statusText || 'VPN adapter matches desired name, server address, DNS name, and reports Connected.';
+      return;
+    }
+
+    state.statusType = 'missing';
+    state.statusLabel = 'Needs attention';
+
+    const mismatchText = evaluation.mismatchedLabels.length > 0
+      ? `Mismatch: ${evaluation.mismatchedLabels.join(', ')}.`
+      : '';
+    const connectionText = `ConnectionStatus: ${evaluation.connectionStatus}.`;
+    state.statusText = statusText || `VPN adapter was reported but does not meet success criteria. ${mismatchText} ${connectionText}`.trim();
   }
 
   function setBusyState(action, statusOverride = null) {
@@ -17403,9 +17545,9 @@ function renderVpnSetupPage() {
       return false;
     }
 
-    setAdapterStateFromConnections(snapshot.vpnConnections, snapshot.statusText || null);
     state.observedVpnConfig = snapshot.observedVpnConfig || {};
     state.desiredVpnConfig = snapshot.desiredVpnConfig || getDesiredConfigFromPrereqCache();
+    setAdapterStateFromConnections(snapshot.vpnConnections, state.observedVpnConfig, state.desiredVpnConfig, snapshot.statusText || null);
     state.lastUpdatedAt = snapshot.lastUpdatedAt || null;
     return true;
   }
@@ -17458,8 +17600,8 @@ function renderVpnSetupPage() {
         }
       }
 
-      setAdapterStateFromConnections(vpnConnections);
       state.observedVpnConfig = getObservedConfigFromWorkflowResult(resolvedResult, vpnConnections);
+      setAdapterStateFromConnections(vpnConnections, state.observedVpnConfig, state.desiredVpnConfig);
       state.lastUpdatedAt = new Date().toISOString();
 
       setStoredJson(VPN_SETUP_CACHE_KEY, {
@@ -17593,12 +17735,12 @@ function renderVpnSetupPage() {
 
     const installBtn = document.getElementById('vpnsetup-install-btn');
     if (installBtn) {
-      installBtn.addEventListener('click', () => runVpnAdapterCommand('install'));
+      installBtn.addEventListener('click', () => runVpnAdapterCommand('connect'));
     }
 
     const removeBtn = document.getElementById('vpnsetup-remove-btn');
     if (removeBtn) {
-      removeBtn.addEventListener('click', () => runVpnAdapterCommand('remove'));
+      removeBtn.addEventListener('click', () => runVpnAdapterCommand('disconnect'));
     }
 
     const checkBtn = document.getElementById('vpnsetup-check-btn');
