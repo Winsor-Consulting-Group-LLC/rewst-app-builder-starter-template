@@ -123,11 +123,17 @@ function renderPrerequisitesPage() {
   // ---- Company checks section ----
   const companyCategoryBody = createCategorySection('company', 'Company Prerequisites');
 
-    // These two checks pull org-level variables (CA Name, AD Domain) from Rewst.
+    // These checks pull org-level variables from Rewst.
   const companyChecks = [
-    { id: 'ca_name', label: 'CA Name' },
-    { id: 'ad_domain', label: 'AD Domain' }
+    { id: 'ca_name', label: 'CA Name', variableKey: 'ca_name' },
+    { id: 'ad_domain', label: 'AD Domain', variableKey: 'ad_domain' },
+    { id: 'vpn_adapter_name', label: 'VPN Adapter Name', variableKey: 'vpn_adapter_name' },
+    { id: 'vpn_server_address', label: 'VPN Server Address', variableKey: 'vpn_server_address' },
+    { id: 'vpn_remote_networks', label: 'VPN Remote Networks', variableKey: 'vpn_remote_networks' },
+    { id: 'vpn_nameservers', label: 'VPN Nameservers', variableKey: 'vpn_nameservers' },
+    { id: 'vpn_remote_domain', label: 'VPN Remote Domain', variableKey: 'vpn_remote_domain' }
   ];
+  const COMPANY_CHECK_KEYS = companyChecks.map((check) => check.id);
 
     // Map from check id → the DOM card element for that check (so we can update it later).
   const companyCheckElements = {};
@@ -210,6 +216,11 @@ function renderPrerequisitesPage() {
     // false = not yet passed, true = passed.
     ca_name: false,
     ad_domain: false,
+    vpn_adapter_name: false,
+    vpn_server_address: false,
+    vpn_remote_networks: false,
+    vpn_nameservers: false,
+    vpn_remote_domain: false,
     email_verification: false,
     cwm_config: false,
     computer_online: false,
@@ -242,6 +253,11 @@ function renderPrerequisitesPage() {
   const checkResultDetails = {
     ca_name: '',
     ad_domain: '',
+    vpn_adapter_name: '',
+    vpn_server_address: '',
+    vpn_remote_networks: '',
+    vpn_nameservers: '',
+    vpn_remote_domain: '',
     email_verification: '',
     cwm_config: '',
     computer_online: '',
@@ -255,8 +271,7 @@ function renderPrerequisitesPage() {
   const workflowIds = window.WORKFLOW_IDS || {};
     // These checks must ALL pass before the Continue button unlocks.
   const REQUIRED_PASSING_KEYS = [
-    'ca_name',
-    'ad_domain',
+    ...COMPANY_CHECK_KEYS,
     'email_verification',
     'cwm_config',
     'computer_online',
@@ -266,7 +281,7 @@ function renderPrerequisitesPage() {
   const CATEGORY_CHECK_KEYS = {
     // Maps each collapsible section to the check keys it owns.
     // Used to decide when a section is "complete" and can auto-collapse.
-    company: ['ca_name', 'ad_domain'],
+    company: COMPANY_CHECK_KEYS,
     user: ['email_verification', 'cwm_config'],
     computer: ['computer_online', 'valid_machine_cert_installed']
   };
@@ -303,6 +318,11 @@ function renderPrerequisitesPage() {
         checkStates: {
           ca_name: checkStates.ca_name,
           ad_domain: checkStates.ad_domain,
+          vpn_adapter_name: checkStates.vpn_adapter_name,
+          vpn_server_address: checkStates.vpn_server_address,
+          vpn_remote_networks: checkStates.vpn_remote_networks,
+          vpn_nameservers: checkStates.vpn_nameservers,
+          vpn_remote_domain: checkStates.vpn_remote_domain,
           email_verification: checkStates.email_verification,
           cwm_config: checkStates.cwm_config,
           computer_online: checkStates.computer_online
@@ -310,6 +330,11 @@ function renderPrerequisitesPage() {
         checkResultDetails: {
           ca_name: checkResultDetails.ca_name,
           ad_domain: checkResultDetails.ad_domain,
+          vpn_adapter_name: checkResultDetails.vpn_adapter_name,
+          vpn_server_address: checkResultDetails.vpn_server_address,
+          vpn_remote_networks: checkResultDetails.vpn_remote_networks,
+          vpn_nameservers: checkResultDetails.vpn_nameservers,
+          vpn_remote_domain: checkResultDetails.vpn_remote_domain,
           email_verification: checkResultDetails.email_verification,
           cwm_config: checkResultDetails.cwm_config,
           computer_online: checkResultDetails.computer_online
@@ -335,14 +360,21 @@ function renderPrerequisitesPage() {
       debugWarn('Failed to persist resumed selected config:', error);
     }
 
-    const resumeKeys = ['ca_name', 'ad_domain', 'email_verification', 'cwm_config', 'computer_online'];
+    const resumeKeys = [...COMPANY_CHECK_KEYS, 'email_verification', 'cwm_config', 'computer_online'];
     resumeKeys.forEach((key) => {
       checkStates[key] = context.checkStates?.[key] === true;
       checkResultDetails[key] = context.checkResultDetails?.[key] || '';
     });
 
-    renderCheckResult(companyCheckElements['ca_name'], checkStates.ca_name, 'CA Name', checkResultDetails.ca_name, runCaNameCheck);
-    renderCheckResult(companyCheckElements['ad_domain'], checkStates.ad_domain, 'AD Domain', checkResultDetails.ad_domain, runAdDomainCheck);
+    companyChecks.forEach((check) => {
+      renderCheckResult(
+        companyCheckElements[check.id],
+        checkStates[check.id],
+        check.label,
+        checkResultDetails[check.id],
+        getCompanyCheckRetryHandler(check.id)
+      );
+    });
     renderCheckResult(
       emailVerificationCheckItem,
       checkStates.email_verification,
@@ -550,8 +582,9 @@ function renderPrerequisitesPage() {
       persistVpnSetupSnapshot(cache.vpnConnections, 'Adapter status restored from cached prerequisite pass.');
     }
 
-    renderCheckResult(companyCheckElements['ca_name'], true, 'CA Name', checkResultDetails.ca_name);
-    renderCheckResult(companyCheckElements['ad_domain'], true, 'AD Domain', checkResultDetails.ad_domain);
+    companyChecks.forEach((check) => {
+      renderCheckResult(companyCheckElements[check.id], true, check.label, checkResultDetails[check.id]);
+    });
     renderCheckResult(emailVerificationCheckItem, true, 'Email verification', checkResultDetails.email_verification);
     renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
     renderCheckResult(computerOnlineCheckItem, true, 'Computer Online', checkResultDetails.computer_online);
@@ -618,6 +651,10 @@ function renderPrerequisitesPage() {
     const iconAnimationClass = statusType === 'running' ? 'prereq-icon-spin' : '';
     const showRetry = !passed && typeof onRetry === 'function';
     const statusModifierClass = `is-${statusType}`;
+    const isCompanyCheck = !!(element?.id && /^check-(ca_name|ad_domain|vpn_adapter_name|vpn_server_address|vpn_remote_networks|vpn_nameservers|vpn_remote_domain)$/.test(element.id));
+    const companyFailureNote = (!passed && statusType === 'failed' && isCompanyCheck)
+      ? ' Contact the Help Desk for additional guidance on this company-managed setting.'
+      : '';
 
     element.classList.remove('is-passed', 'is-failed', 'is-info', 'is-pending', 'is-running');
     element.classList.add(statusModifierClass);
@@ -628,7 +665,7 @@ function renderPrerequisitesPage() {
       </div>
       <div class="prereq-check-content">
         <p class="prereq-check-title">${label}</p>
-        <p class="prereq-check-detail">${statusText}${details ? ` - ${details}` : ''}</p>
+        <p class="prereq-check-detail">${statusText}${details ? ` - ${details}` : ''}${companyFailureNote}</p>
       </div>
       ${showRetry ? '<button class="btn-secondary btn-sm prereq-retry-btn"><span class="material-icons">refresh</span><span>Re-check</span></button>' : ''}
     `;
@@ -1087,6 +1124,79 @@ function renderPrerequisitesPage() {
     } finally {
       updateButtonState();
     }
+  }
+
+  function getCompanyCheckById(checkId) {
+    return companyChecks.find((check) => check.id === checkId) || null;
+  }
+
+  function getCompanyCheckRetryHandler(checkId) {
+    if (checkId === 'ca_name') return runCaNameCheck;
+    if (checkId === 'ad_domain') return runAdDomainCheck;
+    if (checkId === 'vpn_adapter_name') return runVpnAdapterNameCheck;
+    if (checkId === 'vpn_server_address') return runVpnServerAddressCheck;
+    if (checkId === 'vpn_remote_networks') return runVpnRemoteNetworksCheck;
+    if (checkId === 'vpn_nameservers') return runVpnNameserversCheck;
+    if (checkId === 'vpn_remote_domain') return runVpnRemoteDomainCheck;
+    return null;
+  }
+
+  async function runCompanyOrgVariableCheck(checkId) {
+    const check = getCompanyCheckById(checkId);
+    if (!check) return;
+
+    const element = companyCheckElements[check.id];
+    setCheckLoading(element, check.label, 'Fetching company configuration data...');
+    checkResultDetails[check.id] = '';
+
+    try {
+      const attemptResult = await runSingleAttempt(
+        () => rewst.getOrgVariable(check.variableKey),
+        `Company prerequisite: ${check.label}`
+      );
+
+      if (attemptResult.ok && attemptResult.result) {
+        const value = attemptResult.result;
+        checkStates[check.id] = true;
+        checkResultDetails[check.id] = `Data: ${value}`;
+        renderCheckResult(element, true, check.label, checkResultDetails[check.id]);
+      } else {
+        checkStates[check.id] = false;
+        checkResultDetails[check.id] = attemptResult.error
+          ? attemptResult.error.message || 'Workflow execution failed'
+          : `No ${check.label} returned`;
+        clearCachedPrereqs();
+        renderCheckResult(
+          element,
+          false,
+          check.label,
+          checkResultDetails[check.id],
+          getCompanyCheckRetryHandler(check.id)
+        );
+      }
+    } finally {
+      updateButtonState();
+    }
+  }
+
+  async function runVpnAdapterNameCheck() {
+    await runCompanyOrgVariableCheck('vpn_adapter_name');
+  }
+
+  async function runVpnServerAddressCheck() {
+    await runCompanyOrgVariableCheck('vpn_server_address');
+  }
+
+  async function runVpnRemoteNetworksCheck() {
+    await runCompanyOrgVariableCheck('vpn_remote_networks');
+  }
+
+  async function runVpnNameserversCheck() {
+    await runCompanyOrgVariableCheck('vpn_nameservers');
+  }
+
+  async function runVpnRemoteDomainCheck() {
+    await runCompanyOrgVariableCheck('vpn_remote_domain');
   }
 
   async function runCwmConfigurationCheck(options = {}) {
@@ -1646,8 +1756,12 @@ function renderPrerequisitesPage() {
   (async () => {
       // This is where everything actually kicks off. All checks run in sequence because each
       // step depends on the one before it (company → user email → CWM config → computer).
-    setCheckPending(companyCheckElements['ca_name'], 'CA Name', 'Queued to start.');
-    setCheckPending(companyCheckElements['ad_domain'], 'AD Domain', 'Waiting for CA Name to complete.');
+    companyChecks.forEach((check, index) => {
+      const pendingDetail = index === 0
+        ? 'Queued to start.'
+        : `Waiting for ${companyChecks[index - 1].label} to complete.`;
+      setCheckPending(companyCheckElements[check.id], check.label, pendingDetail);
+    });
     setCheckPending(emailVerificationCheckItem, 'Email verification', 'Waiting for company checks to complete.');
     setCheckPending(cwmCheckItem, 'CWM Configuration', 'Waiting for Email verification to pass.');
     setCheckPending(computerOnlineCheckItem, 'Computer Online', 'Waiting for CWM Configuration to complete.');
@@ -1677,6 +1791,11 @@ function renderPrerequisitesPage() {
     // Company checks first
     await runCaNameCheck();
     await runAdDomainCheck();
+    await runVpnAdapterNameCheck();
+    await runVpnServerAddressCheck();
+    await runVpnRemoteNetworksCheck();
+    await runVpnNameserversCheck();
+    await runVpnRemoteDomainCheck();
 
     // User checks second
     await runEmailVerificationCheck();
