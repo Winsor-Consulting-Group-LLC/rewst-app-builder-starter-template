@@ -1538,12 +1538,19 @@ function renderPrerequisitesPage() {
 
   async function runComputerOnlineCheck() {
       // Polls a Rewst workflow to see if the target computer (identified by its CWM device ID)
-      // is currently online. Retries for up to 5 minutes because the machine may be asleep.
-      // If it comes online, immediately kicks off the computer prerequisite checks.
+      // is currently online. Auto-retries every 5 seconds for up to 60 seconds before giving up
+      // and presenting the manual re-check option. On success, kicks off the computer prereq checks.
+    const RETRY_INTERVAL_MS = 5000;
+    const MAX_RETRY_DURATION_MS = 60000;
+    const startTime = Date.now();
+    let attempt = 0;
+    let succeeded = false;
+    let lastErrorMessage = '';
+
     setCheckLoading(
       computerOnlineCheckItem,
       'Computer Online',
-      'Initial request sent. This can take up to 5 minutes.',
+      'Checking if your computer is online...',
       'Communicating with your PC'
     );
     checkResultDetails.computer_online = '';
@@ -1563,80 +1570,110 @@ function renderPrerequisitesPage() {
         return;
       }
 
-      const attemptResult = await runSingleAttempt(
-        () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
-          cwa_computer_id: selectedConfig.deviceIdentifier
-        }, {
-          onProgress: (status, numSuccessfulTasks) => {
-            updateCheckLoadingText(
-              computerOnlineCheckItem,
-              'Computer Online',
-              formatWorkflowProgressDetails(status, numSuccessfulTasks),
-              'Communicating with your PC'
-            );
-          }
-        }),
-        'User prerequisite: Computer Online'
-      );
+      while (true) {
+        attempt++;
+        const elapsedAtStart = Date.now() - startTime;
 
-      let resolvedOnlineResult = attemptResult.result;
-      let onlineField = getBooleanFieldValue(
-        resolvedOnlineResult,
-        ['online', 'is_online', 'computer_online', 'isOnline']
-      );
-      let usedFreshExecutionRead = false;
+        if (attempt > 1) {
+          const timeLeftMs = Math.max(0, MAX_RETRY_DURATION_MS - elapsedAtStart);
+          updateCheckLoadingText(
+            computerOnlineCheckItem,
+            'Computer Online',
+            `Computer appears offline — retrying (attempt ${attempt}, ${formatDuration(timeLeftMs)} remaining)`,
+            'Waiting for computer to come online'
+          );
+        }
 
-      if (attemptResult.ok && onlineField.parsed !== true) {
-        const refreshedResult = await refreshExecutionOutput(
-          attemptResult.result,
+        const attemptResult = await runSingleAttempt(
+          () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
+            cwa_computer_id: selectedConfig.deviceIdentifier
+          }, {
+            onProgress: (status, numSuccessfulTasks) => {
+              updateCheckLoadingText(
+                computerOnlineCheckItem,
+                'Computer Online',
+                formatWorkflowProgressDetails(status, numSuccessfulTasks),
+                attempt > 1 ? `Attempt ${attempt} — checking online status` : 'Communicating with your PC'
+              );
+            }
+          }),
           'User prerequisite: Computer Online'
         );
-        if (refreshedResult) {
-          resolvedOnlineResult = refreshedResult;
-          onlineField = getBooleanFieldValue(
-            resolvedOnlineResult,
-            ['online', 'is_online', 'computer_online', 'isOnline']
+
+        let resolvedOnlineResult = attemptResult.result;
+        let onlineField = getBooleanFieldValue(
+          resolvedOnlineResult,
+          ['online', 'is_online', 'computer_online', 'isOnline']
+        );
+
+        if (attemptResult.ok && onlineField.parsed !== true) {
+          const refreshedResult = await refreshExecutionOutput(
+            attemptResult.result,
+            'User prerequisite: Computer Online'
           );
-          usedFreshExecutionRead = true;
+          if (refreshedResult) {
+            resolvedOnlineResult = refreshedResult;
+            onlineField = getBooleanFieldValue(
+              resolvedOnlineResult,
+              ['online', 'is_online', 'computer_online', 'isOnline']
+            );
+          }
         }
-      }
 
-      const computerOnlineExecutionId = getWorkflowExecutionId(attemptResult.result) || 'n/a';
-      const onlineCandidateObjects = buildResultDataCandidates(resolvedOnlineResult);
-      const onlineCandidatePreview = onlineCandidateObjects
-        .slice(0, 4)
-        .map((candidate, index) => {
-          const keys = Object.keys(candidate);
-          const previewKeys = keys.slice(0, 8).join(', ');
-          const suffix = keys.length > 8 ? ', ...' : '';
-          return `#${index + 1}: [${previewKeys}${suffix}]`;
-        })
-        .join(' | ');
+        const computerOnlineExecutionId = getWorkflowExecutionId(attemptResult.result) || 'n/a';
+        const onlineCandidateObjects = buildResultDataCandidates(resolvedOnlineResult);
+        const onlineCandidatePreview = onlineCandidateObjects
+          .slice(0, 4)
+          .map((candidate, index) => {
+            const keys = Object.keys(candidate);
+            const previewKeys = keys.slice(0, 8).join(', ');
+            const suffix = keys.length > 8 ? ', ...' : '';
+            return `#${index + 1}: [${previewKeys}${suffix}]`;
+          })
+          .join(' | ');
 
-      if (attemptResult.ok && onlineField.parsed !== true) {
-        debugWarn(
-          `[Workflow] User prerequisite: Computer Online did not produce a truthy online field ` +
-          `(executionId=${computerOnlineExecutionId})`,
-          { candidatePreview: onlineCandidatePreview }
-        );
-      }
+        if (attemptResult.ok && onlineField.parsed !== true) {
+          debugWarn(
+            `[Workflow] User prerequisite: Computer Online did not produce a truthy online field ` +
+            `(executionId=${computerOnlineExecutionId})`,
+            { candidatePreview: onlineCandidatePreview }
+          );
+        }
 
-      if (attemptResult.ok && onlineField.parsed === true) {
-        const onlineValue = onlineField.rawValue;
-        checkStates.computer_online = true;
-        checkResultDetails.computer_online = `Status: ${onlineValue}`;
-        renderCheckResult(
-          computerOnlineCheckItem,
-          true,
-          'Computer Online',
-          checkResultDetails.computer_online,
-          runComputerOnlineCheck
-        );
-      } else {
-        checkStates.computer_online = false;
-        checkResultDetails.computer_online = attemptResult.error
+        if (attemptResult.ok && onlineField.parsed === true) {
+          const onlineValue = onlineField.rawValue;
+          checkStates.computer_online = true;
+          checkResultDetails.computer_online = `Status: ${onlineValue}`;
+          renderCheckResult(
+            computerOnlineCheckItem,
+            true,
+            'Computer Online',
+            checkResultDetails.computer_online,
+            runComputerOnlineCheck
+          );
+          succeeded = true;
+          break;
+        }
+
+        // Attempt failed — record error and decide whether to retry
+        lastErrorMessage = attemptResult.error
           ? attemptResult.error.message || 'Workflow execution failed'
-          : `Computer is still offline after ${formatDuration(attemptResult.elapsedMs || 0)}`;
+          : 'Computer is offline';
+
+        const elapsedAfterAttempt = Date.now() - startTime;
+        if (elapsedAfterAttempt >= MAX_RETRY_DURATION_MS) {
+          break; // Time exhausted — fall through to final failure render
+        }
+
+        await sleep(RETRY_INTERVAL_MS);
+      }
+
+      if (!succeeded) {
+        const totalElapsed = Date.now() - startTime;
+        checkStates.computer_online = false;
+        checkResultDetails.computer_online = attempt > 1
+          ? `Computer still offline after ${attempt} attempts (${formatDuration(totalElapsed)})`
+          : lastErrorMessage || `Computer is still offline after ${formatDuration(totalElapsed)}`;
         clearCachedPrereqs();
         renderCheckResult(computerOnlineCheckItem, false, 'Computer Online', checkResultDetails.computer_online, runComputerOnlineCheck);
       }
