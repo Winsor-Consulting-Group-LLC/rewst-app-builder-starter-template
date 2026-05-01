@@ -21,9 +21,9 @@ function renderPrerequisitesPage() {
     </div>
     <div class="prereq-command-row">
       <div class="prereq-command-left">
-        <h2 class="prereq-command-title">Systems are scanning for launch authority</h2>
+        <h2 class="prereq-command-title">Checking your system for VPN readiness</h2>
         <p class="prereq-command-copy">
-          Every passing check unlocks the next layer of VPN readiness. Watch the sequence harden in real time.
+          Each check confirms your device is ready for VPN setup. This usually completes in just a moment.
         </p>
       </div>
       <div class="prereq-command-right">
@@ -34,7 +34,7 @@ function renderPrerequisitesPage() {
         <div class="prereq-progress-track" aria-hidden="true">
           <span id="prereq-progress-fill" class="prereq-progress-fill"></span>
         </div>
-        <p id="prereq-cadence-label" class="prereq-cadence-label">Standing by for first validation pulse.</p>
+        <p id="prereq-cadence-label" class="prereq-cadence-label">Starting checks...</p>
       </div>
     </div>
   `, 'card prereq-command-card');
@@ -469,11 +469,11 @@ function renderPrerequisitesPage() {
 
     if (cadenceLabelElement) {
       if (completedChecks === 0) {
-        cadenceLabelElement.textContent = 'Standing by for first validation pulse.';
+        cadenceLabelElement.textContent = 'Starting checks...';
       } else if (completedChecks < totalChecks) {
-        cadenceLabelElement.textContent = `${percent}% secured. Continuing scan cycle.`;
+        cadenceLabelElement.textContent = `${completedChecks} of ${totalChecks} checks complete.`;
       } else {
-        cadenceLabelElement.textContent = 'All prerequisites verified. VPN setup lane is unlocked.';
+        cadenceLabelElement.textContent = "All checks passed. You're ready to continue.";
       }
     }
   }
@@ -918,24 +918,19 @@ function renderPrerequisitesPage() {
 
   function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
       // Converts raw workflow status updates into user-facing loading text.
+    const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
     const resolvedStep = workflowKey
       ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
       : null;
     const configuredLabel = resolvedStep?.step?.progressLabel || null;
     if (configuredLabel) {
-      const taskSuffix = Number.isFinite(numSuccessfulTasks)
-        ? ` Successful tasks: ${numSuccessfulTasks}.`
-        : '';
-      return `${configuredLabel}.${taskSuffix}`;
+      return `${taskPrefix}${configuredLabel}.`;
     }
 
     const normalizedStatus = typeof status === 'string' && status.trim()
       ? status.trim().replace(/_/g, ' ').toLowerCase()
       : 'processing';
-    const taskSuffix = Number.isFinite(numSuccessfulTasks)
-      ? ` Successful tasks: ${numSuccessfulTasks}.`
-      : '';
-    return `Workflow is still ${normalizedStatus}. Waiting up to ${formatDuration(WORKFLOW_RESPONSE_MAX_WAIT_MS)} for a response.${taskSuffix}`;
+    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(WORKFLOW_RESPONSE_MAX_WAIT_MS)}.`;
   }
 
   async function runSingleAttempt(task, operationName = 'workflow') {
@@ -1248,7 +1243,7 @@ function renderPrerequisitesPage() {
       // Fetches the ca_name org variable from Rewst. This is a company-level setting
       // that must be configured before VPN certificates can work.
     const element = companyCheckElements['ca_name'];
-    setCheckLoading(element, 'CA Name', 'Fetching company configuration data...');
+    setCheckLoading(element, 'CA Name', 'Loading company settings...');
     checkResultDetails.ca_name = '';
 
     try {
@@ -1278,7 +1273,7 @@ function renderPrerequisitesPage() {
   async function runAdDomainCheck() {
       // Fetches the ad_domain org variable. Required for domain-joined VPN connections.
     const element = companyCheckElements['ad_domain'];
-    setCheckLoading(element, 'AD Domain', 'Fetching company configuration data...');
+    setCheckLoading(element, 'AD Domain', 'Loading company settings...');
     checkResultDetails.ad_domain = '';
 
     try {
@@ -1325,7 +1320,7 @@ function renderPrerequisitesPage() {
     if (!check) return;
 
     const element = companyCheckElements[check.id];
-    setCheckLoading(element, check.label, 'Fetching company configuration data...');
+    setCheckLoading(element, check.label, 'Loading company settings...');
     checkResultDetails[check.id] = '';
 
     try {
@@ -1383,7 +1378,7 @@ function renderPrerequisitesPage() {
       // Asks a Rewst workflow for the user's CWM (ConnectWise Manage) device configurations.
       // If exactly one is found, it's selected automatically. If multiple are found, the first is used.
       // The selectedConfig is stored globally for downstream checks (computer online, cert check).
-    setCheckLoading(cwmCheckItem, 'CWM Configuration', 'Communicating with CWM to discover valid configurations...');
+    setCheckLoading(cwmCheckItem, 'CWM Configuration', 'Looking up your device record...');
     checkResultDetails.cwm_config = '';
     selectedConfig = null;
     window.selectedConfig = null;
@@ -1551,7 +1546,7 @@ function renderPrerequisitesPage() {
     setCheckLoading(
       computerOnlineCheckItem,
       'Computer Online',
-      'Checking if your computer is online...',
+      'Checking if your PC is reachable...',
       'Communicating with your PC'
     );
     checkResultDetails.computer_online = '';
@@ -1647,7 +1642,7 @@ function renderPrerequisitesPage() {
         if (attemptResult.ok && onlineField.parsed === true) {
           const onlineValue = onlineField.rawValue;
           checkStates.computer_online = true;
-          checkResultDetails.computer_online = `Status: ${onlineValue}`;
+          checkResultDetails.computer_online = 'Your PC is online.';
           renderCheckResult(
             computerOnlineCheckItem,
             true,
@@ -1873,8 +1868,8 @@ function renderPrerequisitesPage() {
     checkStates.valid_machine_cert_installed = evaluation.certPassed;
 
     let certDetails = evaluation.certPassed
-      ? `ValidCertCount: ${evaluation.validCertCountRaw}`
-      : `ValidCertCount must be 1 or higher (received: ${evaluation.validCertCountRaw ?? 'none'})`;
+      ? `Certificate found (count: ${evaluation.validCertCountRaw})`
+      : 'No valid machine certificate found.';
 
     if (evaluation.usedFreshExecutionRead) {
       certDetails += ' (refreshed execution output)';
@@ -1912,7 +1907,7 @@ function renderPrerequisitesPage() {
     setCheckLoading(
       validMachineCertCheckItem,
       'Valid machine certificate installed',
-      'Initial request sent. This can take up to 5 minutes.',
+      'Checking your device. This may take a moment...',
       'Communicating with your PC'
     );
     checkResultDetails.valid_machine_cert_installed = '';

@@ -186,12 +186,12 @@ function renderRemediationPage() {
     const stepData = getStepCards();
     const statusBadge = state.phase === 'failed' ? 'Attention' : state.phase === 'done' ? 'Complete' : 'In Progress';
     const cadenceText = state.inFlight
-      ? `${state.statusText} Successful tasks: ${state.taskCount}.`
+      ? `${state.taskCount} steps complete — ${state.statusText}`
       : state.phase === 'failed'
-        ? 'Remediation failed. Retry remediation or open a ticket.'
+        ? "Something didn't work. You can try again or contact support."
         : state.phase === 'done'
-          ? 'Remediation completed. Return to prerequisites to rerun the blocked check.'
-          : 'Preparing remediation.';
+          ? 'The fix is complete. Head back to prerequisites to continue.'
+          : 'Preparing...';
 
     const card = RewstDOM.createCard(`
       <div class="prereq-command-badge">
@@ -200,8 +200,8 @@ function renderRemediationPage() {
       </div>
       <div class="prereq-command-row">
         <div class="prereq-command-left">
-          <h2 class="prereq-command-title">A repair flow is required before VPN setup can continue</h2>
-          <p class="prereq-command-copy">This isolated page runs a single remediation workflow for the machine certificate issue.</p>
+          <h2 class="prereq-command-title">A fix is needed before VPN setup can continue</h2>
+          <p class="prereq-command-copy">We're repairing a certificate issue on your device. This usually completes in a few minutes.</p>
         </div>
         <div class="prereq-command-right">
           <div class="prereq-progress-header">
@@ -365,7 +365,7 @@ function renderRemediationPage() {
     state.phase = 'done';
     setStoredJson(REMEDIATION_RETURN_KEY, context);
     clearStoredKey(REMEDIATION_CONTEXT_KEY);
-    RewstDOM.showSuccess('Remediation complete. Return to prerequisites to rerun the blocked check.');
+    RewstDOM.showSuccess('The fix is complete. Return to prerequisites to continue.');
     render();
   }
 
