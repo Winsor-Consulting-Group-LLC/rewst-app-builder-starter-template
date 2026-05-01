@@ -128,10 +128,21 @@
           <p class="header-subtitle app-page-subtitle">Company and user-level validation checks</p>
         </div>
         <div class="app-header-actions">
+          <!-- Refresh Button (intentionally low-emphasis) -->
+          <div id="refresh-button-container">
+            <button
+              id="refresh-btn"
+              class="btn-tertiary app-refresh-btn app-refresh-btn-subtle"
+              title="Reset cached session state and rerun prerequisites"
+              aria-label="Force refresh prerequisites"
+              hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()"
+            >
+              <span class="material-icons">refresh</span>
+            </button>
+          </div>
 
           <!-- Dark Mode Toggle -->
           <label id="toggle-example" class="dark-mode-toggle app-dark-toggle">
-            
             <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
             <div class="app-dark-toggle-switch">
               <input type="checkbox" id="header-toggle" class="app-visually-hidden" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
@@ -140,14 +151,6 @@
             </div>
             <span id="dark-mode-moon" class="material-icons app-dark-toggle-moon">dark_mode</span>
           </label>
-
-          <!-- Refresh Button -->
-          <div id="refresh-button-container">
-            <button id="refresh-btn" class="btn-primary app-refresh-btn" hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()">
-              <span class="material-icons">refresh</span>
-              <span class="btn-text">Force Refresh</span>
-            </button>
-          </div>
 
         </div>
       </div>
