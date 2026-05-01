@@ -16728,6 +16728,7 @@ function renderPrerequisitesPage() {
       // If ValidCertCount is missing, do one silent refresh by execution ID.
     const initialEvaluation = evaluateComputerPrereqs(result);
     if (initialEvaluation.validCertCount !== null) {
+      initialEvaluation.resolvedResult = result;
       return initialEvaluation;
     }
 
@@ -16743,12 +16744,14 @@ function renderPrerequisitesPage() {
       const refreshedEvaluation = evaluateComputerPrereqs(refreshedResult);
       if (refreshedEvaluation.validCertCount !== null) {
         refreshedEvaluation.usedFreshExecutionRead = true;
+        refreshedEvaluation.resolvedResult = refreshedResult;
         return refreshedEvaluation;
       }
     } catch (error) {
       debugWarn(`[Workflow] ${operationName}: refresh read failed for execution ${executionId}`, error);
     }
 
+    initialEvaluation.resolvedResult = result;
     return initialEvaluation;
   }
 
@@ -16846,7 +16849,11 @@ function renderPrerequisitesPage() {
 
     if (attemptResult.ok) {
       const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
-      persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.', attemptResult.result);
+      persistVpnSetupSnapshot(
+        evaluation.vpnConnections,
+        'Adapter status updated from computer prerequisites check.',
+        evaluation.resolvedResult || attemptResult.result
+      );
       renderComputerPrereqResults(evaluation);
       updateButtonState();
       return;
@@ -16871,7 +16878,11 @@ function renderPrerequisitesPage() {
     }
 
     const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
-    persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.', attemptResult.result);
+    persistVpnSetupSnapshot(
+      evaluation.vpnConnections,
+      'Adapter status updated from computer prerequisites check.',
+      evaluation.resolvedResult || attemptResult.result
+    );
     renderComputerPrereqResults(evaluation, attemptResult);
     clearCachedPrereqs();
     updateButtonState();
