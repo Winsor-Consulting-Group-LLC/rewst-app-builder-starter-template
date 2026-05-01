@@ -16623,6 +16623,7 @@ function renderPrerequisitesPage() {
     let attempt = 0;
     let succeeded = false;
     let lastErrorMessage = '';
+    let lastRetryReason = 'none';
 
     setCheckLoading(
       computerOnlineCheckItem,
@@ -16653,10 +16654,13 @@ function renderPrerequisitesPage() {
 
         if (attempt > 1) {
           const timeLeftMs = Math.max(0, MAX_RETRY_DURATION_MS - elapsedAtStart);
+          const retryMessage = lastRetryReason === 'none'
+            ? `No data returned — retrying (attempt ${attempt}, ${formatDuration(timeLeftMs)} remaining)`
+            : `Computer appears offline — retrying (attempt ${attempt}, ${formatDuration(timeLeftMs)} remaining)`;
           updateCheckLoadingText(
             computerOnlineCheckItem,
             'Computer Online',
-            `Computer appears offline — retrying (attempt ${attempt}, ${formatDuration(timeLeftMs)} remaining)`,
+            retryMessage,
             'Waiting for computer to come online'
           );
         }
@@ -16733,9 +16737,13 @@ function renderPrerequisitesPage() {
         }
 
         // Attempt failed — record error and decide whether to retry
+        const isNoneReturn = attemptResult.ok && onlineField.rawValue === null;
+        lastRetryReason = isNoneReturn ? 'none' : 'offline';
         lastErrorMessage = attemptResult.error
           ? attemptResult.error.message || 'Workflow execution failed'
-          : 'Computer is offline';
+          : isNoneReturn
+            ? 'No response from device'
+            : 'Computer is offline';
 
         const elapsedAfterAttempt = Date.now() - startTime;
         if (elapsedAfterAttempt >= MAX_RETRY_DURATION_MS) {
@@ -17001,34 +17009,49 @@ function renderPrerequisitesPage() {
       return;
     }
 
-    const attemptResult = await runSingleAttempt(
-      () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }, {
-        onProgress: (status, numSuccessfulTasks) => {
-          updateCheckLoadingText(
-            validMachineCertCheckItem,
-            'Valid machine certificate installed',
-            formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),
-            'Communicating with your PC'
-          );
-        }
-      }),
-      'Computer prerequisite checks'
-    );
+    const MAX_NONE_RETRIES = 2;
+    let certAttempt = 0;
+    let lastAttemptResult = null;
+    let evaluation = null;
 
-    if (attemptResult.ok) {
-      const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
-      persistVpnSetupSnapshot(
-        evaluation.vpnConnections,
-        'Adapter status updated from computer prerequisites check.',
-        evaluation.resolvedResult || attemptResult.result
+    while (certAttempt <= MAX_NONE_RETRIES) {
+      certAttempt++;
+
+      if (certAttempt > 1) {
+        updateCheckLoadingText(
+          validMachineCertCheckItem,
+          'Valid machine certificate installed',
+          `No data returned — retrying (attempt ${certAttempt})`,
+          'Communicating with your PC'
+        );
+        await sleep(2000);
+      }
+
+      lastAttemptResult = await runSingleAttempt(
+        () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }, {
+          onProgress: (status, numSuccessfulTasks) => {
+            updateCheckLoadingText(
+              validMachineCertCheckItem,
+              'Valid machine certificate installed',
+              formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),
+              'Communicating with your PC'
+            );
+          }
+        }),
+        'Computer prerequisite checks'
       );
-      renderComputerPrereqResults(evaluation);
-      updateButtonState();
-      return;
+
+      if (lastAttemptResult.error && !lastAttemptResult.result) break;
+
+      evaluation = await resolveComputerPrereqEvaluation(lastAttemptResult.result);
+
+      // validCertCount === null means the workflow returned no data — retry if attempts remain.
+      // Any real value (0 included) is authoritative: 0 triggers remediation, >=1 passes.
+      if (evaluation.validCertCount !== null || !lastAttemptResult.ok) break;
     }
 
-    if (attemptResult.error && !attemptResult.result) {
-      const errorDetails = attemptResult.error.message || 'Workflow execution failed';
+    if (lastAttemptResult.error && !lastAttemptResult.result) {
+      const errorDetails = lastAttemptResult.error.message || 'Workflow execution failed';
       checkStates.valid_machine_cert_installed = false;
       checkResultDetails.valid_machine_cert_installed = errorDetails;
 
@@ -17045,14 +17068,13 @@ function renderPrerequisitesPage() {
       return;
     }
 
-    const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
     persistVpnSetupSnapshot(
       evaluation.vpnConnections,
       'Adapter status updated from computer prerequisites check.',
-      evaluation.resolvedResult || attemptResult.result
+      evaluation.resolvedResult || lastAttemptResult.result
     );
-    renderComputerPrereqResults(evaluation, attemptResult);
-    clearCachedPrereqs();
+    renderComputerPrereqResults(evaluation, !lastAttemptResult.ok ? { attempts: certAttempt } : null);
+    if (!lastAttemptResult.ok) clearCachedPrereqs();
     updateButtonState();
   }
 
