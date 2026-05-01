@@ -15980,6 +15980,46 @@ function renderPrerequisitesPage() {
       // Searches across all candidate output objects for the first non-null value
       // matching any of the given field names. Used to handle varying workflow output shapes.
     const candidates = buildResultDataCandidates(result);
+
+    const findFieldValueDeep = (root, targetFieldNames) => {
+      if (!root || typeof root !== 'object') return null;
+
+      const visited = new Set();
+      const stack = [root];
+
+      while (stack.length > 0) {
+        const current = stack.pop();
+        if (!current || typeof current !== 'object') continue;
+        if (visited.has(current)) continue;
+        visited.add(current);
+
+        for (const fieldName of targetFieldNames) {
+          if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
+            const value = current[fieldName];
+            if (value !== undefined && value !== null) {
+              return value;
+            }
+          }
+        }
+
+        if (Array.isArray(current)) {
+          current.forEach((item) => {
+            if (item && typeof item === 'object') {
+              stack.push(item);
+            }
+          });
+        } else {
+          Object.values(current).forEach((value) => {
+            if (value && typeof value === 'object') {
+              stack.push(value);
+            }
+          });
+        }
+      }
+
+      return null;
+    };
+
     for (const candidate of candidates) {
       for (const fieldName of fieldNames) {
         if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
@@ -15988,6 +16028,11 @@ function renderPrerequisitesPage() {
             return value;
           }
         }
+      }
+
+      const nestedMatch = findFieldValueDeep(candidate, fieldNames);
+      if (nestedMatch !== null && nestedMatch !== undefined) {
+        return nestedMatch;
       }
     }
     return null;
