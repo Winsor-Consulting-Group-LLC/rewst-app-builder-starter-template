@@ -1066,12 +1066,12 @@ function renderVpnStatusPage() {
     container.innerHTML = `
       <div class="vpnsetup-functional-shell">
         <section class="card prereq-command-card vpnsetup-command-card">
+          <div class="prereq-command-badge">
+            <span class="material-icons">vpn_lock</span>
+            <span>VPN Adapter Operations</span>
+          </div>
           <div class="prereq-command-row">
             <div class="prereq-command-left">
-              <div class="prereq-command-badge">
-                <span class="material-icons">vpn_lock</span>
-                <span>VPN Adapter Operations</span>
-              </div>
               <h2 class="prereq-command-title">Install, remove, or verify the VPN adapter</h2>
               <p class="prereq-command-copy">
                 This page manages the local VPN adapter on your selected computer and reports adapter status from the computer prerequisite workflow.

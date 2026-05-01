@@ -770,17 +770,19 @@ h6 {
 }
 
 .prereq-command-badge {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.72rem;
+  gap: 0.4rem;
+  margin: -1.2rem -1.2rem 1rem;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--rewst-fandango);
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(7, 55, 99, 0.2);
+  background: rgba(7, 55, 99, 0.06);
+  border-bottom: 1px solid rgba(7, 55, 99, 0.08);
+  border-radius: 0.5rem 0.5rem 0 0;
 }
 
 .prereq-command-badge .material-icons {
@@ -789,7 +791,7 @@ h6 {
 }
 
 .prereq-command-title {
-  margin: 0.55rem 0 0;
+  margin: 0;
   font-size: 1.25rem;
   color: var(--rewst-black);
 }
@@ -1194,14 +1196,14 @@ html[data-theme='dark'] .prereq-progress-value {
   color: #e8f2ff;
 }
 
-html[data-theme='dark'] .prereq-command-badge,
 html[data-theme='dark'] .prereq-section-success-chip {
   background: rgba(17, 36, 54, 0.92);
 }
 
 html[data-theme='dark'] .prereq-command-badge {
   color: #dce8f6;
-  border-color: rgba(143, 176, 210, 0.48);
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom-color: rgba(143, 176, 210, 0.15);
 }
 
 html[data-theme='dark'] .prereq-command-badge .material-icons {

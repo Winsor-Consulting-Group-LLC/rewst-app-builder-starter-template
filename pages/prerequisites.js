@@ -15,12 +15,12 @@ function renderPrerequisitesPage() {
   }
 
   const commandDeck = createCardContainer(`
+    <div class="prereq-command-badge">
+      <span class="material-icons">radar</span>
+      <span>Validation Command Deck</span>
+    </div>
     <div class="prereq-command-row">
-      <div class="prereq-command-left"> 
-        <div class="prereq-command-badge">
-          <span class="material-icons">radar</span>
-          <span>Validation Command Deck</span>
-        </div>
+      <div class="prereq-command-left">
         <h2 class="prereq-command-title">Systems are scanning for launch authority</h2>
         <p class="prereq-command-copy">
           Every passing check unlocks the next layer of VPN readiness. Watch the sequence harden in real time.

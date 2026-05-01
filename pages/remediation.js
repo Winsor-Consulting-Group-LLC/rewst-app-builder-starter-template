@@ -115,12 +115,12 @@ function renderRemediationPage() {
 
   if (!context || context.checkKey !== 'valid_machine_cert_installed' || !context.cwaId) {
     const card = RewstDOM.createCard(`
+      <div class="prereq-command-badge">
+        <span class="material-icons">warning</span>
+        <span>Remediation context missing</span>
+      </div>
       <div class="prereq-command-row">
         <div class="prereq-command-left">
-          <div class="prereq-command-badge">
-            <span class="material-icons">warning</span>
-            <span>Remediation context missing</span>
-          </div>
           <h2 class="prereq-command-title">No remediation session is available</h2>
           <p class="prereq-command-copy">Return to prerequisites and rerun the blocked check to start remediation again.</p>
         </div>
@@ -194,12 +194,12 @@ function renderRemediationPage() {
           : 'Preparing remediation.';
 
     const card = RewstDOM.createCard(`
+      <div class="prereq-command-badge">
+        <span class="material-icons">build_circle</span>
+        <span>Machine Certificate Remediation</span>
+      </div>
       <div class="prereq-command-row">
         <div class="prereq-command-left">
-          <div class="prereq-command-badge">
-            <span class="material-icons">build_circle</span>
-            <span>Machine Certificate Remediation</span>
-          </div>
           <h2 class="prereq-command-title">A repair flow is required before VPN setup can continue</h2>
           <p class="prereq-command-copy">This isolated page runs a single remediation workflow for the machine certificate issue.</p>
         </div>
