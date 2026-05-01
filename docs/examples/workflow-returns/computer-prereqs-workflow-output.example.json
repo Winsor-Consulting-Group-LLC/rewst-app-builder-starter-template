@@ -1,105 +1,2551 @@
 {
-  "Errors": [],
-  "Messages": [],
-  "CANamePart": "winsor-SVWINUTIL1-CA",
-  "ComputerID": 7899,
-  "DomainTest": {
-    "Address": "winsor.local",
-    "Options": {
-      "Context": "",
-      "Timeout": "10675199.02:48:05.4775807",
-      "UseAmendedQualifiers": false
+  "prereq_info": {
+    "Errors": [],
+    "Messages": [],
+    "VPNRoutes": {
+      "RouteMetric": 100,
+      "DestinationPrefix": "172.16.192.0/18"
     },
-    "Timeout": 4000,
-    "Container": null,
-    "ReplySize": 32,
-    "BufferSize": 32,
-    "Properties": [],
-    "Qualifiers": [],
-    "StatusCode": 0,
-    "TimeToLive": 80,
-    "IPV4Address": {
-      "Address": 183505068,
-      "ScopeId": null,
-      "IsIPv6Teredo": false,
-      "AddressFamily": 2,
-      "IsIPv6LinkLocal": false,
-      "IsIPv6Multicast": false,
-      "IsIPv6SiteLocal": false,
-      "IPAddressToString": "172.16.240.10",
-      "IsIPv4MappedToIPv6": false
-    },
-    "IPV6Address": {},
-    "RecordRoute": 0,
-    "RouteRecord": null,
-    "SourceRoute": "",
-    "ResponseTime": 85,
-    "TypeofService": 0,
-    "PSComputerName": "WCG5CG112B19X",
-    "TimestampRoute": 0,
-    "NoFragmentation": false,
-    "ProtocolAddress": "172.16.240.10",
-    "SourceRouteType": 0,
-    "TimeStampRecord": null,
-    "SystemProperties": [],
-    "ReplyInconsistency": false,
-    "ResponseTimeToLive": 126,
-    "ResolveAddressNames": false,
-    "RouteRecordResolved": null,
-    "TimeStampRecordAddress": null,
-    "ProtocolAddressResolved": "",
-    "PrimaryAddressResolutionStatus": 0,
-    "TimeStampRecordAddressResolved": null
-  },
-  "VPNConnections": {
-    "Guid": "{73103180-3E33-48BE-B15D-3BE59FAD1859}",
-    "Name": "MachineVPN",
-    "Proxy": null,
-    "Routes": [],
-    "NapState": "NotNapCapable",
-    "DnsSuffix": "winsor.local",
-    "ServerList": [],
-    "TunnelType": "Ikev2",
-    "VpnTrigger": {
-      "CimClass": "root/Microsoft/Windows/RemoteAccess/Client:VpnConnectionTrigger",
-      "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties",
-      "CimInstanceProperties": "ApplicationID ConnectionName = \"MachineVPN\" dnsConfig DnsSuffixSearchList TrustedNetwork"
-    },
-    "ProfileType": "Inbox",
-    "L2tpIPsecAuth": null,
-    "ServerAddress": "vpnbuf.winsorgroup.com",
-    "PSComputerName": null,
-    "SplitTunneling": true,
-    "EncryptionLevel": "Custom",
-    "ConnectionStatus": "Connected",
-    "AllUserConnection": true,
-    "IPSecCustomPolicy": {
-      "Count": 1,
-      "value": [
-        "VpnConnectionIPsecConfiguration"
-      ]
-    },
-    "EapConfigXmlStream": null,
-    "RememberCredential": true,
-    "CimSystemProperties": {
-      "Path": null,
-      "ClassName": "VpnConnection",
-      "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
-      "ServerName": "WCG5CG112B19X"
-    },
-    "VpnConfigurationXml": [
-      "System.Xml.XmlElement"
+    "CANamePart": "winsor-SVWINUTIL1-CA",
+    "ComputerID": 7899,
+    "DNSServers": [
+      {
+        "InterfaceAlias": "ethUSB",
+        "ServerAddresses": [
+          "10.42.79.1"
+        ]
+      },
+      {
+        "InterfaceAlias": "MachineVPN",
+        "ServerAddresses": [
+          "172.16.230.10",
+          "172.16.240.5"
+        ]
+      },
+      {
+        "InterfaceAlias": "Local Area Connection",
+        "ServerAddresses": []
+      },
+      {
+        "InterfaceAlias": "Wi-Fi",
+        "ServerAddresses": [
+          "10.42.79.1"
+        ]
+      },
+      {
+        "InterfaceAlias": "Local Area Connection* 3",
+        "ServerAddresses": []
+      },
+      {
+        "InterfaceAlias": "Local Area Connection* 4",
+        "ServerAddresses": []
+      },
+      {
+        "InterfaceAlias": "Ethernet 2",
+        "ServerAddresses": []
+      },
+      {
+        "InterfaceAlias": "Bluetooth Network Connection",
+        "ServerAddresses": []
+      },
+      {
+        "InterfaceAlias": "Loopback Pseudo-Interface 1",
+        "ServerAddresses": []
+      },
+      {
+        "InterfaceAlias": "vEthernet (WSL (Hyper-V firewall))",
+        "ServerAddresses": []
+      }
     ],
-    "AuthenticationMethod": [
-      "MachineCertificate"
-    ],
-    "IsAutoTriggerEnabled": false,
-    "CimInstanceProperties": [],
-    "IdleDisconnectSeconds": 86400,
-    "ProvisioningAuthority": null,
-    "UseWinlogonCredential": false,
-    "MachineCertificateEKUFilter": null,
-    "MachineCertificateIssuerFilter": null
+    "DomainTest": {
+      "Path": {
+        "Path": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=false,RecordRoute=0,ResolveAddressNames=false,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+        "Server": "WCG5CG112B19X",
+        "IsClass": false,
+        "ClassName": "Win32_PingStatus",
+        "IsInstance": true,
+        "IsSingleton": false,
+        "RelativePath": "Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=false,RecordRoute=0,ResolveAddressNames=false,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+        "NamespacePath": "root\\cimv2"
+      },
+      "Site": null,
+      "Scope": {
+        "Path": {
+          "Path": "\\\\.\\root\\cimv2",
+          "Server": ".",
+          "IsClass": false,
+          "ClassName": "",
+          "IsInstance": false,
+          "IsSingleton": false,
+          "RelativePath": "",
+          "NamespacePath": "root\\cimv2"
+        },
+        "Options": {
+          "Locale": "",
+          "Context": [],
+          "Timeout": {
+            "Days": 10675199,
+            "Hours": 2,
+            "Ticks": 9223372036854776000,
+            "Minutes": 48,
+            "Seconds": 5,
+            "TotalDays": 10675199.116730064,
+            "TotalHours": 256204778.80152154,
+            "Milliseconds": 477,
+            "TotalMinutes": 15372286728.091293,
+            "TotalSeconds": 922337203685.4775,
+            "TotalMilliseconds": 922337203685477
+          },
+          "Username": null,
+          "Authority": "",
+          "Impersonation": 3,
+          "Authentication": 4,
+          "EnablePrivileges": true
+        },
+        "IsConnected": true
+      },
+      "__PATH": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+      "Address": "winsor.local",
+      "Options": {
+        "Context": [],
+        "Timeout": {
+          "Days": 10675199,
+          "Hours": 2,
+          "Ticks": 9223372036854776000,
+          "Minutes": 48,
+          "Seconds": 5,
+          "TotalDays": 10675199.116730064,
+          "TotalHours": 256204778.80152154,
+          "Milliseconds": 477,
+          "TotalMinutes": 15372286728.091293,
+          "TotalSeconds": 922337203685.4775,
+          "TotalMilliseconds": 922337203685477
+        },
+        "UseAmendedQualifiers": false
+      },
+      "Timeout": 4000,
+      "__CLASS": "Win32_PingStatus",
+      "__GENUS": 2,
+      "__SERVER": "WCG5CG112B19X",
+      "ClassPath": {
+        "Path": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus",
+        "Server": "WCG5CG112B19X",
+        "IsClass": true,
+        "ClassName": "Win32_PingStatus",
+        "IsInstance": false,
+        "IsSingleton": false,
+        "RelativePath": "Win32_PingStatus",
+        "NamespacePath": "root\\cimv2"
+      },
+      "Container": null,
+      "ReplySize": 32,
+      "__DYNASTY": "Win32_PingStatus",
+      "__RELPATH": "Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+      "BufferSize": 32,
+      "Properties": [
+        {
+          "Name": "Address",
+          "Type": 8,
+          "Value": "winsor.local",
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "BufferSize",
+          "Type": 19,
+          "Value": 32,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "NoFragmentation",
+          "Type": 11,
+          "Value": false,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "PrimaryAddressResolutionStatus",
+          "Type": 19,
+          "Value": 0,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ProtocolAddress",
+          "Type": 8,
+          "Value": "172.16.230.10",
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ProtocolAddressResolved",
+          "Type": 8,
+          "Value": "",
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": false,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "RecordRoute",
+          "Type": 19,
+          "Value": 0,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ReplyInconsistency",
+          "Type": 11,
+          "Value": false,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ReplySize",
+          "Type": 19,
+          "Value": 32,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ResolveAddressNames",
+          "Type": 11,
+          "Value": false,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ResponseTime",
+          "Type": 19,
+          "Value": 25,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "ResponseTimeToLive",
+          "Type": 19,
+          "Value": 127,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "RouteRecord",
+          "Type": 8,
+          "Value": null,
+          "Origin": "Win32_PingStatus",
+          "IsArray": true,
+          "IsLocal": false,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "RouteRecordResolved",
+          "Type": 8,
+          "Value": null,
+          "Origin": "Win32_PingStatus",
+          "IsArray": true,
+          "IsLocal": false,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "SourceRoute",
+          "Type": 8,
+          "Value": "",
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "SourceRouteType",
+          "Type": 19,
+          "Value": 0,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "StatusCode",
+          "Type": 19,
+          "Value": 0,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "Timeout",
+          "Type": 19,
+          "Value": 4000,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "TimeStampRecord",
+          "Type": 19,
+          "Value": null,
+          "Origin": "Win32_PingStatus",
+          "IsArray": true,
+          "IsLocal": false,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "TimeStampRecordAddress",
+          "Type": 8,
+          "Value": null,
+          "Origin": "Win32_PingStatus",
+          "IsArray": true,
+          "IsLocal": false,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "TimeStampRecordAddressResolved",
+          "Type": 8,
+          "Value": null,
+          "Origin": "Win32_PingStatus",
+          "IsArray": true,
+          "IsLocal": false,
+          "Qualifiers": [
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "TimestampRoute",
+          "Type": 19,
+          "Value": 0,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "TimeToLive",
+          "Type": 19,
+          "Value": 80,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        },
+        {
+          "Name": "TypeofService",
+          "Type": 19,
+          "Value": 0,
+          "Origin": "Win32_PingStatus",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": [
+            "System.Management.QualifierData",
+            "System.Management.QualifierData"
+          ]
+        }
+      ],
+      "Qualifiers": [
+        {
+          "Name": "dynamic",
+          "Value": true,
+          "IsLocal": false,
+          "IsAmended": false,
+          "IsOverridable": true,
+          "PropagatesToInstance": true,
+          "PropagatesToSubclass": false
+        },
+        {
+          "Name": "provider",
+          "Value": "WMIPingProvider",
+          "IsLocal": false,
+          "IsAmended": false,
+          "IsOverridable": true,
+          "PropagatesToInstance": true,
+          "PropagatesToSubclass": false
+        }
+      ],
+      "StatusCode": 0,
+      "TimeToLive": 80,
+      "IPV4Address": {
+        "Address": 182849708,
+        "ScopeId": null,
+        "IsIPv6Teredo": false,
+        "AddressFamily": 2,
+        "IsIPv6LinkLocal": false,
+        "IsIPv6Multicast": false,
+        "IsIPv6SiteLocal": false,
+        "IPAddressToString": "172.16.230.10",
+        "IsIPv4MappedToIPv6": false
+      },
+      "IPV6Address": {},
+      "RecordRoute": 0,
+      "RouteRecord": null,
+      "SourceRoute": "",
+      "__NAMESPACE": "root\\cimv2",
+      "ResponseTime": 25,
+      "__DERIVATION": [],
+      "__SUPERCLASS": null,
+      "TypeofService": 0,
+      "PSComputerName": "WCG5CG112B19X",
+      "TimestampRoute": 0,
+      "NoFragmentation": false,
+      "ProtocolAddress": "172.16.230.10",
+      "SourceRouteType": 0,
+      "TimeStampRecord": null,
+      "SystemProperties": [
+        {
+          "Name": "__GENUS",
+          "Type": 3,
+          "Value": 2,
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__CLASS",
+          "Type": 8,
+          "Value": "Win32_PingStatus",
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__SUPERCLASS",
+          "Type": 8,
+          "Value": null,
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__DYNASTY",
+          "Type": 8,
+          "Value": "Win32_PingStatus",
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__RELPATH",
+          "Type": 8,
+          "Value": "Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__PROPERTY_COUNT",
+          "Type": 3,
+          "Value": 24,
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__DERIVATION",
+          "Type": 8,
+          "Value": [],
+          "Origin": "___SYSTEM",
+          "IsArray": true,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__SERVER",
+          "Type": 8,
+          "Value": "WCG5CG112B19X",
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__NAMESPACE",
+          "Type": 8,
+          "Value": "root\\cimv2",
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        },
+        {
+          "Name": "__PATH",
+          "Type": 8,
+          "Value": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+          "Origin": "___SYSTEM",
+          "IsArray": false,
+          "IsLocal": true,
+          "Qualifiers": []
+        }
+      ],
+      "__PROPERTY_COUNT": 24,
+      "ReplyInconsistency": false,
+      "ResponseTimeToLive": 127,
+      "ResolveAddressNames": false,
+      "RouteRecordResolved": null,
+      "TimeStampRecordAddress": null,
+      "ProtocolAddressResolved": "",
+      "PrimaryAddressResolutionStatus": 0,
+      "TimeStampRecordAddressResolved": null
+    },
+    "VPNConnections": {
+      "Guid": "{954EB12E-4D60-4C03-B7E7-3A3A7D13BC71}",
+      "Name": "MachineVPN",
+      "Proxy": null,
+      "Routes": [
+        {
+          "CimClass": {
+            "CimSuperClass": "ROOT/Microsoft/Windows/RemoteAccess/Client:CIM_NextHopRoute",
+            "CimClassMethods": "Create Select",
+            "CimSuperClassName": "CIM_NextHopRoute",
+            "CimClassProperties": "Caption Description ElementName InstanceID AdminDistance DestinationAddress IsStatic RouteMetric TypeOfRoute = 3 AddressFamily DestinationPrefix InterfaceAlias InterfaceIndex NextHop PreferredLifetime Protocol Publish Store ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::Routes\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"VpnClientPSProvider\"",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimSystemProperties": {
+            "Path": null,
+            "ClassName": "MSFT_NetRoute",
+            "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+            "ServerName": "WCG5CG112B19X"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID",
+            "AdminDistance",
+            "DestinationAddress",
+            "IsStatic",
+            "RouteMetric = 100",
+            "TypeOfRoute = 3",
+            "AddressFamily = 2",
+            "DestinationPrefix = \"172.16.192.0/18\"",
+            "InterfaceAlias = \"MachineVPN\"",
+            "InterfaceIndex",
+            "NextHop = \"0.0.0.0\"",
+            "PreferredLifetime",
+            "Protocol",
+            "Publish = 0",
+            "Store",
+            "ValidLifetime"
+          ]
+        }
+      ],
+      "CimClass": {
+        "CimSuperClass": {
+          "CimSuperClass": null,
+          "CimClassMethods": [],
+          "CimSuperClassName": null,
+          "CimClassProperties": [
+            "ConnectionStatus",
+            "DnsSuffix",
+            "Guid",
+            "IdleDisconnectSeconds",
+            "IsAutoTriggerEnabled",
+            "Name",
+            "ProfileType",
+            "ProvisioningAuthority",
+            "Proxy",
+            "RememberCredential",
+            "Routes",
+            "ServerAddress",
+            "ServerList",
+            "SplitTunneling",
+            "VpnTrigger"
+          ],
+          "CimClassQualifiers": [
+            "ClassVersion = \"1.0\"",
+            "dynamic = True",
+            "locale = 1033",
+            "provider = \"VpnClientPSProvider\""
+          ],
+          "CimSystemProperties": {
+            "Path": null,
+            "ClassName": "VpnCommonConfig",
+            "Namespace": "ROOT/Microsoft/Windows/RemoteAccess/Client",
+            "ServerName": "WCG5CG112B19X"
+          }
+        },
+        "CimClassMethods": [],
+        "CimSuperClassName": "VpnCommonConfig",
+        "CimClassProperties": [
+          {
+            "Name": "ConnectionStatus",
+            "Flags": "Property, ReadOnly, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True ValueMap = ...",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "DnsSuffix",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "Guid",
+            "Flags": "Property, ReadOnly, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "IdleDisconnectSeconds",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 6,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "IsAutoTriggerEnabled",
+            "Flags": "Property, ReadOnly, NullValue",
+            "Value": null,
+            "CimType": 1,
+            "Qualifiers": "read = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "Name",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "ProfileType",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True ValueMap = ... write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "ProvisioningAuthority",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "Proxy",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 16,
+            "Qualifiers": "EmbeddedInstance = \"VpnConnectionProxy\" read = True write = True",
+            "ReferenceClassName": "VpnConnectionProxy"
+          },
+          {
+            "Name": "RememberCredential",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 1,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "Routes",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 32,
+            "Qualifiers": "EmbeddedInstance = \"MSFT_NetRoute\" read = True write = True",
+            "ReferenceClassName": "MSFT_NetRoute"
+          },
+          {
+            "Name": "ServerAddress",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "ServerList",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 32,
+            "Qualifiers": "EmbeddedInstance = \"VpnServerAddress\" read = True write = True",
+            "ReferenceClassName": "VpnServerAddress"
+          },
+          {
+            "Name": "SplitTunneling",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 1,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "VpnTrigger",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 16,
+            "Qualifiers": "EmbeddedInstance = \"VpnConnectionTrigger\" read = True write = True",
+            "ReferenceClassName": "VpnConnectionTrigger"
+          },
+          {
+            "Name": "AllUserConnection",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 1,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "AuthenticationMethod",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 30,
+            "Qualifiers": "read = True ValueMap = ... write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "EapConfigXmlStream",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "EncryptionLevel",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True ValueMap = ... write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "IPSecCustomPolicy",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 32,
+            "Qualifiers": "EmbeddedInstance = \"VpnConnectionIPsecConfiguration\" read = True write = True",
+            "ReferenceClassName": "VpnConnectionIPsecConfiguration"
+          },
+          {
+            "Name": "L2tpIPsecAuth",
+            "Flags": "Property, ReadOnly, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True ValueMap = ...",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "MachineCertificateEKUFilter",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 30,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "MachineCertificateIssuerFilter",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 18,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "NapState",
+            "Flags": "Property, ReadOnly, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True ValueMap = ...",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "TunnelType",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True ValueMap = ... write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "UseWinlogonCredential",
+            "Flags": "Property, NullValue",
+            "Value": null,
+            "CimType": 1,
+            "Qualifiers": "read = True write = True",
+            "ReferenceClassName": null
+          },
+          {
+            "Name": "VpnConfigurationXml",
+            "Flags": "Property, ReadOnly, NullValue",
+            "Value": null,
+            "CimType": 14,
+            "Qualifiers": "read = True",
+            "ReferenceClassName": null
+          }
+        ],
+        "CimClassQualifiers": [
+          {
+            "Name": "dynamic",
+            "Flags": "EnableOverride, ToSubclass",
+            "Value": true,
+            "CimType": 1
+          },
+          {
+            "Name": "provider",
+            "Flags": "EnableOverride, ToSubclass",
+            "Value": "VpnClientPSProvider",
+            "CimType": 14
+          },
+          {
+            "Name": "ClassVersion",
+            "Flags": "EnableOverride, ToSubclass",
+            "Value": "1.0.0",
+            "CimType": 14
+          },
+          {
+            "Name": "locale",
+            "Flags": "EnableOverride, Restricted",
+            "Value": 1033,
+            "CimType": 7
+          }
+        ],
+        "CimSystemProperties": {
+          "Path": null,
+          "ClassName": "VpnConnection",
+          "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+          "ServerName": "WCG5CG112B19X"
+        }
+      },
+      "NapState": "NotNapCapable",
+      "DnsSuffix": "winsor.local",
+      "ServerList": [],
+      "TunnelType": "Ikev2",
+      "VpnTrigger": {
+        "CimClass": {
+          "CimSuperClass": null,
+          "CimClassMethods": [],
+          "CimSuperClassName": null,
+          "CimClassProperties": [
+            "ApplicationID",
+            "ConnectionName",
+            "dnsConfig",
+            "DnsSuffixSearchList",
+            "TrustedNetwork"
+          ],
+          "CimClassQualifiers": [
+            "ClassVersion = \"1.0\"",
+            "dynamic = True",
+            "locale = 1033",
+            "provider = \"VpnClientPSProvider\""
+          ],
+          "CimSystemProperties": {
+            "Path": null,
+            "ClassName": "VpnConnectionTrigger",
+            "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+            "ServerName": "WCG5CG112B19X"
+          }
+        },
+        "CimSystemProperties": {
+          "Path": null,
+          "ClassName": "VpnConnectionTrigger",
+          "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+          "ServerName": "WCG5CG112B19X"
+        },
+        "CimInstanceProperties": [
+          {
+            "Name": "ApplicationID",
+            "Flags": "Property, NotModified, NullValue",
+            "Value": null,
+            "CimType": 30,
+            "IsValueModified": false
+          },
+          {
+            "Name": "ConnectionName",
+            "Flags": "Property, NotModified",
+            "Value": "MachineVPN",
+            "CimType": 14,
+            "IsValueModified": false
+          },
+          {
+            "Name": "dnsConfig",
+            "Flags": "Property, NotModified, NullValue",
+            "Value": null,
+            "CimType": 32,
+            "IsValueModified": false
+          },
+          {
+            "Name": "DnsSuffixSearchList",
+            "Flags": "Property, NotModified, NullValue",
+            "Value": null,
+            "CimType": 30,
+            "IsValueModified": false
+          },
+          {
+            "Name": "TrustedNetwork",
+            "Flags": "Property, NotModified, NullValue",
+            "Value": null,
+            "CimType": 30,
+            "IsValueModified": false
+          }
+        ]
+      },
+      "ProfileType": "Inbox",
+      "L2tpIPsecAuth": null,
+      "ServerAddress": "vpnbuf.winsorgroup.com",
+      "PSComputerName": null,
+      "SplitTunneling": true,
+      "EncryptionLevel": "Custom",
+      "ConnectionStatus": "Connected",
+      "AllUserConnection": true,
+      "IPSecCustomPolicy": {
+        "Count": 1,
+        "value": [
+          {
+            "CimClass": {
+              "CimSuperClass": null,
+              "CimClassMethods": "",
+              "CimSuperClassName": null,
+              "CimClassProperties": "AuthenticationTransformConstants CipherTransformConstants DHGroup EncryptionMethod IntegrityCheckMethod PfsGroup",
+              "CimClassQualifiers": "dynamic = True locale = 1033 provider = \"VpnClientPSProvider\"",
+              "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+            },
+            "CimSystemProperties": {
+              "Path": null,
+              "ClassName": "VpnConnectionIPsecConfiguration",
+              "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+              "ServerName": "WCG5CG112B19X"
+            },
+            "CimInstanceProperties": [
+              "AuthenticationTransformConstants = 2",
+              "CipherTransformConstants = 3",
+              "DHGroup = 3",
+              "EncryptionMethod = 2",
+              "IntegrityCheckMethod = 2",
+              "PfsGroup = 3"
+            ]
+          }
+        ]
+      },
+      "EapConfigXmlStream": null,
+      "RememberCredential": true,
+      "CimSystemProperties": {
+        "Path": null,
+        "ClassName": "VpnConnection",
+        "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+        "ServerName": "WCG5CG112B19X"
+      },
+      "VpnConfigurationXml": [
+        [
+          [
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement",
+            "System.Xml.XmlElement"
+          ],
+          []
+        ]
+      ],
+      "AuthenticationMethod": [
+        "MachineCertificate"
+      ],
+      "IsAutoTriggerEnabled": false,
+      "CimInstanceProperties": [
+        {
+          "Name": "ConnectionStatus",
+          "Flags": "Property, ReadOnly, NotModified",
+          "Value": "Connected",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "DnsSuffix",
+          "Flags": "Property, NotModified",
+          "Value": "winsor.local",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "Guid",
+          "Flags": "Property, ReadOnly, NotModified",
+          "Value": "{954EB12E-4D60-4C03-B7E7-3A3A7D13BC71}",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "IdleDisconnectSeconds",
+          "Flags": "Property, NotModified",
+          "Value": 86400,
+          "CimType": 6,
+          "IsValueModified": false
+        },
+        {
+          "Name": "IsAutoTriggerEnabled",
+          "Flags": "Property, ReadOnly, NotModified",
+          "Value": false,
+          "CimType": 1,
+          "IsValueModified": false
+        },
+        {
+          "Name": "Name",
+          "Flags": "Property, NotModified",
+          "Value": "MachineVPN",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "ProfileType",
+          "Flags": "Property, NotModified",
+          "Value": "Inbox",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "ProvisioningAuthority",
+          "Flags": "Property, NotModified, NullValue",
+          "Value": null,
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "Proxy",
+          "Flags": "Property, NotModified, NullValue",
+          "Value": null,
+          "CimType": 16,
+          "IsValueModified": false
+        },
+        {
+          "Name": "RememberCredential",
+          "Flags": "Property, NotModified",
+          "Value": true,
+          "CimType": 1,
+          "IsValueModified": false
+        },
+        {
+          "Name": "Routes",
+          "Flags": "Property, NotModified",
+          "Value": [
+            "MSFT_NetRoute (InstanceID)"
+          ],
+          "CimType": 32,
+          "IsValueModified": false
+        },
+        {
+          "Name": "ServerAddress",
+          "Flags": "Property, NotModified",
+          "Value": "vpnbuf.winsorgroup.com",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "ServerList",
+          "Flags": "Property, NotModified",
+          "Value": [],
+          "CimType": 32,
+          "IsValueModified": false
+        },
+        {
+          "Name": "SplitTunneling",
+          "Flags": "Property, NotModified",
+          "Value": true,
+          "CimType": 1,
+          "IsValueModified": false
+        },
+        {
+          "Name": "VpnTrigger",
+          "Flags": "Property, NotModified",
+          "Value": {
+            "CimClass": "root/Microsoft/Windows/RemoteAccess/Client:VpnConnectionTrigger",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties",
+            "CimInstanceProperties": "ApplicationID ConnectionName = \"MachineVPN\" dnsConfig DnsSuffixSearchList TrustedNetwork"
+          },
+          "CimType": 16,
+          "IsValueModified": false
+        },
+        {
+          "Name": "AllUserConnection",
+          "Flags": "Property, NotModified",
+          "Value": true,
+          "CimType": 1,
+          "IsValueModified": false
+        },
+        {
+          "Name": "AuthenticationMethod",
+          "Flags": "Property, NotModified",
+          "Value": [
+            "MachineCertificate"
+          ],
+          "CimType": 30,
+          "IsValueModified": false
+        },
+        {
+          "Name": "EapConfigXmlStream",
+          "Flags": "Property, NotModified, NullValue",
+          "Value": null,
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "EncryptionLevel",
+          "Flags": "Property, NotModified",
+          "Value": "Custom",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "IPSecCustomPolicy",
+          "Flags": "Property, NotModified",
+          "Value": [
+            "VpnConnectionIPsecConfiguration"
+          ],
+          "CimType": 32,
+          "IsValueModified": false
+        },
+        {
+          "Name": "L2tpIPsecAuth",
+          "Flags": "Property, ReadOnly, NotModified, NullValue",
+          "Value": null,
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "MachineCertificateEKUFilter",
+          "Flags": "Property, NotModified",
+          "Value": [],
+          "CimType": 30,
+          "IsValueModified": false
+        },
+        {
+          "Name": "MachineCertificateIssuerFilter",
+          "Flags": "Property, NotModified, NullValue",
+          "Value": null,
+          "CimType": 18,
+          "IsValueModified": false
+        },
+        {
+          "Name": "NapState",
+          "Flags": "Property, ReadOnly, NotModified",
+          "Value": "NotNapCapable",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "TunnelType",
+          "Flags": "Property, NotModified",
+          "Value": "Ikev2",
+          "CimType": 14,
+          "IsValueModified": false
+        },
+        {
+          "Name": "UseWinlogonCredential",
+          "Flags": "Property, NotModified",
+          "Value": false,
+          "CimType": 1,
+          "IsValueModified": false
+        },
+        {
+          "Name": "VpnConfigurationXml",
+          "Flags": "Property, ReadOnly, NotModified",
+          "Value": "<VpnProfile><VpnConfiguration><Name>MachineVPN</Name><AllUserConnection>true</AllUserConnection><ServerAddress>vpnbuf.winsorgroup.com</ServerAddress><TunnelType>Ikev2</TunnelType><EncryptionLevel>Custom</EncryptionLevel><AutoTriggerEnabled>false</AutoTriggerEnabled><AuthenticationMethod><Method>MachineCertificate</Method></AuthenticationMethod><SplitTunneling>true</SplitTunneling><L2tpPsk/><RememberCredential>true</RememberCredential><UseWinlogonCredential>false</UseWinlogonCredential><IdleDisconnectSeconds>86400</IdleDisconnectSeconds><MachineCertificateIssuerFilter/><MachineCertificateEKUFilter/><DnsSuffix>winsor.local</DnsSuffix><ProvisioningAuthority/><VpnServerList/><Route><DestinationPrefix>172.16.192.0/18</DestinationPrefix><Metric>100</Metric></Route><CryptographySuite><AuthenticationTransformConstants>2</AuthenticationTransformConstants><CipherTransformConstants>3</CipherTransformConstants><PfsGroup>3</PfsGroup><DHGroup>3</DHGroup><IntegrityCheckMethod>2</IntegrityCheckMethod><EncryptionMethod>2</EncryptionMethod></CryptographySuite><Trigger><ClassicAppIDList/><ModernAppIDList/><NrptRuleList/><DnsSuffixSearchList/><TrustedNetworkList/></Trigger><VpnProxy/></VpnConfiguration><EapConfiguration/></VpnProfile>\r\n",
+          "CimType": 14,
+          "IsValueModified": false
+        }
+      ],
+      "IdleDisconnectSeconds": 86400,
+      "ProvisioningAuthority": null,
+      "UseWinlogonCredential": false,
+      "MachineCertificateEKUFilter": null,
+      "MachineCertificateIssuerFilter": null
+    },
+    "ValidCertCount": 1
   },
-  "ValidCertCount": 1
+  "automation_log": [
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Started \"VPN: Check machine prerequisites\"",
+      "timestamp": 1777590997,
+      "information": "N/A"
+    },
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Got CA settings for \"Winsor Consulting Group, LLC\"",
+      "timestamp": 1777590999,
+      "information": "N/A"
+    },
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Retrieved pre-req information",
+      "timestamp": 1777591050,
+      "information": {
+        "Errors": [],
+        "Messages": [],
+        "VPNRoutes": {
+          "RouteMetric": 100,
+          "DestinationPrefix": "172.16.192.0/18"
+        },
+        "CANamePart": "winsor-SVWINUTIL1-CA",
+        "ComputerID": 7899,
+        "DNSServers": [
+          {
+            "InterfaceAlias": "ethUSB",
+            "ServerAddresses": [
+              "10.42.79.1"
+            ]
+          },
+          {
+            "InterfaceAlias": "MachineVPN",
+            "ServerAddresses": [
+              "172.16.230.10",
+              "172.16.240.5"
+            ]
+          },
+          {
+            "InterfaceAlias": "Local Area Connection",
+            "ServerAddresses": []
+          },
+          {
+            "InterfaceAlias": "Wi-Fi",
+            "ServerAddresses": [
+              "10.42.79.1"
+            ]
+          },
+          {
+            "InterfaceAlias": "Local Area Connection* 3",
+            "ServerAddresses": []
+          },
+          {
+            "InterfaceAlias": "Local Area Connection* 4",
+            "ServerAddresses": []
+          },
+          {
+            "InterfaceAlias": "Ethernet 2",
+            "ServerAddresses": []
+          },
+          {
+            "InterfaceAlias": "Bluetooth Network Connection",
+            "ServerAddresses": []
+          },
+          {
+            "InterfaceAlias": "Loopback Pseudo-Interface 1",
+            "ServerAddresses": []
+          },
+          {
+            "InterfaceAlias": "vEthernet (WSL (Hyper-V firewall))",
+            "ServerAddresses": []
+          }
+        ],
+        "DomainTest": {
+          "Path": {
+            "Path": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=false,RecordRoute=0,ResolveAddressNames=false,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+            "Server": "WCG5CG112B19X",
+            "IsClass": false,
+            "ClassName": "Win32_PingStatus",
+            "IsInstance": true,
+            "IsSingleton": false,
+            "RelativePath": "Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=false,RecordRoute=0,ResolveAddressNames=false,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+            "NamespacePath": "root\\cimv2"
+          },
+          "Site": null,
+          "Scope": {
+            "Path": {
+              "Path": "\\\\.\\root\\cimv2",
+              "Server": ".",
+              "IsClass": false,
+              "ClassName": "",
+              "IsInstance": false,
+              "IsSingleton": false,
+              "RelativePath": "",
+              "NamespacePath": "root\\cimv2"
+            },
+            "Options": {
+              "Locale": "",
+              "Context": [],
+              "Timeout": {
+                "Days": 10675199,
+                "Hours": 2,
+                "Ticks": 9223372036854776000,
+                "Minutes": 48,
+                "Seconds": 5,
+                "TotalDays": 10675199.116730064,
+                "TotalHours": 256204778.80152154,
+                "Milliseconds": 477,
+                "TotalMinutes": 15372286728.091293,
+                "TotalSeconds": 922337203685.4775,
+                "TotalMilliseconds": 922337203685477
+              },
+              "Username": null,
+              "Authority": "",
+              "Impersonation": 3,
+              "Authentication": 4,
+              "EnablePrivileges": true
+            },
+            "IsConnected": true
+          },
+          "__PATH": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+          "Address": "winsor.local",
+          "Options": {
+            "Context": [],
+            "Timeout": {
+              "Days": 10675199,
+              "Hours": 2,
+              "Ticks": 9223372036854776000,
+              "Minutes": 48,
+              "Seconds": 5,
+              "TotalDays": 10675199.116730064,
+              "TotalHours": 256204778.80152154,
+              "Milliseconds": 477,
+              "TotalMinutes": 15372286728.091293,
+              "TotalSeconds": 922337203685.4775,
+              "TotalMilliseconds": 922337203685477
+            },
+            "UseAmendedQualifiers": false
+          },
+          "Timeout": 4000,
+          "__CLASS": "Win32_PingStatus",
+          "__GENUS": 2,
+          "__SERVER": "WCG5CG112B19X",
+          "ClassPath": {
+            "Path": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus",
+            "Server": "WCG5CG112B19X",
+            "IsClass": true,
+            "ClassName": "Win32_PingStatus",
+            "IsInstance": false,
+            "IsSingleton": false,
+            "RelativePath": "Win32_PingStatus",
+            "NamespacePath": "root\\cimv2"
+          },
+          "Container": null,
+          "ReplySize": 32,
+          "__DYNASTY": "Win32_PingStatus",
+          "__RELPATH": "Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+          "BufferSize": 32,
+          "Properties": [
+            {
+              "Name": "Address",
+              "Type": 8,
+              "Value": "winsor.local",
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "BufferSize",
+              "Type": 19,
+              "Value": 32,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "NoFragmentation",
+              "Type": 11,
+              "Value": false,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "PrimaryAddressResolutionStatus",
+              "Type": 19,
+              "Value": 0,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ProtocolAddress",
+              "Type": 8,
+              "Value": "172.16.230.10",
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ProtocolAddressResolved",
+              "Type": 8,
+              "Value": "",
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": false,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "RecordRoute",
+              "Type": 19,
+              "Value": 0,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ReplyInconsistency",
+              "Type": 11,
+              "Value": false,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ReplySize",
+              "Type": 19,
+              "Value": 32,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ResolveAddressNames",
+              "Type": 11,
+              "Value": false,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ResponseTime",
+              "Type": 19,
+              "Value": 25,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "ResponseTimeToLive",
+              "Type": 19,
+              "Value": 127,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "RouteRecord",
+              "Type": 8,
+              "Value": null,
+              "Origin": "Win32_PingStatus",
+              "IsArray": true,
+              "IsLocal": false,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "RouteRecordResolved",
+              "Type": 8,
+              "Value": null,
+              "Origin": "Win32_PingStatus",
+              "IsArray": true,
+              "IsLocal": false,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "SourceRoute",
+              "Type": 8,
+              "Value": "",
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "SourceRouteType",
+              "Type": 19,
+              "Value": 0,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "StatusCode",
+              "Type": 19,
+              "Value": 0,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "Timeout",
+              "Type": 19,
+              "Value": 4000,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "TimeStampRecord",
+              "Type": 19,
+              "Value": null,
+              "Origin": "Win32_PingStatus",
+              "IsArray": true,
+              "IsLocal": false,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "TimeStampRecordAddress",
+              "Type": 8,
+              "Value": null,
+              "Origin": "Win32_PingStatus",
+              "IsArray": true,
+              "IsLocal": false,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "TimeStampRecordAddressResolved",
+              "Type": 8,
+              "Value": null,
+              "Origin": "Win32_PingStatus",
+              "IsArray": true,
+              "IsLocal": false,
+              "Qualifiers": [
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "TimestampRoute",
+              "Type": 19,
+              "Value": 0,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "TimeToLive",
+              "Type": 19,
+              "Value": 80,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            },
+            {
+              "Name": "TypeofService",
+              "Type": 19,
+              "Value": 0,
+              "Origin": "Win32_PingStatus",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": [
+                "System.Management.QualifierData",
+                "System.Management.QualifierData"
+              ]
+            }
+          ],
+          "Qualifiers": [
+            {
+              "Name": "dynamic",
+              "Value": true,
+              "IsLocal": false,
+              "IsAmended": false,
+              "IsOverridable": true,
+              "PropagatesToInstance": true,
+              "PropagatesToSubclass": false
+            },
+            {
+              "Name": "provider",
+              "Value": "WMIPingProvider",
+              "IsLocal": false,
+              "IsAmended": false,
+              "IsOverridable": true,
+              "PropagatesToInstance": true,
+              "PropagatesToSubclass": false
+            }
+          ],
+          "StatusCode": 0,
+          "TimeToLive": 80,
+          "IPV4Address": {
+            "Address": 182849708,
+            "ScopeId": null,
+            "IsIPv6Teredo": false,
+            "AddressFamily": 2,
+            "IsIPv6LinkLocal": false,
+            "IsIPv6Multicast": false,
+            "IsIPv6SiteLocal": false,
+            "IPAddressToString": "172.16.230.10",
+            "IsIPv4MappedToIPv6": false
+          },
+          "IPV6Address": {},
+          "RecordRoute": 0,
+          "RouteRecord": null,
+          "SourceRoute": "",
+          "__NAMESPACE": "root\\cimv2",
+          "ResponseTime": 25,
+          "__DERIVATION": [],
+          "__SUPERCLASS": null,
+          "TypeofService": 0,
+          "PSComputerName": "WCG5CG112B19X",
+          "TimestampRoute": 0,
+          "NoFragmentation": false,
+          "ProtocolAddress": "172.16.230.10",
+          "SourceRouteType": 0,
+          "TimeStampRecord": null,
+          "SystemProperties": [
+            {
+              "Name": "__GENUS",
+              "Type": 3,
+              "Value": 2,
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__CLASS",
+              "Type": 8,
+              "Value": "Win32_PingStatus",
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__SUPERCLASS",
+              "Type": 8,
+              "Value": null,
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__DYNASTY",
+              "Type": 8,
+              "Value": "Win32_PingStatus",
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__RELPATH",
+              "Type": 8,
+              "Value": "Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__PROPERTY_COUNT",
+              "Type": 3,
+              "Value": 24,
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__DERIVATION",
+              "Type": 8,
+              "Value": [],
+              "Origin": "___SYSTEM",
+              "IsArray": true,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__SERVER",
+              "Type": 8,
+              "Value": "WCG5CG112B19X",
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__NAMESPACE",
+              "Type": 8,
+              "Value": "root\\cimv2",
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            },
+            {
+              "Name": "__PATH",
+              "Type": 8,
+              "Value": "\\\\WCG5CG112B19X\\root\\cimv2:Win32_PingStatus.Address=\"winsor.local\",BufferSize=32,NoFragmentation=FALSE,RecordRoute=0,ResolveAddressNames=FALSE,SourceRoute=\"\",SourceRouteType=0,Timeout=4000,TimestampRoute=0,TimeToLive=80,TypeofService=0",
+              "Origin": "___SYSTEM",
+              "IsArray": false,
+              "IsLocal": true,
+              "Qualifiers": []
+            }
+          ],
+          "__PROPERTY_COUNT": 24,
+          "ReplyInconsistency": false,
+          "ResponseTimeToLive": 127,
+          "ResolveAddressNames": false,
+          "RouteRecordResolved": null,
+          "TimeStampRecordAddress": null,
+          "ProtocolAddressResolved": "",
+          "PrimaryAddressResolutionStatus": 0,
+          "TimeStampRecordAddressResolved": null
+        },
+        "VPNConnections": {
+          "Guid": "{954EB12E-4D60-4C03-B7E7-3A3A7D13BC71}",
+          "Name": "MachineVPN",
+          "Proxy": null,
+          "Routes": [
+            {
+              "CimClass": {
+                "CimSuperClass": "ROOT/Microsoft/Windows/RemoteAccess/Client:CIM_NextHopRoute",
+                "CimClassMethods": "Create Select",
+                "CimSuperClassName": "CIM_NextHopRoute",
+                "CimClassProperties": "Caption Description ElementName InstanceID AdminDistance DestinationAddress IsStatic RouteMetric TypeOfRoute = 3 AddressFamily DestinationPrefix InterfaceAlias InterfaceIndex NextHop PreferredLifetime Protocol Publish Store ValidLifetime",
+                "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::Routes\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"VpnClientPSProvider\"",
+                "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+              },
+              "CimSystemProperties": {
+                "Path": null,
+                "ClassName": "MSFT_NetRoute",
+                "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+                "ServerName": "WCG5CG112B19X"
+              },
+              "CimInstanceProperties": [
+                "Caption",
+                "Description",
+                "ElementName",
+                "InstanceID",
+                "AdminDistance",
+                "DestinationAddress",
+                "IsStatic",
+                "RouteMetric = 100",
+                "TypeOfRoute = 3",
+                "AddressFamily = 2",
+                "DestinationPrefix = \"172.16.192.0/18\"",
+                "InterfaceAlias = \"MachineVPN\"",
+                "InterfaceIndex",
+                "NextHop = \"0.0.0.0\"",
+                "PreferredLifetime",
+                "Protocol",
+                "Publish = 0",
+                "Store",
+                "ValidLifetime"
+              ]
+            }
+          ],
+          "CimClass": {
+            "CimSuperClass": {
+              "CimSuperClass": null,
+              "CimClassMethods": [],
+              "CimSuperClassName": null,
+              "CimClassProperties": [
+                "ConnectionStatus",
+                "DnsSuffix",
+                "Guid",
+                "IdleDisconnectSeconds",
+                "IsAutoTriggerEnabled",
+                "Name",
+                "ProfileType",
+                "ProvisioningAuthority",
+                "Proxy",
+                "RememberCredential",
+                "Routes",
+                "ServerAddress",
+                "ServerList",
+                "SplitTunneling",
+                "VpnTrigger"
+              ],
+              "CimClassQualifiers": [
+                "ClassVersion = \"1.0\"",
+                "dynamic = True",
+                "locale = 1033",
+                "provider = \"VpnClientPSProvider\""
+              ],
+              "CimSystemProperties": {
+                "Path": null,
+                "ClassName": "VpnCommonConfig",
+                "Namespace": "ROOT/Microsoft/Windows/RemoteAccess/Client",
+                "ServerName": "WCG5CG112B19X"
+              }
+            },
+            "CimClassMethods": [],
+            "CimSuperClassName": "VpnCommonConfig",
+            "CimClassProperties": [
+              {
+                "Name": "ConnectionStatus",
+                "Flags": "Property, ReadOnly, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True ValueMap = ...",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "DnsSuffix",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "Guid",
+                "Flags": "Property, ReadOnly, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "IdleDisconnectSeconds",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 6,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "IsAutoTriggerEnabled",
+                "Flags": "Property, ReadOnly, NullValue",
+                "Value": null,
+                "CimType": 1,
+                "Qualifiers": "read = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "Name",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "ProfileType",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True ValueMap = ... write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "ProvisioningAuthority",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "Proxy",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 16,
+                "Qualifiers": "EmbeddedInstance = \"VpnConnectionProxy\" read = True write = True",
+                "ReferenceClassName": "VpnConnectionProxy"
+              },
+              {
+                "Name": "RememberCredential",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 1,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "Routes",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 32,
+                "Qualifiers": "EmbeddedInstance = \"MSFT_NetRoute\" read = True write = True",
+                "ReferenceClassName": "MSFT_NetRoute"
+              },
+              {
+                "Name": "ServerAddress",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "ServerList",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 32,
+                "Qualifiers": "EmbeddedInstance = \"VpnServerAddress\" read = True write = True",
+                "ReferenceClassName": "VpnServerAddress"
+              },
+              {
+                "Name": "SplitTunneling",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 1,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "VpnTrigger",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 16,
+                "Qualifiers": "EmbeddedInstance = \"VpnConnectionTrigger\" read = True write = True",
+                "ReferenceClassName": "VpnConnectionTrigger"
+              },
+              {
+                "Name": "AllUserConnection",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 1,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "AuthenticationMethod",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 30,
+                "Qualifiers": "read = True ValueMap = ... write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "EapConfigXmlStream",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "EncryptionLevel",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True ValueMap = ... write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "IPSecCustomPolicy",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 32,
+                "Qualifiers": "EmbeddedInstance = \"VpnConnectionIPsecConfiguration\" read = True write = True",
+                "ReferenceClassName": "VpnConnectionIPsecConfiguration"
+              },
+              {
+                "Name": "L2tpIPsecAuth",
+                "Flags": "Property, ReadOnly, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True ValueMap = ...",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "MachineCertificateEKUFilter",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 30,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "MachineCertificateIssuerFilter",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 18,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "NapState",
+                "Flags": "Property, ReadOnly, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True ValueMap = ...",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "TunnelType",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True ValueMap = ... write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "UseWinlogonCredential",
+                "Flags": "Property, NullValue",
+                "Value": null,
+                "CimType": 1,
+                "Qualifiers": "read = True write = True",
+                "ReferenceClassName": null
+              },
+              {
+                "Name": "VpnConfigurationXml",
+                "Flags": "Property, ReadOnly, NullValue",
+                "Value": null,
+                "CimType": 14,
+                "Qualifiers": "read = True",
+                "ReferenceClassName": null
+              }
+            ],
+            "CimClassQualifiers": [
+              {
+                "Name": "dynamic",
+                "Flags": "EnableOverride, ToSubclass",
+                "Value": true,
+                "CimType": 1
+              },
+              {
+                "Name": "provider",
+                "Flags": "EnableOverride, ToSubclass",
+                "Value": "VpnClientPSProvider",
+                "CimType": 14
+              },
+              {
+                "Name": "ClassVersion",
+                "Flags": "EnableOverride, ToSubclass",
+                "Value": "1.0.0",
+                "CimType": 14
+              },
+              {
+                "Name": "locale",
+                "Flags": "EnableOverride, Restricted",
+                "Value": 1033,
+                "CimType": 7
+              }
+            ],
+            "CimSystemProperties": {
+              "Path": null,
+              "ClassName": "VpnConnection",
+              "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+              "ServerName": "WCG5CG112B19X"
+            }
+          },
+          "NapState": "NotNapCapable",
+          "DnsSuffix": "winsor.local",
+          "ServerList": [],
+          "TunnelType": "Ikev2",
+          "VpnTrigger": {
+            "CimClass": {
+              "CimSuperClass": null,
+              "CimClassMethods": [],
+              "CimSuperClassName": null,
+              "CimClassProperties": [
+                "ApplicationID",
+                "ConnectionName",
+                "dnsConfig",
+                "DnsSuffixSearchList",
+                "TrustedNetwork"
+              ],
+              "CimClassQualifiers": [
+                "ClassVersion = \"1.0\"",
+                "dynamic = True",
+                "locale = 1033",
+                "provider = \"VpnClientPSProvider\""
+              ],
+              "CimSystemProperties": {
+                "Path": null,
+                "ClassName": "VpnConnectionTrigger",
+                "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+                "ServerName": "WCG5CG112B19X"
+              }
+            },
+            "CimSystemProperties": {
+              "Path": null,
+              "ClassName": "VpnConnectionTrigger",
+              "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+              "ServerName": "WCG5CG112B19X"
+            },
+            "CimInstanceProperties": [
+              {
+                "Name": "ApplicationID",
+                "Flags": "Property, NotModified, NullValue",
+                "Value": null,
+                "CimType": 30,
+                "IsValueModified": false
+              },
+              {
+                "Name": "ConnectionName",
+                "Flags": "Property, NotModified",
+                "Value": "MachineVPN",
+                "CimType": 14,
+                "IsValueModified": false
+              },
+              {
+                "Name": "dnsConfig",
+                "Flags": "Property, NotModified, NullValue",
+                "Value": null,
+                "CimType": 32,
+                "IsValueModified": false
+              },
+              {
+                "Name": "DnsSuffixSearchList",
+                "Flags": "Property, NotModified, NullValue",
+                "Value": null,
+                "CimType": 30,
+                "IsValueModified": false
+              },
+              {
+                "Name": "TrustedNetwork",
+                "Flags": "Property, NotModified, NullValue",
+                "Value": null,
+                "CimType": 30,
+                "IsValueModified": false
+              }
+            ]
+          },
+          "ProfileType": "Inbox",
+          "L2tpIPsecAuth": null,
+          "ServerAddress": "vpnbuf.winsorgroup.com",
+          "PSComputerName": null,
+          "SplitTunneling": true,
+          "EncryptionLevel": "Custom",
+          "ConnectionStatus": "Connected",
+          "AllUserConnection": true,
+          "IPSecCustomPolicy": {
+            "Count": 1,
+            "value": [
+              {
+                "CimClass": {
+                  "CimSuperClass": null,
+                  "CimClassMethods": "",
+                  "CimSuperClassName": null,
+                  "CimClassProperties": "AuthenticationTransformConstants CipherTransformConstants DHGroup EncryptionMethod IntegrityCheckMethod PfsGroup",
+                  "CimClassQualifiers": "dynamic = True locale = 1033 provider = \"VpnClientPSProvider\"",
+                  "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+                },
+                "CimSystemProperties": {
+                  "Path": null,
+                  "ClassName": "VpnConnectionIPsecConfiguration",
+                  "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+                  "ServerName": "WCG5CG112B19X"
+                },
+                "CimInstanceProperties": [
+                  "AuthenticationTransformConstants = 2",
+                  "CipherTransformConstants = 3",
+                  "DHGroup = 3",
+                  "EncryptionMethod = 2",
+                  "IntegrityCheckMethod = 2",
+                  "PfsGroup = 3"
+                ]
+              }
+            ]
+          },
+          "EapConfigXmlStream": null,
+          "RememberCredential": true,
+          "CimSystemProperties": {
+            "Path": null,
+            "ClassName": "VpnConnection",
+            "Namespace": "root/Microsoft/Windows/RemoteAccess/Client",
+            "ServerName": "WCG5CG112B19X"
+          },
+          "VpnConfigurationXml": [
+            [
+              [
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement",
+                "System.Xml.XmlElement"
+              ],
+              []
+            ]
+          ],
+          "AuthenticationMethod": [
+            "MachineCertificate"
+          ],
+          "IsAutoTriggerEnabled": false,
+          "CimInstanceProperties": [
+            {
+              "Name": "ConnectionStatus",
+              "Flags": "Property, ReadOnly, NotModified",
+              "Value": "Connected",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "DnsSuffix",
+              "Flags": "Property, NotModified",
+              "Value": "winsor.local",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "Guid",
+              "Flags": "Property, ReadOnly, NotModified",
+              "Value": "{954EB12E-4D60-4C03-B7E7-3A3A7D13BC71}",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "IdleDisconnectSeconds",
+              "Flags": "Property, NotModified",
+              "Value": 86400,
+              "CimType": 6,
+              "IsValueModified": false
+            },
+            {
+              "Name": "IsAutoTriggerEnabled",
+              "Flags": "Property, ReadOnly, NotModified",
+              "Value": false,
+              "CimType": 1,
+              "IsValueModified": false
+            },
+            {
+              "Name": "Name",
+              "Flags": "Property, NotModified",
+              "Value": "MachineVPN",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "ProfileType",
+              "Flags": "Property, NotModified",
+              "Value": "Inbox",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "ProvisioningAuthority",
+              "Flags": "Property, NotModified, NullValue",
+              "Value": null,
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "Proxy",
+              "Flags": "Property, NotModified, NullValue",
+              "Value": null,
+              "CimType": 16,
+              "IsValueModified": false
+            },
+            {
+              "Name": "RememberCredential",
+              "Flags": "Property, NotModified",
+              "Value": true,
+              "CimType": 1,
+              "IsValueModified": false
+            },
+            {
+              "Name": "Routes",
+              "Flags": "Property, NotModified",
+              "Value": [
+                "MSFT_NetRoute (InstanceID)"
+              ],
+              "CimType": 32,
+              "IsValueModified": false
+            },
+            {
+              "Name": "ServerAddress",
+              "Flags": "Property, NotModified",
+              "Value": "vpnbuf.winsorgroup.com",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "ServerList",
+              "Flags": "Property, NotModified",
+              "Value": [],
+              "CimType": 32,
+              "IsValueModified": false
+            },
+            {
+              "Name": "SplitTunneling",
+              "Flags": "Property, NotModified",
+              "Value": true,
+              "CimType": 1,
+              "IsValueModified": false
+            },
+            {
+              "Name": "VpnTrigger",
+              "Flags": "Property, NotModified",
+              "Value": {
+                "CimClass": "root/Microsoft/Windows/RemoteAccess/Client:VpnConnectionTrigger",
+                "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties",
+                "CimInstanceProperties": "ApplicationID ConnectionName = \"MachineVPN\" dnsConfig DnsSuffixSearchList TrustedNetwork"
+              },
+              "CimType": 16,
+              "IsValueModified": false
+            },
+            {
+              "Name": "AllUserConnection",
+              "Flags": "Property, NotModified",
+              "Value": true,
+              "CimType": 1,
+              "IsValueModified": false
+            },
+            {
+              "Name": "AuthenticationMethod",
+              "Flags": "Property, NotModified",
+              "Value": [
+                "MachineCertificate"
+              ],
+              "CimType": 30,
+              "IsValueModified": false
+            },
+            {
+              "Name": "EapConfigXmlStream",
+              "Flags": "Property, NotModified, NullValue",
+              "Value": null,
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "EncryptionLevel",
+              "Flags": "Property, NotModified",
+              "Value": "Custom",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "IPSecCustomPolicy",
+              "Flags": "Property, NotModified",
+              "Value": [
+                "VpnConnectionIPsecConfiguration"
+              ],
+              "CimType": 32,
+              "IsValueModified": false
+            },
+            {
+              "Name": "L2tpIPsecAuth",
+              "Flags": "Property, ReadOnly, NotModified, NullValue",
+              "Value": null,
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "MachineCertificateEKUFilter",
+              "Flags": "Property, NotModified",
+              "Value": [],
+              "CimType": 30,
+              "IsValueModified": false
+            },
+            {
+              "Name": "MachineCertificateIssuerFilter",
+              "Flags": "Property, NotModified, NullValue",
+              "Value": null,
+              "CimType": 18,
+              "IsValueModified": false
+            },
+            {
+              "Name": "NapState",
+              "Flags": "Property, ReadOnly, NotModified",
+              "Value": "NotNapCapable",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "TunnelType",
+              "Flags": "Property, NotModified",
+              "Value": "Ikev2",
+              "CimType": 14,
+              "IsValueModified": false
+            },
+            {
+              "Name": "UseWinlogonCredential",
+              "Flags": "Property, NotModified",
+              "Value": false,
+              "CimType": 1,
+              "IsValueModified": false
+            },
+            {
+              "Name": "VpnConfigurationXml",
+              "Flags": "Property, ReadOnly, NotModified",
+              "Value": "<VpnProfile><VpnConfiguration><Name>MachineVPN</Name><AllUserConnection>true</AllUserConnection><ServerAddress>vpnbuf.winsorgroup.com</ServerAddress><TunnelType>Ikev2</TunnelType><EncryptionLevel>Custom</EncryptionLevel><AutoTriggerEnabled>false</AutoTriggerEnabled><AuthenticationMethod><Method>MachineCertificate</Method></AuthenticationMethod><SplitTunneling>true</SplitTunneling><L2tpPsk/><RememberCredential>true</RememberCredential><UseWinlogonCredential>false</UseWinlogonCredential><IdleDisconnectSeconds>86400</IdleDisconnectSeconds><MachineCertificateIssuerFilter/><MachineCertificateEKUFilter/><DnsSuffix>winsor.local</DnsSuffix><ProvisioningAuthority/><VpnServerList/><Route><DestinationPrefix>172.16.192.0/18</DestinationPrefix><Metric>100</Metric></Route><CryptographySuite><AuthenticationTransformConstants>2</AuthenticationTransformConstants><CipherTransformConstants>3</CipherTransformConstants><PfsGroup>3</PfsGroup><DHGroup>3</DHGroup><IntegrityCheckMethod>2</IntegrityCheckMethod><EncryptionMethod>2</EncryptionMethod></CryptographySuite><Trigger><ClassicAppIDList/><ModernAppIDList/><NrptRuleList/><DnsSuffixSearchList/><TrustedNetworkList/></Trigger><VpnProxy/></VpnConfiguration><EapConfiguration/></VpnProfile>\r\n",
+              "CimType": 14,
+              "IsValueModified": false
+            }
+          ],
+          "IdleDisconnectSeconds": 86400,
+          "ProvisioningAuthority": null,
+          "UseWinlogonCredential": false,
+          "MachineCertificateEKUFilter": null,
+          "MachineCertificateIssuerFilter": null
+        },
+        "ValidCertCount": 1
+      }
+    },
+    {
+      "code": 200,
+      "type": "user",
+      "message": "Finished running \"VPN: Check machine prerequisites\"",
+      "timestamp": 1777591053,
+      "information": "N/A"
+    }
+  ]
 }

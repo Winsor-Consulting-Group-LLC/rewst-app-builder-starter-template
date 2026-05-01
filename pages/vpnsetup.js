@@ -284,6 +284,27 @@ function renderVpnSetupPage() {
       observed[def.key] = formatValueForDisplay(rawValue);
     });
 
+    // Override vpn_remote_networks: use VPNRoutes.DestinationPrefix instead of the raw CIM Routes object
+    const vpnRoutesData = getFirstFieldValue(result, ['VPNRoutes', 'vpnRoutes']);
+    if (!isValueEmpty(vpnRoutesData)) {
+      if (Array.isArray(vpnRoutesData)) {
+        const prefixes = vpnRoutesData.map((r) => r?.DestinationPrefix).filter(Boolean);
+        if (prefixes.length > 0) observed.vpn_remote_networks = formatValueForDisplay(prefixes);
+      } else if (vpnRoutesData.DestinationPrefix) {
+        observed.vpn_remote_networks = formatValueForDisplay(vpnRoutesData.DestinationPrefix);
+      }
+    }
+
+    // Override vpn_nameservers: extract from DNSServers filtered to VPN adapter interfaces
+    const dnsServersData = getFirstFieldValue(result, ['DNSServers', 'dnsServers']);
+    if (!isValueEmpty(dnsServersData) && Array.isArray(dnsServersData)) {
+      const vpnNameservers = dnsServersData
+        .filter((entry) => entry?.InterfaceAlias && entry.InterfaceAlias.toLowerCase().includes('vpn'))
+        .flatMap((entry) => entry?.ServerAddresses || [])
+        .filter(Boolean);
+      if (vpnNameservers.length > 0) observed.vpn_nameservers = formatValueForDisplay(vpnNameservers);
+    }
+
     if (observed.vpn_adapter_name === 'N/A' && !isValueEmpty(vpnConnections)) {
       observed.vpn_adapter_name = formatVpnConnections(vpnConnections);
     }
@@ -329,20 +350,116 @@ function renderVpnSetupPage() {
     return `<span>${display}</span>`;
   }
 
+  function parseCompareTokens(value) {
+    if (value === null || value === undefined) return [];
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => normalizeCompareValue(item))
+        .filter(Boolean);
+    }
+
+    const normalized = normalizeCompareValue(value);
+    if (!normalized || normalized === 'n/a') return [];
+
+    try {
+      const parsed = JSON.parse(String(value));
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => normalizeCompareValue(item))
+          .filter(Boolean);
+      }
+    } catch (_) {
+      // Keep plain-string handling below.
+    }
+
+    return normalized
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function isCaseInsensitiveExactMatch(desiredValue, observedValue) {
+    const desired = normalizeCompareValue(desiredValue);
+    const observed = normalizeCompareValue(observedValue);
+    if (!desired || desired === 'n/a' || !observed || observed === 'n/a') return false;
+    return desired === observed;
+  }
+
+  function isDesiredContainedInObserved(desiredValue, observedValue) {
+    const desiredTokens = parseCompareTokens(desiredValue);
+    const observed = normalizeCompareValue(observedValue);
+    if (desiredTokens.length === 0 || !observed || observed === 'n/a') return false;
+    return desiredTokens.every((token) => observed.includes(token));
+  }
+
+  function isDesiredListInObservedList(desiredValue, observedValue) {
+    const desiredTokens = parseCompareTokens(desiredValue);
+    const observedTokens = new Set(parseCompareTokens(observedValue));
+    if (desiredTokens.length === 0 || observedTokens.size === 0) return false;
+    return desiredTokens.every((token) => observedTokens.has(token));
+  }
+
+  function escapeHtmlAttribute(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getComparisonStateForKey(key, desiredValue, observedValue) {
+    if (key === 'vpn_adapter_name' || key === 'vpn_server_address') {
+      return {
+        status: isCaseInsensitiveExactMatch(desiredValue, observedValue) ? 'match' : 'mismatch',
+        warningDetail: ''
+      };
+    }
+
+    if (key === 'vpn_remote_domain') {
+      return {
+        status: isDesiredContainedInObserved(desiredValue, observedValue) ? 'match' : 'mismatch',
+        warningDetail: ''
+      };
+    }
+
+    if (key === 'vpn_remote_networks' || key === 'vpn_nameservers') {
+      const matches = isDesiredListInObservedList(desiredValue, observedValue);
+      return {
+        status: matches ? 'match' : 'warning',
+        warningDetail: matches
+          ? ''
+          : 'VPN may connect, but you may experience access issues until this is resolved.'
+      };
+    }
+
+    return {
+      status: isCaseInsensitiveExactMatch(desiredValue, observedValue) ? 'match' : 'mismatch',
+      warningDetail: ''
+    };
+  }
+
   function getObservedConfigRowsHtml() {
     const rows = VPN_VARIABLE_DEFS.map((def) => {
       const desiredValue = state.desiredVpnConfig?.[def.key] ?? 'N/A';
       const observedValue = state.observedVpnConfig?.[def.key] ?? null;
       const observedDisplay = observedValue === null || observedValue === undefined ? 'N/A' : observedValue;
 
-      const isMatch = desiredValue !== 'N/A' && observedDisplay !== 'N/A' && desiredValue === observedDisplay;
-      const reportedClass = isMatch ? 'vpnsetup-config-cell-reported is-match' : 'vpnsetup-config-cell-reported is-mismatch';
+      const comparison = getComparisonStateForKey(def.key, desiredValue, observedDisplay);
+      const reportedClass = `vpnsetup-config-cell-reported is-${comparison.status}`;
+      const warningDetail = comparison.warningDetail
+        ? `${comparison.warningDetail} Desired: ${desiredValue}. Reported: ${observedDisplay}.`
+        : '';
+      const warningIcon = comparison.status === 'warning'
+        ? `<span class="material-icons vpnsetup-warning-icon" title="${escapeHtmlAttribute(warningDetail)}" aria-label="Warning">warning_amber</span>`
+        : '';
 
       return `
         <tr class="vpnsetup-config-row">
           <td class="vpnsetup-config-cell-label">${def.label}</td>
           <td class="vpnsetup-config-cell-desired">${renderConfigCellContent(def.key, desiredValue)}</td>
-          <td class="${reportedClass}">${renderConfigCellContent(def.key, observedDisplay)}</td>
+          <td class="${reportedClass}">${warningIcon}${renderConfigCellContent(def.key, observedDisplay)}</td>
         </tr>
       `;
     }).join('');
@@ -384,23 +501,25 @@ function renderVpnSetupPage() {
   }
 
   function evaluateAdapterSuccess(desiredConfig, observedConfig, vpnConnections) {
-    const requiredMatches = [
-      { key: 'vpn_adapter_name', label: 'adapter name' },
-      { key: 'vpn_server_address', label: 'server address' },
-      { key: 'vpn_remote_domain', label: 'DNS name' }
-    ];
-
     const mismatchedLabels = [];
-    requiredMatches.forEach(({ key, label }) => {
-      const desired = desiredConfig?.[key] ?? 'N/A';
-      const observed = observedConfig?.[key] ?? 'N/A';
-      const desiredNormalized = normalizeCompareValue(desired);
-      const observedNormalized = normalizeCompareValue(observed);
 
-      if (!desiredNormalized || desiredNormalized === 'n/a' || !observedNormalized || observedNormalized === 'n/a' || desiredNormalized !== observedNormalized) {
-        mismatchedLabels.push(label);
-      }
-    });
+    const adapterMatches = isCaseInsensitiveExactMatch(
+      desiredConfig?.vpn_adapter_name ?? 'N/A',
+      observedConfig?.vpn_adapter_name ?? 'N/A'
+    );
+    if (!adapterMatches) mismatchedLabels.push('adapter name');
+
+    const serverMatches = isCaseInsensitiveExactMatch(
+      desiredConfig?.vpn_server_address ?? 'N/A',
+      observedConfig?.vpn_server_address ?? 'N/A'
+    );
+    if (!serverMatches) mismatchedLabels.push('server address');
+
+    const remoteDomainMatches = isDesiredContainedInObserved(
+      desiredConfig?.vpn_remote_domain ?? 'N/A',
+      observedConfig?.vpn_remote_domain ?? 'N/A'
+    );
+    if (!remoteDomainMatches) mismatchedLabels.push('DNS name');
 
     const connectionStatus = formatValueForDisplay(getObjectFieldValue(vpnConnections, ['ConnectionStatus']));
     const isConnected = normalizeCompareValue(connectionStatus) === 'connected';

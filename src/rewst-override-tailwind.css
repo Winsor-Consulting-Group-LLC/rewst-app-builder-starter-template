@@ -4049,12 +4049,25 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
 }
 
 .vpnsetup-config-cell-reported.is-match {
-  color: var(--rewst-dark-gray);
+  color: var(--rewst-teal);
+  font-weight: 600;
 }
 
 .vpnsetup-config-cell-reported.is-mismatch {
   color: var(--rewst-error);
   font-weight: 600;
+}
+
+.vpnsetup-config-cell-reported.is-warning {
+  color: var(--rewst-warning);
+  font-weight: 600;
+}
+
+.vpnsetup-warning-icon {
+  font-size: 1rem;
+  vertical-align: -2px;
+  margin-right: 0.25rem;
+  cursor: help;
 }
 
 /* Subnet / CIDR chip list */
@@ -4084,6 +4097,12 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
   color: var(--rewst-error);
 }
 
+.vpnsetup-config-cell-reported.is-warning .vpnsetup-subnet-chip {
+  background: rgba(141, 175, 58, 0.12);
+  border-color: rgba(141, 175, 58, 0.4);
+  color: #6e8e2f;
+}
+
 /* Dark theme overrides */
 
 html[data-theme='dark'] .vpnsetup-adapter-title {
@@ -4099,6 +4118,10 @@ html[data-theme='dark'] .vpnsetup-config-th-reported {
 
 html[data-theme='dark'] .vpnsetup-config-cell-reported.is-match {
   color: #f1f5f9;
+}
+
+html[data-theme='dark'] .vpnsetup-config-cell-reported.is-warning {
+  color: #d9e88f;
 }
 
 html[data-theme='dark'] .vpnsetup-config-th {
