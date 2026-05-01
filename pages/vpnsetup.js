@@ -8,6 +8,7 @@ function renderVpnSetupPage() {
 
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';
   const VPN_SETUP_CACHE_KEY = 'vpnSetupChecksCacheV1';
+  const VPN_DEBUG_SIM_KEY = 'vpnSetupDebugSimulationV1';
   const SELECTED_CONFIG_KEY = 'selectedConfig';
   const VPN_VARIABLE_DEFS = [
     { key: 'vpn_adapter_name', label: 'VPN Adapter Name' },
@@ -30,11 +31,14 @@ function renderVpnSetupPage() {
     statusText: 'Waiting for adapter status check.',
     statusLabel: 'Unknown',
     vpnConnections: null,
+    rawVpnConnections: null,
     desiredVpnConfig: {},
     observedVpnConfig: {},
+    rawObservedVpnConfig: {},
     inFlight: false,
     activeAction: null,
     lastUpdatedAt: null,
+    debugSimEnabled: false,
     removeConfirmOpen: false,
     removeConfirmCountdown: 0,
     removeConfirmReady: false,
@@ -231,6 +235,9 @@ function renderVpnSetupPage() {
   async function refreshDesiredConfigFromOrgVariables() {
     const cachedDesired = getDesiredConfigFromPrereqCache();
     state.desiredVpnConfig = cachedDesired;
+    if (!isValueEmpty(state.rawVpnConnections) || !isValueEmpty(state.rawObservedVpnConfig)) {
+      applyObservedStateForDisplay();
+    }
     render();
 
     const results = await Promise.all(VPN_VARIABLE_DEFS.map(async (def) => {
@@ -249,6 +256,9 @@ function renderVpnSetupPage() {
       }
     });
     state.desiredVpnConfig = nextDesired;
+    if (!isValueEmpty(state.rawVpnConnections) || !isValueEmpty(state.rawObservedVpnConfig)) {
+      applyObservedStateForDisplay();
+    }
     render();
   }
 
@@ -522,6 +532,54 @@ function renderVpnSetupPage() {
     return normalizeCompareValue(getCurrentConnectionStatus(vpnConnections)) === 'connected';
   }
 
+  function getDebugSimulatedValues() {
+    const desired = state.desiredVpnConfig || {};
+    const desiredNetworks = parseCompareTokens(desired.vpn_remote_networks || '');
+    const desiredNameservers = parseCompareTokens(desired.vpn_nameservers || '');
+
+    const simulatedObserved = {
+      ...(state.rawObservedVpnConfig || {}),
+      vpn_adapter_name: 'MachineVPN-Debug-Bad',
+      vpn_server_address: 'invalid-vpn.example.invalid',
+      vpn_remote_domain: 'debug.invalid.local',
+      vpn_remote_networks: desiredNetworks.length > 0 ? ['203.0.113.0/24'] : '203.0.113.0/24',
+      vpn_nameservers: desiredNameservers.length > 0 ? ['203.0.113.53'] : '203.0.113.53'
+    };
+
+    const simulatedConnections = {
+      ...(state.rawVpnConnections && typeof state.rawVpnConnections === 'object' ? state.rawVpnConnections : {}),
+      Name: 'MachineVPN-Debug-Bad',
+      ServerAddress: 'invalid-vpn.example.invalid',
+      DnsSuffix: 'debug.invalid.local',
+      ConnectionStatus: 'Disconnected'
+    };
+
+    return {
+      observed: simulatedObserved,
+      vpnConnections: simulatedConnections
+    };
+  }
+
+  function applyObservedStateForDisplay() {
+    const baseObserved = state.rawObservedVpnConfig || {};
+    const baseConnections = state.rawVpnConnections;
+
+    if (isValueEmpty(baseConnections) && isValueEmpty(baseObserved)) {
+      return;
+    }
+
+    if (state.debugSimEnabled) {
+      const simulated = getDebugSimulatedValues();
+      state.observedVpnConfig = simulated.observed;
+      setAdapterStateFromConnections(simulated.vpnConnections, simulated.observed, state.desiredVpnConfig);
+      state.statusText = 'Debug simulation is active. Reported values are intentionally incorrect to test failures and warnings.';
+      return;
+    }
+
+    state.observedVpnConfig = baseObserved;
+    setAdapterStateFromConnections(baseConnections, baseObserved, state.desiredVpnConfig);
+  }
+
   function evaluateAdapterSuccess(desiredConfig, observedConfig, vpnConnections) {
     const mismatchedLabels = [];
 
@@ -755,9 +813,15 @@ function renderVpnSetupPage() {
       return false;
     }
 
-    state.observedVpnConfig = snapshot.observedVpnConfig || {};
+    state.rawObservedVpnConfig = snapshot.rawObservedVpnConfig || snapshot.observedVpnConfig || {};
+    state.rawVpnConnections = snapshot.rawVpnConnections || snapshot.vpnConnections || null;
     state.desiredVpnConfig = snapshot.desiredVpnConfig || getDesiredConfigFromPrereqCache();
-    setAdapterStateFromConnections(snapshot.vpnConnections, state.observedVpnConfig, state.desiredVpnConfig, snapshot.statusText || null);
+    applyObservedStateForDisplay();
+
+    if (!state.debugSimEnabled && snapshot.statusText) {
+      state.statusText = snapshot.statusText;
+    }
+
     state.lastUpdatedAt = snapshot.lastUpdatedAt || null;
     return true;
   }
@@ -810,15 +874,18 @@ function renderVpnSetupPage() {
         }
       }
 
-      state.observedVpnConfig = getObservedConfigFromWorkflowResult(resolvedResult, vpnConnections);
-      setAdapterStateFromConnections(vpnConnections, state.observedVpnConfig, state.desiredVpnConfig);
+      state.rawVpnConnections = vpnConnections;
+      state.rawObservedVpnConfig = getObservedConfigFromWorkflowResult(resolvedResult, vpnConnections);
+      applyObservedStateForDisplay();
       state.lastUpdatedAt = new Date().toISOString();
 
       setStoredJson(VPN_SETUP_CACHE_KEY, {
         computerId,
-        vpnConnections,
+        vpnConnections: state.rawVpnConnections,
+        rawVpnConnections: state.rawVpnConnections,
         desiredVpnConfig: state.desiredVpnConfig,
-        observedVpnConfig: state.observedVpnConfig,
+        observedVpnConfig: state.rawObservedVpnConfig,
+        rawObservedVpnConfig: state.rawObservedVpnConfig,
         statusText: state.statusText,
         lastUpdatedAt: state.lastUpdatedAt
       });
@@ -913,6 +980,7 @@ function renderVpnSetupPage() {
                 <span class="prereq-progress-label">Adapter Status</span>
                 <span class="prereq-progress-value">${state.statusLabel}</span>
               </div>
+              ${state.debugSimEnabled ? '<div class="vpnsetup-debug-pill"><span class="material-icons">bug_report</span><span>Debug Simulation On</span></div>' : ''}
               <p class="prereq-cadence-label">${lastUpdatedText}</p>
             </div>
           </div>
@@ -943,6 +1011,11 @@ function renderVpnSetupPage() {
               <span class="material-icons">refresh</span>
               <span>${checkButtonLabel}</span>
             </button>
+
+            <label class="vpnsetup-debug-toggle" for="vpnsetup-debug-toggle-input">
+              <input id="vpnsetup-debug-toggle-input" type="checkbox" ${state.debugSimEnabled ? 'checked' : ''}>
+              <span>Debug: Simulate bad prereq values</span>
+            </label>
           </div>
 
           <div class="vpnsetup-detail-grid">
@@ -997,6 +1070,23 @@ function renderVpnSetupPage() {
       checkBtn.addEventListener('click', () => refreshAdapterStatusFromPrereq(true));
     }
 
+    const debugToggle = document.getElementById('vpnsetup-debug-toggle-input');
+    if (debugToggle) {
+      debugToggle.addEventListener('change', (event) => {
+        state.debugSimEnabled = !!event.target.checked;
+        setStoredJson(VPN_DEBUG_SIM_KEY, { enabled: state.debugSimEnabled });
+
+        applyObservedStateForDisplay();
+        render();
+
+        if (state.debugSimEnabled) {
+          RewstDOM.showWarning('Debug simulation enabled. Displayed reported values are intentionally incorrect.');
+        } else {
+          RewstDOM.showInfo('Debug simulation disabled. Restored live reported values.');
+        }
+      });
+    }
+
     const removeModalOverlay = document.getElementById('vpnsetup-remove-modal-overlay');
     if (removeModalOverlay) {
       removeModalOverlay.addEventListener('click', (event) => {
@@ -1032,6 +1122,14 @@ function renderVpnSetupPage() {
   }
 
   const loadedFromCache = applyCachedSnapshot();
+
+  const savedDebugSim = getStoredJson(VPN_DEBUG_SIM_KEY);
+  state.debugSimEnabled = !!savedDebugSim?.enabled;
+
+  if (loadedFromCache) {
+    applyObservedStateForDisplay();
+  }
+
   refreshDesiredConfigFromOrgVariables().catch((error) => {
     debugWarn('Failed to refresh desired VPN config values from org variables:', error);
   });
