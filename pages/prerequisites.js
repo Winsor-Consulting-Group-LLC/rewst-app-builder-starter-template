@@ -505,14 +505,19 @@ function renderPrerequisitesPage() {
     }
   }
 
-  function persistVpnSetupSnapshot(vpnConnections, statusText = '') {
+  function persistVpnSetupSnapshot(vpnConnections, statusText = '', workflowResult = null) {
     if (!selectedConfig?.deviceIdentifier) return;
     latestVpnConnections = vpnConnections || {};
+
+    const vpnRoutes = workflowResult ? getFirstFieldValue(workflowResult, ['VPNRoutes', 'vpnRoutes']) : null;
+    const dnsServers = workflowResult ? getFirstFieldValue(workflowResult, ['DNSServers', 'dnsServers']) : null;
 
     try {
       sessionStorage.setItem(VPN_SETUP_CACHE_KEY, JSON.stringify({
         computerId: selectedConfig.deviceIdentifier,
         vpnConnections: vpnConnections || {},
+        vpnRoutes: vpnRoutes || null,
+        dnsServers: dnsServers || null,
         statusText,
         lastUpdatedAt: new Date().toISOString()
       }));
@@ -1734,7 +1739,7 @@ function renderPrerequisitesPage() {
 
     if (attemptResult.ok) {
       const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
-      persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.');
+      persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.', attemptResult.result);
       renderComputerPrereqResults(evaluation);
       updateButtonState();
       return;
@@ -1759,7 +1764,7 @@ function renderPrerequisitesPage() {
     }
 
     const evaluation = await resolveComputerPrereqEvaluation(attemptResult.result);
-    persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.');
+    persistVpnSetupSnapshot(evaluation.vpnConnections, 'Adapter status updated from computer prerequisites check.', attemptResult.result);
     renderComputerPrereqResults(evaluation, attemptResult);
     clearCachedPrereqs();
     updateButtonState();

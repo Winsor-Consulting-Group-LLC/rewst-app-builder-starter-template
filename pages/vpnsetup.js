@@ -816,6 +816,16 @@ function renderVpnSetupPage() {
     state.rawObservedVpnConfig = snapshot.rawObservedVpnConfig || snapshot.observedVpnConfig || {};
     state.rawVpnConnections = snapshot.rawVpnConnections || snapshot.vpnConnections || null;
     state.desiredVpnConfig = snapshot.desiredVpnConfig || getDesiredConfigFromPrereqCache();
+
+    // If no observed config was stored (e.g. snapshot came from prereqs page, not a Check run),
+    // derive it from vpnConnections + any supplemental VPNRoutes/DNSServers stored alongside.
+    if (isValueEmpty(state.rawObservedVpnConfig) && !isValueEmpty(state.rawVpnConnections)) {
+      const syntheticResult = {};
+      if (!isValueEmpty(snapshot.vpnRoutes)) syntheticResult.VPNRoutes = snapshot.vpnRoutes;
+      if (!isValueEmpty(snapshot.dnsServers)) syntheticResult.DNSServers = snapshot.dnsServers;
+      state.rawObservedVpnConfig = getObservedConfigFromWorkflowResult(syntheticResult, state.rawVpnConnections);
+    }
+
     applyObservedStateForDisplay();
 
     if (!state.debugSimEnabled && snapshot.statusText) {
