@@ -3397,6 +3397,39 @@ html[data-theme='dark'] #theme-transition-overlay {
   gap: 0.5rem;
 }
 
+.app-refresh-btn-subtle {
+  padding: 0.35rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 9999px;
+  color: var(--rewst-gray);
+  opacity: 0.72;
+}
+
+.app-refresh-btn-subtle .material-icons {
+  font-size: 1.05rem;
+}
+
+.app-refresh-btn-subtle:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(7, 55, 99, 0.06);
+  color: var(--rewst-dark-gray);
+}
+
+.app-refresh-btn-subtle.is-disabled,
+.app-refresh-btn-subtle:disabled {
+  opacity: 0.45;
+}
+
+html[data-theme='dark'] .app-refresh-btn-subtle {
+  color: #c9d3df;
+}
+
+html[data-theme='dark'] .app-refresh-btn-subtle:hover:not(:disabled) {
+  background: rgba(122, 150, 181, 0.2);
+  color: #f1f5f9;
+}
+
 .app-page-content-wrap {
   padding: 1.5rem 2rem 2rem;
 }
@@ -5085,10 +5118,21 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
           <p class="header-subtitle app-page-subtitle">Company and user-level validation checks</p>
         </div>
         <div class="app-header-actions">
+          <!-- Refresh Button (intentionally low-emphasis) -->
+          <div id="refresh-button-container">
+            <button
+              id="refresh-btn"
+              class="btn-tertiary app-refresh-btn app-refresh-btn-subtle"
+              title="Reset cached session state and rerun prerequisites"
+              aria-label="Force refresh prerequisites"
+              hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()"
+            >
+              <span class="material-icons">refresh</span>
+            </button>
+          </div>
 
           <!-- Dark Mode Toggle -->
           <label id="toggle-example" class="dark-mode-toggle app-dark-toggle">
-            
             <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
             <div class="app-dark-toggle-switch">
               <input type="checkbox" id="header-toggle" class="app-visually-hidden" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
@@ -5097,14 +5141,6 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
             </div>
             <span id="dark-mode-moon" class="material-icons app-dark-toggle-moon">dark_mode</span>
           </label>
-
-          <!-- Refresh Button -->
-          <div id="refresh-button-container">
-            <button id="refresh-btn" class="btn-primary app-refresh-btn" hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()">
-              <span class="material-icons">refresh</span>
-              <span class="btn-text">Force Refresh</span>
-            </button>
-          </div>
 
         </div>
       </div>
@@ -14910,6 +14946,11 @@ window.WORKFLOW_STEPS = WORKFLOW_STEPS;
       // ============================================
       function refreshPrerequisites() {
         debugLog('Refresh clicked - resetting prerequisite session cache');
+
+        const confirmed = window.confirm('Force Refresh clears cached prerequisite results and may take several minutes to complete. Continue?');
+        if (!confirmed) {
+          return;
+        }
 
         if (window.checkInFlight) {
           RewstDOM.showWarning('A check is already in progress. Please wait for it to finish before refreshing.');

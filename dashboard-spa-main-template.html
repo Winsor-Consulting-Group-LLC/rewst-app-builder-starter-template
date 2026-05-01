@@ -607,6 +607,11 @@
       function refreshPrerequisites() {
         debugLog('Refresh clicked - resetting prerequisite session cache');
 
+        const confirmed = window.confirm('Force Refresh clears cached prerequisite results and may take several minutes to complete. Continue?');
+        if (!confirmed) {
+          return;
+        }
+
         if (window.checkInFlight) {
           RewstDOM.showWarning('A check is already in progress. Please wait for it to finish before refreshing.');
           return;
