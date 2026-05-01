@@ -804,6 +804,13 @@ function renderVpnSetupPage() {
     return requiredKeys.every((key) => states[key] === true);
   }
 
+  function hasMissingCachedReportedDetails() {
+    const observed = state.rawObservedVpnConfig || {};
+    const normalizedNetworks = normalizeCompareValue(observed.vpn_remote_networks);
+    const normalizedNameservers = normalizeCompareValue(observed.vpn_nameservers);
+    return !normalizedNetworks || normalizedNetworks === 'n/a' || !normalizedNameservers || normalizedNameservers === 'n/a';
+  }
+
   function applyCachedSnapshot() {
     const snapshot = getCachedAdapterSnapshot();
     if (!snapshot) {
@@ -1156,8 +1163,9 @@ function renderVpnSetupPage() {
   });
   render();
 
-  // Backfill adapter status if prerequisites were restored from cache but VPN snapshot is missing.
-  if (!loadedFromCache && hasCompletePrereqsCache()) {
+  // Backfill adapter status if prerequisites are complete and either no snapshot exists
+  // or the cached snapshot is stale/missing reported networks or nameservers.
+  if (hasCompletePrereqsCache() && (!loadedFromCache || hasMissingCachedReportedDetails())) {
     refreshAdapterStatusFromPrereq(false, {
       silentOnMissingComputer: true,
       autoTriggered: true
