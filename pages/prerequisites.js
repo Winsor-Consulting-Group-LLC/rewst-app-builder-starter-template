@@ -264,6 +264,8 @@ function renderPrerequisitesPage() {
     valid_machine_cert_installed: ''
   };
   let latestVpnConnections = null;
+  let latestVpnRemoteNetworks = null;
+  let latestVpnNameservers = null;
 
   const REMEDIATION_CONTEXT_KEY = 'prereqMachineCertRemediationContextV1';
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
@@ -505,19 +507,47 @@ function renderPrerequisitesPage() {
     }
   }
 
-  function persistVpnSetupSnapshot(vpnConnections, statusText = '', workflowResult = null) {
+  function extractVpnNetworksFromResult(workflowResult) {
+    if (!workflowResult) return null;
+    const vpnRoutesRaw = getFirstFieldValue(workflowResult, ['VPNRoutes', 'vpnRoutes']);
+    if (!vpnRoutesRaw) return null;
+    if (Array.isArray(vpnRoutesRaw)) {
+      const prefixes = vpnRoutesRaw.map(r => r?.DestinationPrefix).filter(Boolean);
+      return prefixes.length > 0 ? prefixes : null;
+    }
+    if (vpnRoutesRaw.DestinationPrefix) {
+      const dp = vpnRoutesRaw.DestinationPrefix;
+      return Array.isArray(dp) ? dp : [dp];
+    }
+    return null;
+  }
+
+  function extractVpnNameserversFromResult(workflowResult) {
+    if (!workflowResult) return null;
+    const dnsServersRaw = getFirstFieldValue(workflowResult, ['DNSServers', 'dnsServers']);
+    if (!Array.isArray(dnsServersRaw)) return null;
+    const filtered = dnsServersRaw
+      .filter(e => e?.InterfaceAlias?.toLowerCase().includes('vpn'))
+      .flatMap(e => e?.ServerAddresses || [])
+      .filter(Boolean);
+    return filtered.length > 0 ? filtered : null;
+  }
+
+  function persistVpnSetupSnapshot(vpnConnections, statusText = '', workflowResult = null, overrideNetworks = null, overrideNameservers = null) {
     if (!selectedConfig?.deviceIdentifier) return;
     latestVpnConnections = vpnConnections || {};
 
-    const vpnRoutes = workflowResult ? getFirstFieldValue(workflowResult, ['VPNRoutes', 'vpnRoutes']) : null;
-    const dnsServers = workflowResult ? getFirstFieldValue(workflowResult, ['DNSServers', 'dnsServers']) : null;
+    const vpnRemoteNetworks = overrideNetworks !== null ? overrideNetworks : extractVpnNetworksFromResult(workflowResult);
+    const vpnNameservers = overrideNameservers !== null ? overrideNameservers : extractVpnNameserversFromResult(workflowResult);
+    latestVpnRemoteNetworks = vpnRemoteNetworks;
+    latestVpnNameservers = vpnNameservers;
 
     try {
       sessionStorage.setItem(VPN_SETUP_CACHE_KEY, JSON.stringify({
         computerId: selectedConfig.deviceIdentifier,
         vpnConnections: vpnConnections || {},
-        vpnRoutes: vpnRoutes || null,
-        dnsServers: dnsServers || null,
+        vpnRemoteNetworks: vpnRemoteNetworks || null,
+        vpnNameservers: vpnNameservers || null,
         statusText,
         lastUpdatedAt: new Date().toISOString()
       }));
@@ -528,6 +558,8 @@ function renderPrerequisitesPage() {
 
   function clearVpnSetupSnapshot() {
     latestVpnConnections = null;
+    latestVpnRemoteNetworks = null;
+    latestVpnNameservers = null;
     try {
       sessionStorage.removeItem(VPN_SETUP_CACHE_KEY);
     } catch (error) {
@@ -547,7 +579,9 @@ function renderPrerequisitesPage() {
         checkResultDetails,
         selectedConfig,
         currentUserEmail,
-        vpnConnections: latestVpnConnections
+        vpnConnections: latestVpnConnections,
+        vpnRemoteNetworks: latestVpnRemoteNetworks,
+        vpnNameservers: latestVpnNameservers
       }));
     } catch (e) {
       // Ignore storage errors.
@@ -584,7 +618,13 @@ function renderPrerequisitesPage() {
     }
 
     if (cache.vpnConnections !== undefined && selectedConfig?.deviceIdentifier) {
-      persistVpnSetupSnapshot(cache.vpnConnections, 'Adapter status restored from cached prerequisite pass.');
+      persistVpnSetupSnapshot(
+        cache.vpnConnections,
+        'Adapter status restored from cached prerequisite pass.',
+        null,
+        cache.vpnRemoteNetworks || null,
+        cache.vpnNameservers || null
+      );
     }
 
     companyChecks.forEach((check) => {

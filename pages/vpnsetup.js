@@ -819,11 +819,22 @@ function renderVpnSetupPage() {
 
     // If no observed config was stored (e.g. snapshot came from prereqs page, not a Check run),
     // derive it from vpnConnections + any supplemental VPNRoutes/DNSServers stored alongside.
+    // If no observed config was stored (e.g. snapshot came from prereqs page, not a full Check run),
+    // build it directly from vpnConnections fields and any pre-extracted arrays stored in the snapshot.
     if (isValueEmpty(state.rawObservedVpnConfig) && !isValueEmpty(state.rawVpnConnections)) {
-      const syntheticResult = {};
-      if (!isValueEmpty(snapshot.vpnRoutes)) syntheticResult.VPNRoutes = snapshot.vpnRoutes;
-      if (!isValueEmpty(snapshot.dnsServers)) syntheticResult.DNSServers = snapshot.dnsServers;
-      state.rawObservedVpnConfig = getObservedConfigFromWorkflowResult(syntheticResult, state.rawVpnConnections);
+      const vpnConn = state.rawVpnConnections;
+      const pick = (obj, fields) => { for (const f of fields) { if (obj?.[f] != null && obj[f] !== '') return obj[f]; } return null; };
+      const observed = {};
+      observed.vpn_adapter_name = formatValueForDisplay(pick(vpnConn, ['Name']));
+      observed.vpn_server_address = formatValueForDisplay(pick(vpnConn, ['ServerAddress']));
+      observed.vpn_remote_domain = formatValueForDisplay(pick(vpnConn, ['DnsSuffix']));
+      observed.vpn_remote_networks = !isValueEmpty(snapshot.vpnRemoteNetworks)
+        ? formatValueForDisplay(snapshot.vpnRemoteNetworks)
+        : 'N/A';
+      observed.vpn_nameservers = !isValueEmpty(snapshot.vpnNameservers)
+        ? formatValueForDisplay(snapshot.vpnNameservers)
+        : 'N/A';
+      state.rawObservedVpnConfig = observed;
     }
 
     applyObservedStateForDisplay();
