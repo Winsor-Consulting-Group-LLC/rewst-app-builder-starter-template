@@ -10,6 +10,7 @@ function renderVpnSetupPage() {
   const VPN_SETUP_CACHE_KEY = 'vpnSetupChecksCacheV1';
   const VPN_DEBUG_SIM_KEY = 'vpnSetupDebugSimulationV1';
   const SELECTED_CONFIG_KEY = 'selectedConfig';
+  const WORKFLOW_RESPONSE_MAX_WAIT_MS = 5 * 60 * 1000;
   const VPN_VARIABLE_DEFS = [
     { key: 'vpn_adapter_name', label: 'VPN Adapter Name' },
     { key: 'vpn_server_address', label: 'VPN Server Address' },
@@ -37,6 +38,8 @@ function renderVpnSetupPage() {
     rawObservedVpnConfig: {},
     inFlight: false,
     activeAction: null,
+    progressWorkflowKey: null,
+    progressMaxSuccessfulTasks: null,
     lastUpdatedAt: null,
     debugSimEnabled: false,
     removeConfirmOpen: false,
@@ -70,6 +73,61 @@ function renderVpnSetupPage() {
     } catch (error) {
       debugWarn(`Failed to persist session key ${key}:`, error);
     }
+  }
+
+  function formatDuration(ms) {
+    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  }
+
+  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
+    const canResolveSteps = typeof resolveWorkflowStepByTaskCount === 'function';
+    const resolvedStep = workflowKey && canResolveSteps
+      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
+      : null;
+    const configuredLabel = resolvedStep?.step?.progressLabel || null;
+
+    if (configuredLabel) {
+      const taskSuffix = Number.isFinite(numSuccessfulTasks)
+        ? ` Successful tasks: ${numSuccessfulTasks}.`
+        : '';
+      return `${configuredLabel}.${taskSuffix}`;
+    }
+
+    const normalizedStatus = typeof status === 'string' && status.trim()
+      ? status.trim().replace(/_/g, ' ').toLowerCase()
+      : 'processing';
+    const taskSuffix = Number.isFinite(numSuccessfulTasks)
+      ? ` Successful tasks: ${numSuccessfulTasks}.`
+      : '';
+    return `Workflow is still ${normalizedStatus}. Waiting up to ${formatDuration(WORKFLOW_RESPONSE_MAX_WAIT_MS)} for a response.${taskSuffix}`;
+  }
+
+  function updateWorkflowProgressStatus(status, numSuccessfulTasks, workflowKey = null) {
+    if (workflowKey && state.progressWorkflowKey !== workflowKey) {
+      state.progressWorkflowKey = workflowKey;
+      state.progressMaxSuccessfulTasks = null;
+    }
+
+    if (Number.isFinite(numSuccessfulTasks)) {
+      const previousMax = Number.isFinite(state.progressMaxSuccessfulTasks)
+        ? state.progressMaxSuccessfulTasks
+        : Number.NEGATIVE_INFINITY;
+      state.progressMaxSuccessfulTasks = Math.max(previousMax, numSuccessfulTasks);
+    }
+
+    const effectiveTaskCount = Number.isFinite(state.progressMaxSuccessfulTasks)
+      ? state.progressMaxSuccessfulTasks
+      : numSuccessfulTasks;
+    const nextStatusText = formatWorkflowProgressDetails(status, effectiveTaskCount, workflowKey);
+    if (nextStatusText === state.statusText) {
+      return;
+    }
+
+    state.statusText = nextStatusText;
+    updateStatusTextInPlace(nextStatusText);
   }
 
   function buildResultDataCandidates(result) {
@@ -644,6 +702,8 @@ function renderVpnSetupPage() {
   function setBusyState(action, statusOverride = null) {
     state.inFlight = true;
     state.activeAction = action;
+    state.progressWorkflowKey = null;
+    state.progressMaxSuccessfulTasks = null;
     state.statusType = 'running';
     state.statusLabel = 'Running';
     state.statusText = statusOverride || (action === 'check'
@@ -881,12 +941,7 @@ function renderVpnSetupPage() {
         in_cwa_id: computerId
       }, {
         onProgress: (status, numSuccessfulTasks) => {
-          const normalizedStatus = typeof status === 'string' && status.trim()
-            ? status.trim().replace(/_/g, ' ').toLowerCase()
-            : 'processing';
-          const taskSuffix = Number.isFinite(numSuccessfulTasks) ? ` Successful tasks: ${numSuccessfulTasks}.` : '';
-          state.statusText = `Workflow is ${normalizedStatus}.${taskSuffix}`;
-          updateStatusTextInPlace(state.statusText);
+          updateWorkflowProgressStatus(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES');
         }
       });
 
@@ -952,6 +1007,10 @@ function renderVpnSetupPage() {
       await rewst.runWorkflowSmart(getWorkflowId('VPN_ADAPTER_COMMAND'), {
         in_cwa_id: computerId,
         in_vpn_command: command
+      }, {
+        onProgress: (status, numSuccessfulTasks) => {
+          updateWorkflowProgressStatus(status, numSuccessfulTasks, 'VPN_ADAPTER_COMMAND');
+        }
       });
 
       RewstDOM.showSuccess(`VPN adapter ${command} command submitted.`);
@@ -1024,6 +1083,9 @@ function renderVpnSetupPage() {
               <p id="vpnsetup-status-text" class="vpnsetup-adapter-status-text">${state.statusText}</p>
             </div>
             <span class="vpnsetup-adapter-pill is-${state.statusType}">${state.statusLabel}</span>
+            <button id="vpnsetup-check-btn" class="btn-tertiary app-refresh-btn app-refresh-btn-subtle" title="${checkButtonLabel} adapter status" aria-label="${checkButtonLabel} adapter status" ${checkDisabledAttr}>
+              <span class="material-icons${state.statusType === 'running' ? ' animate-spin' : ''}">refresh</span>
+            </button>
           </div>
 
           <div class="vpnsetup-action-row">
@@ -1034,10 +1096,6 @@ function renderVpnSetupPage() {
             <button id="vpnsetup-remove-btn" class="btn-secondary" ${removeDisabledAttr}>
               <span class="material-icons">delete</span>
               <span>${removeButtonLabel}</span>
-            </button>
-            <button id="vpnsetup-check-btn" class="btn-tertiary" ${checkDisabledAttr}>
-              <span class="material-icons">refresh</span>
-              <span>${checkButtonLabel}</span>
             </button>
 
             <label class="vpnsetup-debug-toggle" for="vpnsetup-debug-toggle-input">
