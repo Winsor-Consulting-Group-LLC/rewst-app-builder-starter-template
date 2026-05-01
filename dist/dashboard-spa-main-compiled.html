@@ -15574,38 +15574,114 @@ function renderPrerequisitesPage() {
     }
   }
 
-  function extractVpnNetworksFromResult(workflowResult) {
-    if (!workflowResult) return null;
-    const vpnRoutesRaw = getFirstFieldValue(workflowResult, ['VPNRoutes', 'vpnRoutes']);
-    if (!vpnRoutesRaw) return null;
-    if (Array.isArray(vpnRoutesRaw)) {
-      const prefixes = vpnRoutesRaw.map(r => r?.DestinationPrefix).filter(Boolean);
-      return prefixes.length > 0 ? prefixes : null;
+  function collectDeepObjects(root) {
+    const results = [];
+    const stack = [root];
+    const visited = new Set();
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current || typeof current !== 'object') continue;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      results.push(current);
+
+      if (Array.isArray(current)) {
+        current.forEach((value) => {
+          if (value && typeof value === 'object') stack.push(value);
+        });
+      } else {
+        Object.values(current).forEach((value) => {
+          if (value && typeof value === 'object') stack.push(value);
+        });
+      }
     }
-    if (vpnRoutesRaw.DestinationPrefix) {
-      const dp = vpnRoutesRaw.DestinationPrefix;
-      return Array.isArray(dp) ? dp : [dp];
-    }
-    return null;
+
+    return results;
   }
 
-  function extractVpnNameserversFromResult(workflowResult) {
-    if (!workflowResult) return null;
-    const dnsServersRaw = getFirstFieldValue(workflowResult, ['DNSServers', 'dnsServers']);
-    if (!Array.isArray(dnsServersRaw)) return null;
-    const filtered = dnsServersRaw
-      .filter(e => e?.InterfaceAlias?.toLowerCase().includes('vpn'))
-      .flatMap(e => e?.ServerAddresses || [])
-      .filter(Boolean);
-    return filtered.length > 0 ? filtered : null;
+  function uniqueNormalizedStrings(values) {
+    const seen = new Set();
+    const ordered = [];
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const text = String(value || '').trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      ordered.push(text);
+    });
+    return ordered;
+  }
+
+  function extractVpnNetworksFromResult(workflowResult, vpnConnections = null) {
+    const prefixes = [];
+    const cidrPattern = /\b\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2}\b/g;
+
+    const objects = collectDeepObjects(workflowResult);
+    objects.forEach((obj) => {
+      if (Array.isArray(obj)) return;
+
+      if (obj.DestinationPrefix) {
+        const values = Array.isArray(obj.DestinationPrefix) ? obj.DestinationPrefix : [obj.DestinationPrefix];
+        values.forEach((value) => {
+          const text = String(value || '').trim();
+          if (text) prefixes.push(text);
+        });
+      }
+
+      if (typeof obj.CimInstanceProperties === 'string') {
+        const matches = obj.CimInstanceProperties.match(cidrPattern);
+        if (matches) prefixes.push(...matches);
+      }
+    });
+
+    const routeCandidates = Array.isArray(vpnConnections?.Routes) ? vpnConnections.Routes : [];
+    routeCandidates.forEach((route) => {
+      if (route?.DestinationPrefix) {
+        prefixes.push(String(route.DestinationPrefix));
+      }
+      if (typeof route?.CimInstanceProperties === 'string') {
+        const matches = route.CimInstanceProperties.match(cidrPattern);
+        if (matches) prefixes.push(...matches);
+      }
+    });
+
+    const unique = uniqueNormalizedStrings(prefixes);
+    return unique.length > 0 ? unique : null;
+  }
+
+  function extractVpnNameserversFromResult(workflowResult, vpnConnections = null) {
+    const adapterName = String(vpnConnections?.Name || '').trim().toLowerCase();
+    const candidates = [];
+
+    if (Array.isArray(vpnConnections?.ServerList) && vpnConnections.ServerList.length > 0) {
+      candidates.push(...vpnConnections.ServerList.map(String));
+    }
+
+    const objects = collectDeepObjects(workflowResult);
+    objects.forEach((obj) => {
+      if (Array.isArray(obj)) return;
+      if (!Array.isArray(obj.ServerAddresses)) return;
+
+      const alias = String(obj.InterfaceAlias || '').trim().toLowerCase();
+      const aliasLooksVpn = alias.includes('vpn');
+      const aliasMatchesAdapter = adapterName && alias === adapterName;
+      if (aliasLooksVpn || aliasMatchesAdapter) {
+        candidates.push(...obj.ServerAddresses.map(String));
+      }
+    });
+
+    const unique = uniqueNormalizedStrings(candidates);
+    return unique.length > 0 ? unique : null;
   }
 
   function persistVpnSetupSnapshot(vpnConnections, statusText = '', workflowResult = null, overrideNetworks = null, overrideNameservers = null) {
     if (!selectedConfig?.deviceIdentifier) return;
     latestVpnConnections = vpnConnections || {};
 
-    const vpnRemoteNetworks = overrideNetworks !== null ? overrideNetworks : extractVpnNetworksFromResult(workflowResult);
-    const vpnNameservers = overrideNameservers !== null ? overrideNameservers : extractVpnNameserversFromResult(workflowResult);
+    const vpnRemoteNetworks = overrideNetworks !== null ? overrideNetworks : extractVpnNetworksFromResult(workflowResult, vpnConnections);
+    const vpnNameservers = overrideNameservers !== null ? overrideNameservers : extractVpnNameserversFromResult(workflowResult, vpnConnections);
     latestVpnRemoteNetworks = vpnRemoteNetworks;
     latestVpnNameservers = vpnNameservers;
 
