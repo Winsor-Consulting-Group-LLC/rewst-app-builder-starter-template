@@ -26,7 +26,7 @@ const MARKERS = {
   '{{ WORKFLOW_IDS }}': WORKFLOW_IDS_SOURCE,
   '{{ PAGE_PREREQUISITES }}': 'pages/prerequisites.js',
   '{{ PAGE_REMEDIATION }}': 'pages/remediation.js',
-  '{{ PAGE_VPNSETUP }}': 'pages/vpnsetup.js',
+  '{{ PAGE_VPNSTATUS }}': 'pages/vpnstatus.js',
 };
 
 console.log('Building app...\n');

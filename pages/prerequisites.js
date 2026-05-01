@@ -205,7 +205,7 @@ function renderPrerequisitesPage() {
       }
     }
 
-    switchPage('vpnsetup');
+    switchPage('vpnstatus');
   });
 
   buttonContainer.appendChild(continueButton);

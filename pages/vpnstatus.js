@@ -1,9 +1,9 @@
 // ============================================
-// VPN SETUP PAGE
+// VPN STATUS PAGE
 // ============================================
 
-function renderVpnSetupPage() {
-  const container = document.getElementById('page-vpnsetup');
+function renderVpnStatusPage() {
+  const container = document.getElementById('page-vpnstatus');
   container.innerHTML = '';
 
   const PREREQS_CACHE_KEY = 'prerequisitesChecksCacheV1';

@@ -58,9 +58,9 @@
             <span class="nav-text">Prerequisites</span>
             <span id="prereq-complete-indicator" class="material-icons app-nav-status-icon hidden" title="All prerequisites complete">verified</span>
           </a>
-          <a href="#" class="sidebar-item app-nav-item app-nav-item-disabled" data-page="vpnsetup" aria-disabled="true" title="Complete all prerequisites to unlock VPN Setup">
+          <a href="#" class="sidebar-item app-nav-item app-nav-item-disabled" data-page="vpnstatus" aria-disabled="true" title="Complete all prerequisites to unlock VPN Status">
             <span class="material-icons app-nav-item-icon">vpn_lock</span>
-            <span id="vpnsetup-nav-text" class="nav-text">VPN Setup</span>
+            <span id="vpnstatus-nav-text" class="nav-text">VPN Status</span>
           </a>
         </div>
       </div>
@@ -158,9 +158,9 @@
         <!-- Rendered by prerequisites.js -->
       </div>
 
-      <!-- VPN Setup Page -->
-      <div id="page-vpnsetup" class="page-content" style="display: none;">
-        <!-- Rendered by vpnsetup.js -->
+      <!-- VPN Status Page -->
+      <div id="page-vpnstatus" class="page-content" style="display: none;">
+        <!-- Rendered by vpnstatus.js -->
       </div>
 
       <!-- Remediation Page -->
@@ -256,10 +256,10 @@
           subtitle: 'Guided repair workflow for blocked prerequisite checks',
           render: renderRemediationPage
         },
-        vpnsetup: {
-          title: 'VPN Setup',
-          subtitle: 'VPN configuration and setup',
-          render: renderVpnSetupPage
+        vpnstatus: {
+          title: 'VPN Status',
+          subtitle: 'VPN configuration and status',
+          render: renderVpnStatusPage
         }
       };
 
@@ -292,8 +292,8 @@
       const navLinks = document.querySelectorAll('.sidebar-item');
       const pageContainers = document.querySelectorAll('.page-content');
       const prereqCompleteIndicator = document.getElementById('prereq-complete-indicator');
-      const vpnSetupNavLink = document.querySelector('.sidebar-item[data-page="vpnsetup"]');
-      const vpnSetupNavText = document.getElementById('vpnsetup-nav-text');
+      const vpnSetupNavLink = document.querySelector('.sidebar-item[data-page="vpnstatus"]');
+      const vpnSetupNavText = document.getElementById('vpnstatus-nav-text');
       const AUTO_NAVIGATED_TO_VPN_KEY = 'autoNavigatedToVpnSetupV1';
 
       function arePrerequisitesCompleteFromCache() {
@@ -325,10 +325,10 @@
 
         vpnSetupNavLink.setAttribute('aria-disabled', enabled ? 'false' : 'true');
         vpnSetupNavLink.title = enabled
-          ? 'VPN Setup'
-          : 'Complete all prerequisites to unlock VPN Setup';
+          ? 'VPN Status'
+          : 'Complete all prerequisites to unlock VPN Status';
         if (vpnSetupNavText) {
-          vpnSetupNavText.textContent = enabled ? 'Manage VPN' : 'VPN Setup';
+          vpnSetupNavText.textContent = enabled ? 'Manage VPN' : 'VPN Status';
         }
         if (prereqCompleteIndicator) {
           prereqCompleteIndicator.classList.toggle('hidden', !enabled);
@@ -351,7 +351,7 @@
           debugWarn('Failed to persist auto-navigation state:', error);
         }
 
-        switchPage('vpnsetup');
+        switchPage('vpnstatus');
       }
 
       window.setVpnSetupNavEnabled = setVpnSetupNavEnabled;
@@ -369,8 +369,8 @@
           e.preventDefault();
           const pageName = link.dataset.page;
 
-          if (pageName === 'vpnsetup' && !arePrerequisitesCompleteFromCache()) {
-            RewstDOM.showWarning('Complete all prerequisite checks before opening VPN Setup.');
+          if (pageName === 'vpnstatus' && !arePrerequisitesCompleteFromCache()) {
+            RewstDOM.showWarning('Complete all prerequisite checks before opening VPN Status.');
             return;
           }
 
@@ -381,9 +381,9 @@
       function switchPage(pageName) {
         if (!pages[pageName]) return;
 
-        if (pageName === 'vpnsetup' && !arePrerequisitesCompleteFromCache()) {
+        if (pageName === 'vpnstatus' && !arePrerequisitesCompleteFromCache()) {
           setVpnSetupNavEnabled(false);
-          RewstDOM.showWarning('Complete all prerequisite checks before opening VPN Setup.');
+          RewstDOM.showWarning('Complete all prerequisite checks before opening VPN Status.');
           return;
         }
 
@@ -723,7 +723,7 @@
 
       {{ PAGE_REMEDIATION }}
 
-      {{ PAGE_VPNSETUP }}
+      {{ PAGE_VPNSTATUS }}
 
       // ============================================
       // BOOT
