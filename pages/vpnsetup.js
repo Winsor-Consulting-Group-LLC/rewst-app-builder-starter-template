@@ -34,7 +34,11 @@ function renderVpnSetupPage() {
     observedVpnConfig: {},
     inFlight: false,
     activeAction: null,
-    lastUpdatedAt: null
+    lastUpdatedAt: null,
+    removeConfirmOpen: false,
+    removeConfirmCountdown: 0,
+    removeConfirmReady: false,
+    removeConfirmTimerId: null
   };
 
   function getWorkflowId(key) {
@@ -441,6 +445,16 @@ function renderVpnSetupPage() {
   }
 
   function getObservedConfigRowsHtml() {
+    const reportedConnectionStatus = getCurrentConnectionStatus();
+    const statusComparison = normalizeCompareValue(reportedConnectionStatus) === 'connected' ? 'match' : 'mismatch';
+    const statusRow = `
+      <tr class="vpnsetup-config-row vpnsetup-status-row is-${statusComparison}">
+        <td class="vpnsetup-config-cell-label">Connected Status</td>
+        <td class="vpnsetup-config-cell-desired"><span>Connected</span></td>
+        <td class="vpnsetup-config-cell-reported is-${statusComparison}"><span>${reportedConnectionStatus}</span></td>
+      </tr>
+    `;
+
     const rows = VPN_VARIABLE_DEFS.map((def) => {
       const desiredValue = state.desiredVpnConfig?.[def.key] ?? 'N/A';
       const observedValue = state.observedVpnConfig?.[def.key] ?? null;
@@ -477,7 +491,7 @@ function renderVpnSetupPage() {
             </th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${statusRow}${rows}</tbody>
       </table>
     `;
   }
@@ -498,6 +512,14 @@ function renderVpnSetupPage() {
   function normalizeCompareValue(value) {
     if (value === null || value === undefined) return '';
     return String(value).trim().toLowerCase();
+  }
+
+  function getCurrentConnectionStatus(vpnConnections = state.vpnConnections) {
+    return formatValueForDisplay(getObjectFieldValue(vpnConnections, ['ConnectionStatus']));
+  }
+
+  function isAdapterConnected(vpnConnections = state.vpnConnections) {
+    return normalizeCompareValue(getCurrentConnectionStatus(vpnConnections)) === 'connected';
   }
 
   function evaluateAdapterSuccess(desiredConfig, observedConfig, vpnConnections) {
@@ -579,6 +601,96 @@ function renderVpnSetupPage() {
     if (statusTextElement) {
       statusTextElement.textContent = nextText;
     }
+  }
+
+  function clearRemoveConfirmTimer() {
+    if (state.removeConfirmTimerId) {
+      clearInterval(state.removeConfirmTimerId);
+      state.removeConfirmTimerId = null;
+    }
+  }
+
+  function updateRemoveConfirmDialogInPlace() {
+    const countdownTextEl = document.getElementById('vpnsetup-remove-countdown');
+    if (countdownTextEl) {
+      countdownTextEl.textContent = state.removeConfirmReady
+        ? 'Countdown complete. Remove is now enabled.'
+        : `Remove will be enabled in ${state.removeConfirmCountdown} second${state.removeConfirmCountdown === 1 ? '' : 's'}...`;
+    }
+
+    const confirmBtn = document.getElementById('vpnsetup-remove-confirm-btn');
+    if (confirmBtn) {
+      const isDisabled = !state.removeConfirmReady;
+      confirmBtn.disabled = isDisabled;
+      confirmBtn.setAttribute('aria-disabled', String(isDisabled));
+    }
+
+    const confirmLabel = document.getElementById('vpnsetup-remove-confirm-label');
+    if (confirmLabel) {
+      confirmLabel.textContent = state.removeConfirmReady
+        ? 'Confirm Remove'
+        : `Confirm Remove (${state.removeConfirmCountdown})`;
+    }
+  }
+
+  function closeRemoveConfirmDialog(returnFocusToRemoveButton = true) {
+    if (!state.removeConfirmOpen) return;
+
+    clearRemoveConfirmTimer();
+    state.removeConfirmOpen = false;
+    state.removeConfirmCountdown = 0;
+    state.removeConfirmReady = false;
+    render();
+
+    if (returnFocusToRemoveButton) {
+      setTimeout(() => {
+        const removeBtn = document.getElementById('vpnsetup-remove-btn');
+        if (removeBtn) removeBtn.focus();
+      }, 0);
+    }
+  }
+
+  function openRemoveConfirmDialog() {
+    if (state.inFlight) return;
+
+    const adapterInstalled = !isValueEmpty(state.vpnConnections);
+    if (!adapterInstalled) return;
+
+    clearRemoveConfirmTimer();
+    state.removeConfirmOpen = true;
+    state.removeConfirmCountdown = 3;
+    state.removeConfirmReady = false;
+    render();
+    updateRemoveConfirmDialogInPlace();
+
+    setTimeout(() => {
+      const cancelBtn = document.getElementById('vpnsetup-remove-cancel-btn');
+      if (cancelBtn) cancelBtn.focus();
+    }, 0);
+
+    state.removeConfirmTimerId = setInterval(() => {
+      if (!state.removeConfirmOpen) {
+        clearRemoveConfirmTimer();
+        return;
+      }
+
+      if (state.removeConfirmCountdown > 1) {
+        state.removeConfirmCountdown -= 1;
+      } else {
+        state.removeConfirmCountdown = 0;
+        state.removeConfirmReady = true;
+        clearRemoveConfirmTimer();
+      }
+
+      updateRemoveConfirmDialogInPlace();
+    }, 1000);
+  }
+
+  async function confirmRemoveAdapter() {
+    if (!state.removeConfirmOpen || !state.removeConfirmReady || state.inFlight) return;
+
+    closeRemoveConfirmDialog(false);
+    await runVpnAdapterCommand('disconnect');
   }
 
   function getStatusCardClass() {
@@ -765,7 +877,16 @@ function renderVpnSetupPage() {
   }
 
   function render() {
-    const actionDisabled = state.inFlight ? 'disabled' : '';
+    const adapterInstalled = !isValueEmpty(state.vpnConnections);
+    const adapterConnected = isAdapterConnected();
+    const installDisabled = state.inFlight || (adapterInstalled && adapterConnected);
+    const removeDisabled = state.inFlight || !adapterInstalled;
+    const checkDisabled = state.inFlight;
+
+    const installDisabledAttr = installDisabled ? 'disabled' : '';
+    const removeDisabledAttr = removeDisabled ? 'disabled' : '';
+    const checkDisabledAttr = checkDisabled ? 'disabled' : '';
+
     const checkButtonLabel = state.activeAction === 'check' ? 'Checking...' : 'Check';
     const installButtonLabel = state.activeAction === 'install' ? 'Installing...' : 'Install';
     const removeButtonLabel = state.activeAction === 'remove' ? 'Removing...' : 'Remove';
@@ -810,15 +931,15 @@ function renderVpnSetupPage() {
           </div>
 
           <div class="vpnsetup-action-row">
-            <button id="vpnsetup-install-btn" class="btn-primary" ${actionDisabled}>
+            <button id="vpnsetup-install-btn" class="btn-primary" ${installDisabledAttr}>
               <span class="material-icons">download</span>
               <span>${installButtonLabel}</span>
             </button>
-            <button id="vpnsetup-remove-btn" class="btn-secondary" ${actionDisabled}>
+            <button id="vpnsetup-remove-btn" class="btn-secondary" ${removeDisabledAttr}>
               <span class="material-icons">delete</span>
               <span>${removeButtonLabel}</span>
             </button>
-            <button id="vpnsetup-check-btn" class="btn-tertiary" ${actionDisabled}>
+            <button id="vpnsetup-check-btn" class="btn-tertiary" ${checkDisabledAttr}>
               <span class="material-icons">refresh</span>
               <span>${checkButtonLabel}</span>
             </button>
@@ -828,6 +949,36 @@ function renderVpnSetupPage() {
             ${getObservedConfigRowsHtml()}
           </div>
         </section>
+
+        ${state.removeConfirmOpen ? `
+          <div id="vpnsetup-remove-modal-overlay" class="vpnsetup-modal-overlay" role="presentation">
+            <div
+              id="vpnsetup-remove-modal"
+              class="vpnsetup-remove-modal"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="vpnsetup-remove-modal-title"
+              aria-describedby="vpnsetup-remove-modal-desc vpnsetup-remove-countdown"
+              tabindex="-1"
+            >
+              <div class="vpnsetup-remove-modal-header">
+                <span class="material-icons vpnsetup-remove-modal-icon">warning</span>
+                <h4 id="vpnsetup-remove-modal-title" class="vpnsetup-remove-modal-title">Confirm VPN Adapter Removal</h4>
+              </div>
+              <p id="vpnsetup-remove-modal-desc" class="vpnsetup-remove-modal-copy">
+                Removing the VPN adapter may interrupt remote connectivity immediately. Use this only when you intend to disconnect this machine from VPN access.
+              </p>
+              <p id="vpnsetup-remove-countdown" class="vpnsetup-remove-countdown" aria-live="polite" aria-atomic="true"></p>
+              <div class="vpnsetup-remove-modal-actions">
+                <button id="vpnsetup-remove-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+                <button id="vpnsetup-remove-confirm-btn" class="btn-primary vpnsetup-remove-confirm-btn" type="button" disabled aria-disabled="true">
+                  <span class="material-icons">delete_forever</span>
+                  <span id="vpnsetup-remove-confirm-label">Confirm Remove (3)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
 
@@ -838,12 +989,45 @@ function renderVpnSetupPage() {
 
     const removeBtn = document.getElementById('vpnsetup-remove-btn');
     if (removeBtn) {
-      removeBtn.addEventListener('click', () => runVpnAdapterCommand('disconnect'));
+      removeBtn.addEventListener('click', () => openRemoveConfirmDialog());
     }
 
     const checkBtn = document.getElementById('vpnsetup-check-btn');
     if (checkBtn) {
       checkBtn.addEventListener('click', () => refreshAdapterStatusFromPrereq(true));
+    }
+
+    const removeModalOverlay = document.getElementById('vpnsetup-remove-modal-overlay');
+    if (removeModalOverlay) {
+      removeModalOverlay.addEventListener('click', (event) => {
+        if (event.target === removeModalOverlay) {
+          closeRemoveConfirmDialog(true);
+        }
+      });
+    }
+
+    const removeModal = document.getElementById('vpnsetup-remove-modal');
+    if (removeModal) {
+      removeModal.focus();
+      removeModal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeRemoveConfirmDialog(true);
+        }
+      });
+    }
+
+    const removeCancelBtn = document.getElementById('vpnsetup-remove-cancel-btn');
+    if (removeCancelBtn) {
+      removeCancelBtn.addEventListener('click', () => closeRemoveConfirmDialog(true));
+    }
+
+    const removeConfirmBtn = document.getElementById('vpnsetup-remove-confirm-btn');
+    if (removeConfirmBtn) {
+      removeConfirmBtn.addEventListener('click', () => {
+        confirmRemoveAdapter();
+      });
+      updateRemoveConfirmDialogInPlace();
     }
   }
 
