@@ -411,8 +411,17 @@ function renderVpnSetupPage() {
       .join('');
   }
 
+  function isFullTunnelValue(value) {
+    const str = String(value ?? '').trim();
+    if (!str || str.toLowerCase() === 'n/a') return false;
+    return str.includes('0.0.0.0');
+  }
+
   function renderConfigCellContent(key, rawValue) {
     if (CIDR_LIST_KEYS.has(key)) {
+      if (key === 'vpn_remote_networks' && isFullTunnelValue(rawValue)) {
+        return `<span>Full Tunnel</span>`;
+      }
       const chips = formatCidrList(rawValue);
       if (chips) {
         return `<span class="vpnsetup-subnet-list">${chips}</span>`;
@@ -497,6 +506,12 @@ function renderVpnSetupPage() {
     }
 
     if (key === 'vpn_remote_networks' || key === 'vpn_nameservers') {
+      if (key === 'vpn_remote_networks' && isFullTunnelValue(desiredValue)) {
+        const observedNorm = normalizeCompareValue(observedValue);
+        if (!observedNorm || observedNorm === 'n/a') {
+          return { status: 'match', warningDetail: '' };
+        }
+      }
       const matches = isDesiredListInObservedList(desiredValue, observedValue);
       return {
         status: matches ? 'match' : 'warning',

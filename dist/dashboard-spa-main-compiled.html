@@ -5051,13 +5051,7 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
     <!-- Navigation -->
     <nav class="app-sidebar-nav">
 
-      <!-- Pages Section -->
       <div class="app-nav-section">
-        <div class="app-nav-section-label">
-          <span class="material-icons app-nav-section-icon">menu</span>
-          <span class="nav-text">Pages</span>
-        </div>
-
         <div class="sub-nav app-nav-list">
           <a href="#" class="sidebar-item active app-nav-item" data-page="prerequisites">
             <span class="material-icons app-nav-item-icon">checklist</span>
@@ -17931,8 +17925,17 @@ function renderVpnSetupPage() {
       .join('');
   }
 
+  function isFullTunnelValue(value) {
+    const str = String(value ?? '').trim();
+    if (!str || str.toLowerCase() === 'n/a') return false;
+    return str.includes('0.0.0.0');
+  }
+
   function renderConfigCellContent(key, rawValue) {
     if (CIDR_LIST_KEYS.has(key)) {
+      if (key === 'vpn_remote_networks' && isFullTunnelValue(rawValue)) {
+        return `<span>Full Tunnel</span>`;
+      }
       const chips = formatCidrList(rawValue);
       if (chips) {
         return `<span class="vpnsetup-subnet-list">${chips}</span>`;
@@ -18017,6 +18020,12 @@ function renderVpnSetupPage() {
     }
 
     if (key === 'vpn_remote_networks' || key === 'vpn_nameservers') {
+      if (key === 'vpn_remote_networks' && isFullTunnelValue(desiredValue)) {
+        const observedNorm = normalizeCompareValue(observedValue);
+        if (!observedNorm || observedNorm === 'n/a') {
+          return { status: 'match', warningDetail: '' };
+        }
+      }
       const matches = isDesiredListInObservedList(desiredValue, observedValue);
       return {
         status: matches ? 'match' : 'warning',
