@@ -3970,6 +3970,48 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
   flex-wrap: wrap;
 }
 
+.vpnsetup-debug-pill {
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #8a5f12;
+  background: rgba(141, 175, 58, 0.2);
+  border: 1px solid rgba(141, 175, 58, 0.45);
+  border-radius: 9999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.vpnsetup-debug-pill .material-icons {
+  font-size: 0.88rem;
+}
+
+.vpnsetup-debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 0.2rem;
+  color: var(--rewst-gray);
+  font-size: 0.82rem;
+  user-select: none;
+  cursor: pointer;
+}
+
+.vpnsetup-debug-toggle input {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: var(--rewst-warning);
+  cursor: pointer;
+}
+
+.vpnsetup-debug-toggle span {
+  line-height: 1.2;
+}
+
 /* ---- VPN Config comparison table ---- */
 
 .vpnsetup-detail-grid {
@@ -4260,6 +4302,16 @@ html[data-theme='dark'] .vpnsetup-remove-modal-copy {
 
 html[data-theme='dark'] .vpnsetup-remove-countdown {
   color: #f2cf82;
+}
+
+html[data-theme='dark'] .vpnsetup-debug-pill {
+  color: #f2d99f;
+  background: rgba(141, 175, 58, 0.16);
+  border-color: rgba(141, 175, 58, 0.45);
+}
+
+html[data-theme='dark'] .vpnsetup-debug-toggle {
+  color: #c9d3df;
 }
 
 /* ============================================
