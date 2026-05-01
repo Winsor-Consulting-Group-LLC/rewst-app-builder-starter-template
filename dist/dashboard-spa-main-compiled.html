@@ -4054,12 +4054,31 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
   border-bottom: 1px solid var(--rewst-light);
 }
 
+.vpnsetup-status-row td {
+  background: rgba(0, 148, 144, 0.06);
+}
+
+.vpnsetup-status-row.is-mismatch td {
+  background: rgba(196, 79, 79, 0.08);
+}
+
 .vpnsetup-config-cell-label {
   padding: 0.85rem 0.75rem;
   color: var(--rewst-gray);
   font-size: 0.85rem;
   font-weight: 500;
   vertical-align: top;
+}
+
+.vpnsetup-status-row .vpnsetup-config-cell-label {
+  color: var(--rewst-dark-gray);
+  font-weight: 700;
+}
+
+.vpnsetup-status-row .vpnsetup-config-cell-desired,
+.vpnsetup-status-row .vpnsetup-config-cell-reported {
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .vpnsetup-config-cell-desired {
@@ -4130,6 +4149,86 @@ html[data-theme='dark'] .vpnsetup-disclaimer-note {
   color: #6e8e2f;
 }
 
+.vpnsetup-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 120;
+}
+
+.vpnsetup-remove-modal {
+  width: min(560px, 100%);
+  background: var(--rewst-white);
+  border: 1px solid rgba(196, 79, 79, 0.26);
+  border-radius: 0.75rem;
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.25);
+  padding: 1.1rem 1.2rem;
+}
+
+.vpnsetup-remove-modal:focus {
+  outline: 2px solid rgba(0, 148, 144, 0.38);
+  outline-offset: 2px;
+}
+
+.vpnsetup-remove-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.vpnsetup-remove-modal-icon {
+  color: var(--rewst-error);
+  font-size: 1.3rem;
+}
+
+.vpnsetup-remove-modal-title {
+  margin: 0;
+  color: var(--rewst-dark-gray);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.vpnsetup-remove-modal-copy {
+  margin: 0.75rem 0 0;
+  color: var(--rewst-dark-gray);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.vpnsetup-remove-countdown {
+  margin: 0.7rem 0 0;
+  color: var(--rewst-warning);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.vpnsetup-remove-modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.vpnsetup-remove-confirm-btn {
+  background: var(--rewst-error);
+  border-color: rgba(196, 79, 79, 0.65);
+}
+
+.vpnsetup-remove-confirm-btn:hover:not(:disabled) {
+  background: #a73232;
+}
+
+.vpnsetup-remove-confirm-btn:disabled {
+  background: var(--rewst-gray);
+  border-color: var(--rewst-gray);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 /* Dark theme overrides */
 
 html[data-theme='dark'] .vpnsetup-adapter-title {
@@ -4159,6 +4258,14 @@ html[data-theme='dark'] .vpnsetup-config-row:not(:last-child) td {
   border-bottom-color: rgba(122, 150, 181, 0.18);
 }
 
+html[data-theme='dark'] .vpnsetup-status-row td {
+  background: rgba(0, 148, 144, 0.16);
+}
+
+html[data-theme='dark'] .vpnsetup-status-row.is-mismatch td {
+  background: rgba(196, 79, 79, 0.18);
+}
+
 html[data-theme='dark'] .vpnsetup-detail-grid {
   border-top-color: rgba(122, 150, 181, 0.35);
 }
@@ -4166,6 +4273,20 @@ html[data-theme='dark'] .vpnsetup-detail-grid {
 html[data-theme='dark'] .vpnsetup-subnet-chip {
   background: rgba(0, 148, 144, 0.15);
   border-color: rgba(0, 148, 144, 0.35);
+}
+
+html[data-theme='dark'] .vpnsetup-remove-modal {
+  background: #0f172a;
+  border-color: rgba(196, 79, 79, 0.5);
+}
+
+html[data-theme='dark'] .vpnsetup-remove-modal-title,
+html[data-theme='dark'] .vpnsetup-remove-modal-copy {
+  color: #e5edf8;
+}
+
+html[data-theme='dark'] .vpnsetup-remove-countdown {
+  color: #f2cf82;
 }
 
 /* ============================================
@@ -17094,7 +17215,11 @@ function renderVpnSetupPage() {
     observedVpnConfig: {},
     inFlight: false,
     activeAction: null,
-    lastUpdatedAt: null
+    lastUpdatedAt: null,
+    removeConfirmOpen: false,
+    removeConfirmCountdown: 0,
+    removeConfirmReady: false,
+    removeConfirmTimerId: null
   };
 
   function getWorkflowId(key) {
@@ -17501,6 +17626,16 @@ function renderVpnSetupPage() {
   }
 
   function getObservedConfigRowsHtml() {
+    const reportedConnectionStatus = getCurrentConnectionStatus();
+    const statusComparison = normalizeCompareValue(reportedConnectionStatus) === 'connected' ? 'match' : 'mismatch';
+    const statusRow = `
+      <tr class="vpnsetup-config-row vpnsetup-status-row is-${statusComparison}">
+        <td class="vpnsetup-config-cell-label">Connected Status</td>
+        <td class="vpnsetup-config-cell-desired"><span>Connected</span></td>
+        <td class="vpnsetup-config-cell-reported is-${statusComparison}"><span>${reportedConnectionStatus}</span></td>
+      </tr>
+    `;
+
     const rows = VPN_VARIABLE_DEFS.map((def) => {
       const desiredValue = state.desiredVpnConfig?.[def.key] ?? 'N/A';
       const observedValue = state.observedVpnConfig?.[def.key] ?? null;
@@ -17537,7 +17672,7 @@ function renderVpnSetupPage() {
             </th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${statusRow}${rows}</tbody>
       </table>
     `;
   }
@@ -17558,6 +17693,14 @@ function renderVpnSetupPage() {
   function normalizeCompareValue(value) {
     if (value === null || value === undefined) return '';
     return String(value).trim().toLowerCase();
+  }
+
+  function getCurrentConnectionStatus(vpnConnections = state.vpnConnections) {
+    return formatValueForDisplay(getObjectFieldValue(vpnConnections, ['ConnectionStatus']));
+  }
+
+  function isAdapterConnected(vpnConnections = state.vpnConnections) {
+    return normalizeCompareValue(getCurrentConnectionStatus(vpnConnections)) === 'connected';
   }
 
   function evaluateAdapterSuccess(desiredConfig, observedConfig, vpnConnections) {
@@ -17639,6 +17782,96 @@ function renderVpnSetupPage() {
     if (statusTextElement) {
       statusTextElement.textContent = nextText;
     }
+  }
+
+  function clearRemoveConfirmTimer() {
+    if (state.removeConfirmTimerId) {
+      clearInterval(state.removeConfirmTimerId);
+      state.removeConfirmTimerId = null;
+    }
+  }
+
+  function updateRemoveConfirmDialogInPlace() {
+    const countdownTextEl = document.getElementById('vpnsetup-remove-countdown');
+    if (countdownTextEl) {
+      countdownTextEl.textContent = state.removeConfirmReady
+        ? 'Countdown complete. Remove is now enabled.'
+        : `Remove will be enabled in ${state.removeConfirmCountdown} second${state.removeConfirmCountdown === 1 ? '' : 's'}...`;
+    }
+
+    const confirmBtn = document.getElementById('vpnsetup-remove-confirm-btn');
+    if (confirmBtn) {
+      const isDisabled = !state.removeConfirmReady;
+      confirmBtn.disabled = isDisabled;
+      confirmBtn.setAttribute('aria-disabled', String(isDisabled));
+    }
+
+    const confirmLabel = document.getElementById('vpnsetup-remove-confirm-label');
+    if (confirmLabel) {
+      confirmLabel.textContent = state.removeConfirmReady
+        ? 'Confirm Remove'
+        : `Confirm Remove (${state.removeConfirmCountdown})`;
+    }
+  }
+
+  function closeRemoveConfirmDialog(returnFocusToRemoveButton = true) {
+    if (!state.removeConfirmOpen) return;
+
+    clearRemoveConfirmTimer();
+    state.removeConfirmOpen = false;
+    state.removeConfirmCountdown = 0;
+    state.removeConfirmReady = false;
+    render();
+
+    if (returnFocusToRemoveButton) {
+      setTimeout(() => {
+        const removeBtn = document.getElementById('vpnsetup-remove-btn');
+        if (removeBtn) removeBtn.focus();
+      }, 0);
+    }
+  }
+
+  function openRemoveConfirmDialog() {
+    if (state.inFlight) return;
+
+    const adapterInstalled = !isValueEmpty(state.vpnConnections);
+    if (!adapterInstalled) return;
+
+    clearRemoveConfirmTimer();
+    state.removeConfirmOpen = true;
+    state.removeConfirmCountdown = 3;
+    state.removeConfirmReady = false;
+    render();
+    updateRemoveConfirmDialogInPlace();
+
+    setTimeout(() => {
+      const cancelBtn = document.getElementById('vpnsetup-remove-cancel-btn');
+      if (cancelBtn) cancelBtn.focus();
+    }, 0);
+
+    state.removeConfirmTimerId = setInterval(() => {
+      if (!state.removeConfirmOpen) {
+        clearRemoveConfirmTimer();
+        return;
+      }
+
+      if (state.removeConfirmCountdown > 1) {
+        state.removeConfirmCountdown -= 1;
+      } else {
+        state.removeConfirmCountdown = 0;
+        state.removeConfirmReady = true;
+        clearRemoveConfirmTimer();
+      }
+
+      updateRemoveConfirmDialogInPlace();
+    }, 1000);
+  }
+
+  async function confirmRemoveAdapter() {
+    if (!state.removeConfirmOpen || !state.removeConfirmReady || state.inFlight) return;
+
+    closeRemoveConfirmDialog(false);
+    await runVpnAdapterCommand('disconnect');
   }
 
   function getStatusCardClass() {
@@ -17825,7 +18058,16 @@ function renderVpnSetupPage() {
   }
 
   function render() {
-    const actionDisabled = state.inFlight ? 'disabled' : '';
+    const adapterInstalled = !isValueEmpty(state.vpnConnections);
+    const adapterConnected = isAdapterConnected();
+    const installDisabled = state.inFlight || (adapterInstalled && adapterConnected);
+    const removeDisabled = state.inFlight || !adapterInstalled;
+    const checkDisabled = state.inFlight;
+
+    const installDisabledAttr = installDisabled ? 'disabled' : '';
+    const removeDisabledAttr = removeDisabled ? 'disabled' : '';
+    const checkDisabledAttr = checkDisabled ? 'disabled' : '';
+
     const checkButtonLabel = state.activeAction === 'check' ? 'Checking...' : 'Check';
     const installButtonLabel = state.activeAction === 'install' ? 'Installing...' : 'Install';
     const removeButtonLabel = state.activeAction === 'remove' ? 'Removing...' : 'Remove';
@@ -17870,15 +18112,15 @@ function renderVpnSetupPage() {
           </div>
 
           <div class="vpnsetup-action-row">
-            <button id="vpnsetup-install-btn" class="btn-primary" ${actionDisabled}>
+            <button id="vpnsetup-install-btn" class="btn-primary" ${installDisabledAttr}>
               <span class="material-icons">download</span>
               <span>${installButtonLabel}</span>
             </button>
-            <button id="vpnsetup-remove-btn" class="btn-secondary" ${actionDisabled}>
+            <button id="vpnsetup-remove-btn" class="btn-secondary" ${removeDisabledAttr}>
               <span class="material-icons">delete</span>
               <span>${removeButtonLabel}</span>
             </button>
-            <button id="vpnsetup-check-btn" class="btn-tertiary" ${actionDisabled}>
+            <button id="vpnsetup-check-btn" class="btn-tertiary" ${checkDisabledAttr}>
               <span class="material-icons">refresh</span>
               <span>${checkButtonLabel}</span>
             </button>
@@ -17888,6 +18130,36 @@ function renderVpnSetupPage() {
             ${getObservedConfigRowsHtml()}
           </div>
         </section>
+
+        ${state.removeConfirmOpen ? `
+          <div id="vpnsetup-remove-modal-overlay" class="vpnsetup-modal-overlay" role="presentation">
+            <div
+              id="vpnsetup-remove-modal"
+              class="vpnsetup-remove-modal"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="vpnsetup-remove-modal-title"
+              aria-describedby="vpnsetup-remove-modal-desc vpnsetup-remove-countdown"
+              tabindex="-1"
+            >
+              <div class="vpnsetup-remove-modal-header">
+                <span class="material-icons vpnsetup-remove-modal-icon">warning</span>
+                <h4 id="vpnsetup-remove-modal-title" class="vpnsetup-remove-modal-title">Confirm VPN Adapter Removal</h4>
+              </div>
+              <p id="vpnsetup-remove-modal-desc" class="vpnsetup-remove-modal-copy">
+                Removing the VPN adapter may interrupt remote connectivity immediately. Use this only when you intend to disconnect this machine from VPN access.
+              </p>
+              <p id="vpnsetup-remove-countdown" class="vpnsetup-remove-countdown" aria-live="polite" aria-atomic="true"></p>
+              <div class="vpnsetup-remove-modal-actions">
+                <button id="vpnsetup-remove-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+                <button id="vpnsetup-remove-confirm-btn" class="btn-primary vpnsetup-remove-confirm-btn" type="button" disabled aria-disabled="true">
+                  <span class="material-icons">delete_forever</span>
+                  <span id="vpnsetup-remove-confirm-label">Confirm Remove (3)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
 
@@ -17898,12 +18170,45 @@ function renderVpnSetupPage() {
 
     const removeBtn = document.getElementById('vpnsetup-remove-btn');
     if (removeBtn) {
-      removeBtn.addEventListener('click', () => runVpnAdapterCommand('disconnect'));
+      removeBtn.addEventListener('click', () => openRemoveConfirmDialog());
     }
 
     const checkBtn = document.getElementById('vpnsetup-check-btn');
     if (checkBtn) {
       checkBtn.addEventListener('click', () => refreshAdapterStatusFromPrereq(true));
+    }
+
+    const removeModalOverlay = document.getElementById('vpnsetup-remove-modal-overlay');
+    if (removeModalOverlay) {
+      removeModalOverlay.addEventListener('click', (event) => {
+        if (event.target === removeModalOverlay) {
+          closeRemoveConfirmDialog(true);
+        }
+      });
+    }
+
+    const removeModal = document.getElementById('vpnsetup-remove-modal');
+    if (removeModal) {
+      removeModal.focus();
+      removeModal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeRemoveConfirmDialog(true);
+        }
+      });
+    }
+
+    const removeCancelBtn = document.getElementById('vpnsetup-remove-cancel-btn');
+    if (removeCancelBtn) {
+      removeCancelBtn.addEventListener('click', () => closeRemoveConfirmDialog(true));
+    }
+
+    const removeConfirmBtn = document.getElementById('vpnsetup-remove-confirm-btn');
+    if (removeConfirmBtn) {
+      removeConfirmBtn.addEventListener('click', () => {
+        confirmRemoveAdapter();
+      });
+      updateRemoveConfirmDialogInPlace();
     }
   }
 
