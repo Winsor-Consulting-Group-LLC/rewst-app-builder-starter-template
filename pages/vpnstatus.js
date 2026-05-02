@@ -298,7 +298,6 @@ function renderVpnStatusPage() {
     if (!isValueEmpty(state.rawVpnConnections) || !isValueEmpty(state.rawObservedVpnConfig)) {
       applyObservedStateForDisplay();
     }
-    render();
 
     const results = await Promise.all(VPN_VARIABLE_DEFS.map(async (def) => {
       try {
