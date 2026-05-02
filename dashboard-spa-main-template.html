@@ -13,16 +13,6 @@
   <!-- Material Design Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-  <!-- Lodash -->
-  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-
-  <!-- HTMX (for progressive HTML-driven interactions) -->
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-
   <!-- Rewst CSS Theme Overlay -->
   <style>
     {{ CSS_THEME }}
@@ -43,7 +33,7 @@
         </div>
         <span class="nav-text app-sidebar-brand-title">Computer VPN Manager</span>
       </div>
-      <button id="toggle-sidebar" class="app-sidebar-toggle-btn" hx-on:click="window.AppUI && window.AppUI.toggleSidebar()">
+      <button id="toggle-sidebar" class="app-sidebar-toggle-btn" onclick="window.AppUI && window.AppUI.toggleSidebar()">
         <span class="material-icons app-sidebar-toggle-icon">chevron_left</span>
       </button>
     </div>
@@ -70,13 +60,13 @@
   </div>
 
   <!-- Filter Slide-Out Drawer -->
-  <div id="filter-overlay" class="app-filter-overlay hidden" hx-on:click="window.AppUI && window.AppUI.closeFilterDrawer()"></div>
+  <div id="filter-overlay" class="app-filter-overlay hidden" onclick="window.AppUI && window.AppUI.closeFilterDrawer()"></div>
 
   <div id="filter-drawer" class="app-filter-drawer">
     <!-- Drawer Header -->
     <div class="app-filter-drawer-header">
       <h3 class="app-filter-drawer-title">Filters</h3>
-      <button id="close-filter-drawer" class="app-filter-close-btn" hx-on:click="window.AppUI && window.AppUI.closeFilterDrawer()">
+      <button id="close-filter-drawer" class="app-filter-close-btn" onclick="window.AppUI && window.AppUI.closeFilterDrawer()">
         <span class="material-icons">close</span>
       </button>
     </div>
@@ -129,7 +119,7 @@
               class="btn-tertiary app-refresh-btn app-refresh-btn-subtle"
               title="Reset cached session state and rerun prerequisites"
               aria-label="Force refresh prerequisites"
-              hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()"
+              onclick="window.AppUI && window.AppUI.refreshPrerequisites()"
             >
               <span class="material-icons">refresh</span>
             </button>
@@ -139,7 +129,7 @@
           <label id="toggle-example" class="dark-mode-toggle app-dark-toggle">
             <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
             <div class="app-dark-toggle-switch">
-              <input type="checkbox" id="header-toggle" class="app-visually-hidden" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
+              <input type="checkbox" id="header-toggle" class="app-visually-hidden" onchange="window.AppUI && window.AppUI.toggleDarkMode()">
               <div class="toggle-bg app-dark-toggle-bg"></div>
               <div class="toggle-dot app-dark-toggle-dot"></div>
             </div>
@@ -663,7 +653,7 @@
         setTimeout(() => { filterOverlay.classList.add('hidden'); }, 300);
       }
 
-      // HTMX uses these named handlers from markup for readability.
+      // Named handlers exposed for inline onclick/onchange handlers in markup.
       window.AppUI = {
         toggleSidebar,
         refreshPrerequisites,
@@ -714,6 +704,13 @@
         const lastIndex = steps.length - 1;
         return { steps, index: lastIndex, step: steps[lastIndex] };
       }
+
+      // ============================================
+      // SHARED PAGE UTILITIES
+      // (workflow result parsing, session storage, formatters)
+      // ============================================
+
+      {{ PAGE_UTILS }}
 
       // ============================================
       // PAGE RENDER FUNCTIONS

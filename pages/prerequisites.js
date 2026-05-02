@@ -277,7 +277,6 @@ function renderPrerequisitesPage() {
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
   const PREREQ_DEBUG_SIM_KEY = 'prereqDebugSimulationV1';
 
-  const workflowIds = window.WORKFLOW_IDS || {};
     // These checks must ALL pass before the Continue button unlocks.
   const REQUIRED_PASSING_KEYS = [
     ...COMPANY_CHECK_KEYS,
@@ -294,24 +293,6 @@ function renderPrerequisitesPage() {
     user: ['email_verification', 'cwm_config'],
     computer: ['computer_online', 'valid_machine_cert_installed']
   };
-
-  function getStoredJson(key) {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      debugWarn(`Failed to parse session key ${key}:`, error);
-      return null;
-    }
-  }
-
-  function setStoredJson(key, value) {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      debugWarn(`Failed to persist session key ${key}:`, error);
-    }
-  }
 
   function isBetaMode() {
     try {
@@ -510,16 +491,6 @@ function renderPrerequisitesPage() {
         cadenceLabelElement.textContent = "All checks passed. You're ready to continue.";
       }
     }
-  }
-
-  function getWorkflowId(key) {
-      // Looks up a workflow ID by key from the local config.
-      // Throws a helpful error if the developer forgot to add it to workflow-ids.local.js.
-    const id = workflowIds[key];
-    if (!id) {
-      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
-    }
-    return id;
   }
 
   function getCachedPrereqs() {
@@ -753,14 +724,6 @@ function renderPrerequisitesPage() {
     return true;
   }
 
-  function formatDuration(ms) {
-      // Converts milliseconds to a human-readable string like "2m 5s" or "45s".
-    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-  }
-
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -944,31 +907,6 @@ function renderPrerequisitesPage() {
     }
   }
 
-  function isWorkflowTimeoutError(error) {
-      // Rewst surfaces timeouts via the error message after the shared 5-minute wait expires.
-    const message = error?.message || '';
-    return /timeout/i.test(message);
-  }
-
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null, startedAt = null) {
-      // Converts raw workflow status updates into user-facing loading text.
-    const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
-    const resolvedStep = workflowKey
-      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
-      : null;
-    const configuredLabel = resolvedStep?.step?.progressLabel || null;
-    if (configuredLabel) {
-      return `${taskPrefix}${configuredLabel}.`;
-    }
-
-    const normalizedStatus = typeof status === 'string' && status.trim()
-      ? status.trim().replace(/_/g, ' ').toLowerCase()
-      : 'processing';
-    const elapsedMs = startedAt ? Date.now() - startedAt : 0;
-    const remainingMs = Math.max(0, WORKFLOW_RESPONSE_MAX_WAIT_MS - elapsedMs);
-    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
-  }
-
   function createWorkflowCountdown(element, label, progressLabel, workflowKey = null) {
     const startedAt = Date.now();
     let lastStatus = 'processing';
@@ -977,7 +915,7 @@ function renderPrerequisitesPage() {
 
     const tick = () => updateCheckLoadingText(
       element, label,
-      formatWorkflowProgressDetails(lastStatus, lastTasks, workflowKey, startedAt),
+      formatWorkflowProgressDetails(lastStatus, lastTasks, workflowKey, startedAt, WORKFLOW_RESPONSE_MAX_WAIT_MS),
       progressLabel
     );
 
@@ -993,137 +931,6 @@ function renderPrerequisitesPage() {
       stop() {
         if (timerId) { clearInterval(timerId); timerId = null; }
       }
-    };
-  }
-
-  async function runSingleAttempt(task, operationName = 'workflow') {
-      // Executes the task once and lets the underlying Rewst client handle the long poll.
-    const startedAt = Date.now();
-
-    try {
-      const result = await task();
-      const elapsedMs = Date.now() - startedAt;
-      return { ok: true, result, error: null, elapsedMs, timedOut: false };
-    } catch (error) {
-      const elapsedMs = Date.now() - startedAt;
-      debugWarn(`[Workflow] ${operationName}: failed after ${elapsedMs}ms`, error);
-      return {
-        ok: false,
-        result: null,
-        error,
-        elapsedMs,
-        timedOut: isWorkflowTimeoutError(error)
-      };
-    }
-  }
-
-  function buildResultDataCandidates(result) {
-      // Rewst workflow outputs can be nested in various shapes depending on how they're configured.
-      // This function returns a list of candidate objects to search for output fields in.
-    const candidates = [];
-    const pushIfObject = (value) => {
-      if (value && typeof value === 'object') {
-        candidates.push(value);
-      }
-    };
-
-    pushIfObject(result);
-    pushIfObject(result?.output);
-    pushIfObject(result?.execution?.conductor?.output);
-    pushIfObject(result?.execution?.output);
-
-    const base = candidates.slice();
-    base.forEach((candidate) => {
-      pushIfObject(candidate.output);
-      pushIfObject(candidate.result);
-      pushIfObject(candidate.data);
-      pushIfObject(candidate.payload);
-    });
-
-    return candidates;
-  }
-
-  function getFirstFieldValue(result, fieldNames) {
-      // Searches across all candidate output objects for the first non-null value
-      // matching any of the given field names. Used to handle varying workflow output shapes.
-    const candidates = buildResultDataCandidates(result);
-
-    const findFieldValueDeep = (root, targetFieldNames) => {
-      if (!root || typeof root !== 'object') return null;
-
-      const visited = new Set();
-      const stack = [root];
-
-      while (stack.length > 0) {
-        const current = stack.pop();
-        if (!current || typeof current !== 'object') continue;
-        if (visited.has(current)) continue;
-        visited.add(current);
-
-        for (const fieldName of targetFieldNames) {
-          if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
-            const value = current[fieldName];
-            if (value !== undefined && value !== null) {
-              return value;
-            }
-          }
-        }
-
-        if (Array.isArray(current)) {
-          current.forEach((item) => {
-            if (item && typeof item === 'object') {
-              stack.push(item);
-            }
-          });
-        } else {
-          Object.values(current).forEach((value) => {
-            if (value && typeof value === 'object') {
-              stack.push(value);
-            }
-          });
-        }
-      }
-
-      return null;
-    };
-
-    for (const candidate of candidates) {
-      for (const fieldName of fieldNames) {
-        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
-          const value = candidate[fieldName];
-          if (value !== undefined && value !== null) {
-            return value;
-          }
-        }
-      }
-
-      const nestedMatch = findFieldValueDeep(candidate, fieldNames);
-      if (nestedMatch !== null && nestedMatch !== undefined) {
-        return nestedMatch;
-      }
-    }
-    return null;
-  }
-
-  function parseBooleanLike(value) {
-      // Normalizes loosely-typed "boolean" values from workflow outputs.
-      // Workflows may return 'true', 'yes', '1', 'online', etc. — this handles all of them.
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (['true', 'yes', 'y', '1', 'online', 'connected', 'up'].includes(normalized)) return true;
-      if (['false', 'no', 'n', '0', 'offline', 'disconnected', 'down'].includes(normalized)) return false;
-    }
-    return null;
-  }
-
-  function getBooleanFieldValue(result, fieldNames) {
-      // Convenience wrapper: finds a field in the workflow result and parses it as a boolean.
-    const rawValue = getFirstFieldValue(result, fieldNames);
-    return {
-      rawValue,
-      parsed: parseBooleanLike(rawValue)
     };
   }
 

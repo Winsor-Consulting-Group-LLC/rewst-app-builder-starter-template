@@ -52,60 +52,6 @@ function renderVpnStatusPage() {
     debugVisibilityTimer: null
   };
 
-  function getWorkflowId(key) {
-    const workflowIds = window.WORKFLOW_IDS || {};
-    const workflowId = workflowIds[key];
-    if (!workflowId) {
-      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
-    }
-    return workflowId;
-  }
-
-  function getStoredJson(key) {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      debugWarn(`Failed to parse session key ${key}:`, error);
-      return null;
-    }
-  }
-
-  function setStoredJson(key, value) {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      debugWarn(`Failed to persist session key ${key}:`, error);
-    }
-  }
-
-  function formatDuration(ms) {
-    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-  }
-
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
-    const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
-    const canResolveSteps = typeof resolveWorkflowStepByTaskCount === 'function';
-    const resolvedStep = workflowKey && canResolveSteps
-      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
-      : null;
-    const configuredLabel = resolvedStep?.step?.progressLabel || null;
-
-    if (configuredLabel) {
-      return `${taskPrefix}${configuredLabel}.`;
-    }
-
-    const normalizedStatus = typeof status === 'string' && status.trim()
-      ? status.trim().replace(/_/g, ' ').toLowerCase()
-      : 'processing';
-    const elapsedMs = state.workflowStartedAt ? Date.now() - state.workflowStartedAt : 0;
-    const remainingMs = Math.max(0, WORKFLOW_RESPONSE_MAX_WAIT_MS - elapsedMs);
-    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
-  }
-
   function updateWorkflowProgressStatus(status, numSuccessfulTasks, workflowKey = null) {
     if (status) state.lastProgressStatus = status;
     if (workflowKey && state.progressWorkflowKey !== workflowKey) {
@@ -123,112 +69,13 @@ function renderVpnStatusPage() {
     const effectiveTaskCount = Number.isFinite(state.progressMaxSuccessfulTasks)
       ? state.progressMaxSuccessfulTasks
       : numSuccessfulTasks;
-    const nextStatusText = formatWorkflowProgressDetails(status, effectiveTaskCount, workflowKey);
+    const nextStatusText = formatWorkflowProgressDetails(status, effectiveTaskCount, workflowKey, state.workflowStartedAt, WORKFLOW_RESPONSE_MAX_WAIT_MS);
     if (nextStatusText === state.statusText) {
       return;
     }
 
     state.statusText = nextStatusText;
     updateStatusTextInPlace(nextStatusText);
-  }
-
-  function buildResultDataCandidates(result) {
-    const candidates = [];
-    const seen = new Set();
-
-    const pushCandidate = (value) => {
-      let normalized = value;
-
-      if (typeof normalized === 'string') {
-        const trimmed = normalized.trim();
-        if (!trimmed) return;
-        try {
-          normalized = JSON.parse(trimmed);
-        } catch (_) {
-          return;
-        }
-      }
-
-      if (!normalized || typeof normalized !== 'object') return;
-      if (seen.has(normalized)) return;
-
-      seen.add(normalized);
-      candidates.push(normalized);
-
-      // Workflow APIs commonly wrap actual payloads under one of these fields.
-      ['output', 'result', 'data', 'payload'].forEach((key) => {
-        if (Object.prototype.hasOwnProperty.call(normalized, key)) {
-          pushCandidate(normalized[key]);
-        }
-      });
-    };
-
-    pushCandidate(result);
-    pushCandidate(result?.output);
-    pushCandidate(result?.execution?.conductor?.output);
-    pushCandidate(result?.execution?.output);
-
-    return candidates;
-  }
-
-  function getFirstFieldValue(result, fieldNames) {
-    const candidates = buildResultDataCandidates(result);
-
-    const findFieldValueDeep = (root, targetFieldNames) => {
-      if (!root || typeof root !== 'object') return null;
-
-      const visited = new Set();
-      const stack = [root];
-
-      while (stack.length > 0) {
-        const current = stack.pop();
-        if (!current || typeof current !== 'object') continue;
-        if (visited.has(current)) continue;
-        visited.add(current);
-
-        for (const fieldName of targetFieldNames) {
-          if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
-            const value = current[fieldName];
-            if (value !== undefined && value !== null) {
-              return value;
-            }
-          }
-        }
-
-        if (Array.isArray(current)) {
-          current.forEach((item) => {
-            if (item && typeof item === 'object') {
-              stack.push(item);
-            }
-          });
-        } else {
-          Object.values(current).forEach((value) => {
-            if (value && typeof value === 'object') {
-              stack.push(value);
-            }
-          });
-        }
-      }
-
-      return null;
-    };
-
-    for (const candidate of candidates) {
-      for (const fieldName of fieldNames) {
-        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
-          const value = candidate[fieldName];
-          if (value !== undefined && value !== null) {
-            return value;
-          }
-        }
-      }
-
-      const nestedMatch = findFieldValueDeep(candidate, fieldNames);
-      if (nestedMatch !== null && nestedMatch !== undefined) {
-        return nestedMatch;
-      }
-    }
-    return null;
   }
 
   function isValueEmpty(value) {

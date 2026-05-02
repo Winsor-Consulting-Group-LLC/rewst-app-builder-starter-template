@@ -5,112 +5,6 @@ function renderRemediationPage() {
   const REMEDIATION_CONTEXT_KEY = 'prereqMachineCertRemediationContextV1';
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
 
-  function getWorkflowId(key) {
-    const workflowIds = window.WORKFLOW_IDS || {};
-    const workflowId = workflowIds[key];
-    if (!workflowId) {
-      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
-    }
-    return workflowId;
-  }
-
-  function getStoredJson(key) {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      debugWarn(`Failed to parse remediation session key ${key}:`, error);
-      return null;
-    }
-  }
-
-  function setStoredJson(key, value) {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      debugWarn(`Failed to persist remediation session key ${key}:`, error);
-    }
-  }
-
-  function clearStoredKey(key) {
-    try {
-      sessionStorage.removeItem(key);
-    } catch (error) {
-      debugWarn(`Failed to clear remediation session key ${key}:`, error);
-    }
-  }
-
-  function buildResultDataCandidates(result) {
-    const candidates = [];
-    const pushIfObject = (value) => {
-      if (value && typeof value === 'object') {
-        candidates.push(value);
-      }
-    };
-
-    pushIfObject(result);
-    pushIfObject(result?.output);
-    pushIfObject(result?.execution?.conductor?.output);
-    pushIfObject(result?.execution?.output);
-
-    const base = candidates.slice();
-    base.forEach((candidate) => {
-      pushIfObject(candidate.output);
-      pushIfObject(candidate.result);
-      pushIfObject(candidate.data);
-      pushIfObject(candidate.payload);
-    });
-
-    return candidates;
-  }
-
-  function getFirstFieldValue(result, fieldNames) {
-    const candidates = buildResultDataCandidates(result);
-    for (const candidate of candidates) {
-      for (const fieldName of fieldNames) {
-        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
-          const value = candidate[fieldName];
-          if (value !== undefined && value !== null) {
-            return value;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  function parseBooleanLike(value) {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (['true', 'yes', 'y', '1', 'completed', 'success'].includes(normalized)) return true;
-      if (['false', 'no', 'n', '0', 'failed', 'error'].includes(normalized)) return false;
-    }
-    return null;
-  }
-
-  function getBooleanFieldValue(result, fieldNames) {
-    const rawValue = getFirstFieldValue(result, fieldNames);
-    return {
-      rawValue,
-      parsed: parseBooleanLike(rawValue)
-    };
-  }
-
-  async function runSingleAttempt(task, operationName) {
-    const startedAt = Date.now();
-    try {
-      debugLog(`[Remediation] ${operationName}: starting`);
-      const result = await task();
-      debugLog(`[Remediation] ${operationName}: completed in ${Date.now() - startedAt}ms`);
-      return { ok: true, result, error: null };
-    } catch (error) {
-      debugWarn(`[Remediation] ${operationName}: failed after ${Date.now() - startedAt}ms`, error);
-      return { ok: false, result: null, error };
-    }
-  }
-
   const context = getStoredJson(REMEDIATION_CONTEXT_KEY);
 
   if (!context || context.checkKey !== 'valid_machine_cert_installed' || !context.cwaId) {
@@ -313,13 +207,6 @@ function renderRemediationPage() {
     container.appendChild(actions);
   }
 
-  function formatProgressStatus(status) {
-    const normalizedStatus = typeof status === 'string' && status.trim()
-      ? status.trim().replace(/_/g, ' ').toLowerCase()
-      : 'processing';
-    return `Workflow is ${normalizedStatus}.`;
-  }
-
   async function runRemediationWorkflow() {
     if (state.started || state.inFlight) return;
     state.started = true;
@@ -338,7 +225,7 @@ function renderRemediationPage() {
           if (Number.isFinite(numSuccessfulTasks)) {
             state.taskCount = numSuccessfulTasks;
           }
-          state.statusText = formatProgressStatus(status);
+          state.statusText = formatWorkflowProgressDetails(status, null);
           render();
         }
       }),

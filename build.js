@@ -24,6 +24,7 @@ const MARKERS = {
   '{{ GRAPHQL_LIB }}': 'src/zip-graphql-js-lib-v2-optimized.js',
   '{{ DOM_BUILDER }}': 'src/rewst-dom-builder.js',
   '{{ WORKFLOW_IDS }}': WORKFLOW_IDS_SOURCE,
+  '{{ PAGE_UTILS }}': 'src/page-utils.js',
   '{{ PAGE_PREREQUISITES }}': 'pages/prerequisites.js',
   '{{ PAGE_REMEDIATION }}': 'pages/remediation.js',
   '{{ PAGE_VPNSTATUS }}': 'pages/vpnstatus.js',

@@ -13,16 +13,6 @@
   <!-- Material Design Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-  <!-- Lodash -->
-  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-
-  <!-- HTMX (for progressive HTML-driven interactions) -->
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-
   <!-- Rewst CSS Theme Overlay -->
   <style>
     /**
@@ -5045,7 +5035,7 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
         </div>
         <span class="nav-text app-sidebar-brand-title">Computer VPN Manager</span>
       </div>
-      <button id="toggle-sidebar" class="app-sidebar-toggle-btn" hx-on:click="window.AppUI && window.AppUI.toggleSidebar()">
+      <button id="toggle-sidebar" class="app-sidebar-toggle-btn" onclick="window.AppUI && window.AppUI.toggleSidebar()">
         <span class="material-icons app-sidebar-toggle-icon">chevron_left</span>
       </button>
     </div>
@@ -5072,13 +5062,13 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
   </div>
 
   <!-- Filter Slide-Out Drawer -->
-  <div id="filter-overlay" class="app-filter-overlay hidden" hx-on:click="window.AppUI && window.AppUI.closeFilterDrawer()"></div>
+  <div id="filter-overlay" class="app-filter-overlay hidden" onclick="window.AppUI && window.AppUI.closeFilterDrawer()"></div>
 
   <div id="filter-drawer" class="app-filter-drawer">
     <!-- Drawer Header -->
     <div class="app-filter-drawer-header">
       <h3 class="app-filter-drawer-title">Filters</h3>
-      <button id="close-filter-drawer" class="app-filter-close-btn" hx-on:click="window.AppUI && window.AppUI.closeFilterDrawer()">
+      <button id="close-filter-drawer" class="app-filter-close-btn" onclick="window.AppUI && window.AppUI.closeFilterDrawer()">
         <span class="material-icons">close</span>
       </button>
     </div>
@@ -5131,7 +5121,7 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
               class="btn-tertiary app-refresh-btn app-refresh-btn-subtle"
               title="Reset cached session state and rerun prerequisites"
               aria-label="Force refresh prerequisites"
-              hx-on:click="window.AppUI && window.AppUI.refreshPrerequisites()"
+              onclick="window.AppUI && window.AppUI.refreshPrerequisites()"
             >
               <span class="material-icons">refresh</span>
             </button>
@@ -5141,7 +5131,7 @@ tbody tr:nth-child(10) { animation-delay: 270ms; }
           <label id="toggle-example" class="dark-mode-toggle app-dark-toggle">
             <span id="dark-mode-sun" class="material-icons app-dark-toggle-sun">light_mode</span>
             <div class="app-dark-toggle-switch">
-              <input type="checkbox" id="header-toggle" class="app-visually-hidden" hx-on:change="window.AppUI && window.AppUI.toggleDarkMode()">
+              <input type="checkbox" id="header-toggle" class="app-visually-hidden" onchange="window.AppUI && window.AppUI.toggleDarkMode()">
               <div class="toggle-bg app-dark-toggle-bg"></div>
               <div class="toggle-dot app-dark-toggle-dot"></div>
             </div>
@@ -15015,7 +15005,7 @@ window.WORKFLOW_STEPS = WORKFLOW_STEPS;
         setTimeout(() => { filterOverlay.classList.add('hidden'); }, 300);
       }
 
-      // HTMX uses these named handlers from markup for readability.
+      // Named handlers exposed for inline onclick/onchange handlers in markup.
       window.AppUI = {
         toggleSidebar,
         refreshPrerequisites,
@@ -15066,6 +15056,260 @@ window.WORKFLOW_STEPS = WORKFLOW_STEPS;
         const lastIndex = steps.length - 1;
         return { steps, index: lastIndex, step: steps[lastIndex] };
       }
+
+      // ============================================
+      // SHARED PAGE UTILITIES
+      // (workflow result parsing, session storage, formatters)
+      // ============================================
+
+      // ============================================
+// Shared utilities used across pages/*.js files.
+// Loaded into the same module scope as the page render functions
+// (see dashboard-spa-main-template.html), so they can call debugWarn,
+// resolveWorkflowStepByTaskCount, etc. directly.
+// ============================================
+
+// ---------- Workflow IDs ----------
+
+function getWorkflowId(key) {
+  const workflowIds = window.WORKFLOW_IDS || {};
+  const id = workflowIds[key];
+  if (!id) {
+    throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
+  }
+  return id;
+}
+
+// ---------- Session storage (JSON) ----------
+
+function getStoredJson(key) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    debugWarn(`Failed to parse session key ${key}:`, error);
+    return null;
+  }
+}
+
+function setStoredJson(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    debugWarn(`Failed to persist session key ${key}:`, error);
+  }
+}
+
+function clearStoredKey(key) {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (error) {
+    debugWarn(`Failed to clear session key ${key}:`, error);
+  }
+}
+
+// ---------- Workflow result extraction ----------
+
+// Rewst workflow outputs can be nested in various shapes depending on how
+// they're configured. This returns a list of candidate objects to search
+// for output fields in. Stringified JSON payloads are parsed.
+function buildResultDataCandidates(result) {
+  const candidates = [];
+  const seen = new Set();
+
+  const pushCandidate = (value) => {
+    let normalized = value;
+
+    if (typeof normalized === 'string') {
+      const trimmed = normalized.trim();
+      if (!trimmed) return;
+      try {
+        normalized = JSON.parse(trimmed);
+      } catch (_) {
+        return;
+      }
+    }
+
+    if (!normalized || typeof normalized !== 'object') return;
+    if (seen.has(normalized)) return;
+
+    seen.add(normalized);
+    candidates.push(normalized);
+
+    ['output', 'result', 'data', 'payload'].forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(normalized, key)) {
+        pushCandidate(normalized[key]);
+      }
+    });
+  };
+
+  pushCandidate(result);
+  pushCandidate(result?.output);
+  pushCandidate(result?.execution?.conductor?.output);
+  pushCandidate(result?.execution?.output);
+
+  return candidates;
+}
+
+// Searches across all candidate output objects for the first non-null value
+// matching any of the given field names. Falls through to a deep recursive
+// search if no top-level match is found.
+function getFirstFieldValue(result, fieldNames) {
+  const candidates = buildResultDataCandidates(result);
+
+  const findFieldValueDeep = (root, targetFieldNames) => {
+    if (!root || typeof root !== 'object') return null;
+
+    const visited = new Set();
+    const stack = [root];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current || typeof current !== 'object') continue;
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      for (const fieldName of targetFieldNames) {
+        if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
+          const value = current[fieldName];
+          if (value !== undefined && value !== null) {
+            return value;
+          }
+        }
+      }
+
+      if (Array.isArray(current)) {
+        current.forEach((item) => {
+          if (item && typeof item === 'object') stack.push(item);
+        });
+      } else {
+        Object.values(current).forEach((value) => {
+          if (value && typeof value === 'object') stack.push(value);
+        });
+      }
+    }
+
+    return null;
+  };
+
+  for (const candidate of candidates) {
+    for (const fieldName of fieldNames) {
+      if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
+        const value = candidate[fieldName];
+        if (value !== undefined && value !== null) {
+          return value;
+        }
+      }
+    }
+
+    const nestedMatch = findFieldValueDeep(candidate, fieldNames);
+    if (nestedMatch !== null && nestedMatch !== undefined) {
+      return nestedMatch;
+    }
+  }
+  return null;
+}
+
+// Normalizes loosely-typed "boolean" values from workflow outputs.
+// Workflows may return 'true', 'yes', '1', 'online', etc.
+function parseBooleanLike(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', 'yes', 'y', '1', 'online', 'connected', 'up', 'completed', 'success'].includes(normalized)) return true;
+    if (['false', 'no', 'n', '0', 'offline', 'disconnected', 'down', 'failed', 'error'].includes(normalized)) return false;
+  }
+  return null;
+}
+
+function getBooleanFieldValue(result, fieldNames) {
+  const rawValue = getFirstFieldValue(result, fieldNames);
+  return {
+    rawValue,
+    parsed: parseBooleanLike(rawValue)
+  };
+}
+
+// ---------- Formatters ----------
+
+function formatDuration(ms) {
+  const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+// Builds a human-readable status line from a workflow's progress callback.
+// If `maxWaitMs` is provided, includes an elapsed-out-of-max suffix.
+function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null, startedAt = null, maxWaitMs = null) {
+  const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
+  const canResolveSteps = typeof resolveWorkflowStepByTaskCount === 'function';
+  const resolvedStep = workflowKey && canResolveSteps
+    ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
+    : null;
+  const configuredLabel = resolvedStep?.step?.progressLabel || null;
+
+  if (configuredLabel) {
+    return `${taskPrefix}${configuredLabel}.`;
+  }
+
+  const normalizedStatus = typeof status === 'string' && status.trim()
+    ? status.trim().replace(/_/g, ' ').toLowerCase()
+    : 'processing';
+
+  if (startedAt && Number.isFinite(maxWaitMs)) {
+    const elapsedMs = Date.now() - startedAt;
+    const remainingMs = Math.max(0, maxWaitMs - elapsedMs);
+    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
+  }
+
+  return `${taskPrefix}Workflow is ${normalizedStatus}.`;
+}
+
+// ---------- Workflow execution wrapper ----------
+
+function isWorkflowTimeoutError(error) {
+  return /timeout/i.test(error?.message || '');
+}
+
+async function runSingleAttempt(task, operationName = 'workflow') {
+  const startedAt = Date.now();
+  try {
+    debugLog(`[Workflow] ${operationName}: starting`);
+    const result = await task();
+    const elapsedMs = Date.now() - startedAt;
+    debugLog(`[Workflow] ${operationName}: completed in ${elapsedMs}ms`);
+    return { ok: true, result, error: null, elapsedMs, timedOut: false };
+  } catch (error) {
+    const elapsedMs = Date.now() - startedAt;
+    debugWarn(`[Workflow] ${operationName}: failed after ${elapsedMs}ms`, error);
+    return {
+      ok: false,
+      result: null,
+      error,
+      elapsedMs,
+      timedOut: isWorkflowTimeoutError(error)
+    };
+  }
+}
+
+// Expose for console debugging.
+window.PageUtils = {
+  getWorkflowId,
+  getStoredJson,
+  setStoredJson,
+  clearStoredKey,
+  buildResultDataCandidates,
+  getFirstFieldValue,
+  parseBooleanLike,
+  getBooleanFieldValue,
+  formatDuration,
+  formatWorkflowProgressDetails,
+  isWorkflowTimeoutError,
+  runSingleAttempt
+};
+
 
       // ============================================
       // PAGE RENDER FUNCTIONS
@@ -15350,7 +15594,6 @@ function renderPrerequisitesPage() {
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
   const PREREQ_DEBUG_SIM_KEY = 'prereqDebugSimulationV1';
 
-  const workflowIds = window.WORKFLOW_IDS || {};
     // These checks must ALL pass before the Continue button unlocks.
   const REQUIRED_PASSING_KEYS = [
     ...COMPANY_CHECK_KEYS,
@@ -15367,24 +15610,6 @@ function renderPrerequisitesPage() {
     user: ['email_verification', 'cwm_config'],
     computer: ['computer_online', 'valid_machine_cert_installed']
   };
-
-  function getStoredJson(key) {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      debugWarn(`Failed to parse session key ${key}:`, error);
-      return null;
-    }
-  }
-
-  function setStoredJson(key, value) {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      debugWarn(`Failed to persist session key ${key}:`, error);
-    }
-  }
 
   function isBetaMode() {
     try {
@@ -15583,16 +15808,6 @@ function renderPrerequisitesPage() {
         cadenceLabelElement.textContent = "All checks passed. You're ready to continue.";
       }
     }
-  }
-
-  function getWorkflowId(key) {
-      // Looks up a workflow ID by key from the local config.
-      // Throws a helpful error if the developer forgot to add it to workflow-ids.local.js.
-    const id = workflowIds[key];
-    if (!id) {
-      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
-    }
-    return id;
   }
 
   function getCachedPrereqs() {
@@ -15826,14 +16041,6 @@ function renderPrerequisitesPage() {
     return true;
   }
 
-  function formatDuration(ms) {
-      // Converts milliseconds to a human-readable string like "2m 5s" or "45s".
-    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-  }
-
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -16017,31 +16224,6 @@ function renderPrerequisitesPage() {
     }
   }
 
-  function isWorkflowTimeoutError(error) {
-      // Rewst surfaces timeouts via the error message after the shared 5-minute wait expires.
-    const message = error?.message || '';
-    return /timeout/i.test(message);
-  }
-
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null, startedAt = null) {
-      // Converts raw workflow status updates into user-facing loading text.
-    const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
-    const resolvedStep = workflowKey
-      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
-      : null;
-    const configuredLabel = resolvedStep?.step?.progressLabel || null;
-    if (configuredLabel) {
-      return `${taskPrefix}${configuredLabel}.`;
-    }
-
-    const normalizedStatus = typeof status === 'string' && status.trim()
-      ? status.trim().replace(/_/g, ' ').toLowerCase()
-      : 'processing';
-    const elapsedMs = startedAt ? Date.now() - startedAt : 0;
-    const remainingMs = Math.max(0, WORKFLOW_RESPONSE_MAX_WAIT_MS - elapsedMs);
-    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
-  }
-
   function createWorkflowCountdown(element, label, progressLabel, workflowKey = null) {
     const startedAt = Date.now();
     let lastStatus = 'processing';
@@ -16050,7 +16232,7 @@ function renderPrerequisitesPage() {
 
     const tick = () => updateCheckLoadingText(
       element, label,
-      formatWorkflowProgressDetails(lastStatus, lastTasks, workflowKey, startedAt),
+      formatWorkflowProgressDetails(lastStatus, lastTasks, workflowKey, startedAt, WORKFLOW_RESPONSE_MAX_WAIT_MS),
       progressLabel
     );
 
@@ -16066,137 +16248,6 @@ function renderPrerequisitesPage() {
       stop() {
         if (timerId) { clearInterval(timerId); timerId = null; }
       }
-    };
-  }
-
-  async function runSingleAttempt(task, operationName = 'workflow') {
-      // Executes the task once and lets the underlying Rewst client handle the long poll.
-    const startedAt = Date.now();
-
-    try {
-      const result = await task();
-      const elapsedMs = Date.now() - startedAt;
-      return { ok: true, result, error: null, elapsedMs, timedOut: false };
-    } catch (error) {
-      const elapsedMs = Date.now() - startedAt;
-      debugWarn(`[Workflow] ${operationName}: failed after ${elapsedMs}ms`, error);
-      return {
-        ok: false,
-        result: null,
-        error,
-        elapsedMs,
-        timedOut: isWorkflowTimeoutError(error)
-      };
-    }
-  }
-
-  function buildResultDataCandidates(result) {
-      // Rewst workflow outputs can be nested in various shapes depending on how they're configured.
-      // This function returns a list of candidate objects to search for output fields in.
-    const candidates = [];
-    const pushIfObject = (value) => {
-      if (value && typeof value === 'object') {
-        candidates.push(value);
-      }
-    };
-
-    pushIfObject(result);
-    pushIfObject(result?.output);
-    pushIfObject(result?.execution?.conductor?.output);
-    pushIfObject(result?.execution?.output);
-
-    const base = candidates.slice();
-    base.forEach((candidate) => {
-      pushIfObject(candidate.output);
-      pushIfObject(candidate.result);
-      pushIfObject(candidate.data);
-      pushIfObject(candidate.payload);
-    });
-
-    return candidates;
-  }
-
-  function getFirstFieldValue(result, fieldNames) {
-      // Searches across all candidate output objects for the first non-null value
-      // matching any of the given field names. Used to handle varying workflow output shapes.
-    const candidates = buildResultDataCandidates(result);
-
-    const findFieldValueDeep = (root, targetFieldNames) => {
-      if (!root || typeof root !== 'object') return null;
-
-      const visited = new Set();
-      const stack = [root];
-
-      while (stack.length > 0) {
-        const current = stack.pop();
-        if (!current || typeof current !== 'object') continue;
-        if (visited.has(current)) continue;
-        visited.add(current);
-
-        for (const fieldName of targetFieldNames) {
-          if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
-            const value = current[fieldName];
-            if (value !== undefined && value !== null) {
-              return value;
-            }
-          }
-        }
-
-        if (Array.isArray(current)) {
-          current.forEach((item) => {
-            if (item && typeof item === 'object') {
-              stack.push(item);
-            }
-          });
-        } else {
-          Object.values(current).forEach((value) => {
-            if (value && typeof value === 'object') {
-              stack.push(value);
-            }
-          });
-        }
-      }
-
-      return null;
-    };
-
-    for (const candidate of candidates) {
-      for (const fieldName of fieldNames) {
-        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
-          const value = candidate[fieldName];
-          if (value !== undefined && value !== null) {
-            return value;
-          }
-        }
-      }
-
-      const nestedMatch = findFieldValueDeep(candidate, fieldNames);
-      if (nestedMatch !== null && nestedMatch !== undefined) {
-        return nestedMatch;
-      }
-    }
-    return null;
-  }
-
-  function parseBooleanLike(value) {
-      // Normalizes loosely-typed "boolean" values from workflow outputs.
-      // Workflows may return 'true', 'yes', '1', 'online', etc. — this handles all of them.
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (['true', 'yes', 'y', '1', 'online', 'connected', 'up'].includes(normalized)) return true;
-      if (['false', 'no', 'n', '0', 'offline', 'disconnected', 'down'].includes(normalized)) return false;
-    }
-    return null;
-  }
-
-  function getBooleanFieldValue(result, fieldNames) {
-      // Convenience wrapper: finds a field in the workflow result and parses it as a boolean.
-    const rawValue = getFirstFieldValue(result, fieldNames);
-    return {
-      rawValue,
-      parsed: parseBooleanLike(rawValue)
     };
   }
 
@@ -17343,112 +17394,6 @@ function renderPrerequisitesPage() {
   const REMEDIATION_CONTEXT_KEY = 'prereqMachineCertRemediationContextV1';
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
 
-  function getWorkflowId(key) {
-    const workflowIds = window.WORKFLOW_IDS || {};
-    const workflowId = workflowIds[key];
-    if (!workflowId) {
-      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
-    }
-    return workflowId;
-  }
-
-  function getStoredJson(key) {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      debugWarn(`Failed to parse remediation session key ${key}:`, error);
-      return null;
-    }
-  }
-
-  function setStoredJson(key, value) {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      debugWarn(`Failed to persist remediation session key ${key}:`, error);
-    }
-  }
-
-  function clearStoredKey(key) {
-    try {
-      sessionStorage.removeItem(key);
-    } catch (error) {
-      debugWarn(`Failed to clear remediation session key ${key}:`, error);
-    }
-  }
-
-  function buildResultDataCandidates(result) {
-    const candidates = [];
-    const pushIfObject = (value) => {
-      if (value && typeof value === 'object') {
-        candidates.push(value);
-      }
-    };
-
-    pushIfObject(result);
-    pushIfObject(result?.output);
-    pushIfObject(result?.execution?.conductor?.output);
-    pushIfObject(result?.execution?.output);
-
-    const base = candidates.slice();
-    base.forEach((candidate) => {
-      pushIfObject(candidate.output);
-      pushIfObject(candidate.result);
-      pushIfObject(candidate.data);
-      pushIfObject(candidate.payload);
-    });
-
-    return candidates;
-  }
-
-  function getFirstFieldValue(result, fieldNames) {
-    const candidates = buildResultDataCandidates(result);
-    for (const candidate of candidates) {
-      for (const fieldName of fieldNames) {
-        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
-          const value = candidate[fieldName];
-          if (value !== undefined && value !== null) {
-            return value;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  function parseBooleanLike(value) {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (['true', 'yes', 'y', '1', 'completed', 'success'].includes(normalized)) return true;
-      if (['false', 'no', 'n', '0', 'failed', 'error'].includes(normalized)) return false;
-    }
-    return null;
-  }
-
-  function getBooleanFieldValue(result, fieldNames) {
-    const rawValue = getFirstFieldValue(result, fieldNames);
-    return {
-      rawValue,
-      parsed: parseBooleanLike(rawValue)
-    };
-  }
-
-  async function runSingleAttempt(task, operationName) {
-    const startedAt = Date.now();
-    try {
-      debugLog(`[Remediation] ${operationName}: starting`);
-      const result = await task();
-      debugLog(`[Remediation] ${operationName}: completed in ${Date.now() - startedAt}ms`);
-      return { ok: true, result, error: null };
-    } catch (error) {
-      debugWarn(`[Remediation] ${operationName}: failed after ${Date.now() - startedAt}ms`, error);
-      return { ok: false, result: null, error };
-    }
-  }
-
   const context = getStoredJson(REMEDIATION_CONTEXT_KEY);
 
   if (!context || context.checkKey !== 'valid_machine_cert_installed' || !context.cwaId) {
@@ -17651,13 +17596,6 @@ function renderPrerequisitesPage() {
     container.appendChild(actions);
   }
 
-  function formatProgressStatus(status) {
-    const normalizedStatus = typeof status === 'string' && status.trim()
-      ? status.trim().replace(/_/g, ' ').toLowerCase()
-      : 'processing';
-    return `Workflow is ${normalizedStatus}.`;
-  }
-
   async function runRemediationWorkflow() {
     if (state.started || state.inFlight) return;
     state.started = true;
@@ -17676,7 +17614,7 @@ function renderPrerequisitesPage() {
           if (Number.isFinite(numSuccessfulTasks)) {
             state.taskCount = numSuccessfulTasks;
           }
-          state.statusText = formatProgressStatus(status);
+          state.statusText = formatWorkflowProgressDetails(status, null);
           render();
         }
       }),
@@ -17765,60 +17703,6 @@ function renderVpnStatusPage() {
     debugVisibilityTimer: null
   };
 
-  function getWorkflowId(key) {
-    const workflowIds = window.WORKFLOW_IDS || {};
-    const workflowId = workflowIds[key];
-    if (!workflowId) {
-      throw new Error(`Missing workflow ID for ${key}. Set it in src/workflow-ids.local.js`);
-    }
-    return workflowId;
-  }
-
-  function getStoredJson(key) {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      debugWarn(`Failed to parse session key ${key}:`, error);
-      return null;
-    }
-  }
-
-  function setStoredJson(key, value) {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      debugWarn(`Failed to persist session key ${key}:`, error);
-    }
-  }
-
-  function formatDuration(ms) {
-    const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-  }
-
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
-    const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
-    const canResolveSteps = typeof resolveWorkflowStepByTaskCount === 'function';
-    const resolvedStep = workflowKey && canResolveSteps
-      ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
-      : null;
-    const configuredLabel = resolvedStep?.step?.progressLabel || null;
-
-    if (configuredLabel) {
-      return `${taskPrefix}${configuredLabel}.`;
-    }
-
-    const normalizedStatus = typeof status === 'string' && status.trim()
-      ? status.trim().replace(/_/g, ' ').toLowerCase()
-      : 'processing';
-    const elapsedMs = state.workflowStartedAt ? Date.now() - state.workflowStartedAt : 0;
-    const remainingMs = Math.max(0, WORKFLOW_RESPONSE_MAX_WAIT_MS - elapsedMs);
-    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
-  }
-
   function updateWorkflowProgressStatus(status, numSuccessfulTasks, workflowKey = null) {
     if (status) state.lastProgressStatus = status;
     if (workflowKey && state.progressWorkflowKey !== workflowKey) {
@@ -17836,112 +17720,13 @@ function renderVpnStatusPage() {
     const effectiveTaskCount = Number.isFinite(state.progressMaxSuccessfulTasks)
       ? state.progressMaxSuccessfulTasks
       : numSuccessfulTasks;
-    const nextStatusText = formatWorkflowProgressDetails(status, effectiveTaskCount, workflowKey);
+    const nextStatusText = formatWorkflowProgressDetails(status, effectiveTaskCount, workflowKey, state.workflowStartedAt, WORKFLOW_RESPONSE_MAX_WAIT_MS);
     if (nextStatusText === state.statusText) {
       return;
     }
 
     state.statusText = nextStatusText;
     updateStatusTextInPlace(nextStatusText);
-  }
-
-  function buildResultDataCandidates(result) {
-    const candidates = [];
-    const seen = new Set();
-
-    const pushCandidate = (value) => {
-      let normalized = value;
-
-      if (typeof normalized === 'string') {
-        const trimmed = normalized.trim();
-        if (!trimmed) return;
-        try {
-          normalized = JSON.parse(trimmed);
-        } catch (_) {
-          return;
-        }
-      }
-
-      if (!normalized || typeof normalized !== 'object') return;
-      if (seen.has(normalized)) return;
-
-      seen.add(normalized);
-      candidates.push(normalized);
-
-      // Workflow APIs commonly wrap actual payloads under one of these fields.
-      ['output', 'result', 'data', 'payload'].forEach((key) => {
-        if (Object.prototype.hasOwnProperty.call(normalized, key)) {
-          pushCandidate(normalized[key]);
-        }
-      });
-    };
-
-    pushCandidate(result);
-    pushCandidate(result?.output);
-    pushCandidate(result?.execution?.conductor?.output);
-    pushCandidate(result?.execution?.output);
-
-    return candidates;
-  }
-
-  function getFirstFieldValue(result, fieldNames) {
-    const candidates = buildResultDataCandidates(result);
-
-    const findFieldValueDeep = (root, targetFieldNames) => {
-      if (!root || typeof root !== 'object') return null;
-
-      const visited = new Set();
-      const stack = [root];
-
-      while (stack.length > 0) {
-        const current = stack.pop();
-        if (!current || typeof current !== 'object') continue;
-        if (visited.has(current)) continue;
-        visited.add(current);
-
-        for (const fieldName of targetFieldNames) {
-          if (Object.prototype.hasOwnProperty.call(current, fieldName)) {
-            const value = current[fieldName];
-            if (value !== undefined && value !== null) {
-              return value;
-            }
-          }
-        }
-
-        if (Array.isArray(current)) {
-          current.forEach((item) => {
-            if (item && typeof item === 'object') {
-              stack.push(item);
-            }
-          });
-        } else {
-          Object.values(current).forEach((value) => {
-            if (value && typeof value === 'object') {
-              stack.push(value);
-            }
-          });
-        }
-      }
-
-      return null;
-    };
-
-    for (const candidate of candidates) {
-      for (const fieldName of fieldNames) {
-        if (Object.prototype.hasOwnProperty.call(candidate, fieldName)) {
-          const value = candidate[fieldName];
-          if (value !== undefined && value !== null) {
-            return value;
-          }
-        }
-      }
-
-      const nestedMatch = findFieldValueDeep(candidate, fieldNames);
-      if (nestedMatch !== null && nestedMatch !== undefined) {
-        return nestedMatch;
-      }
-    }
-    return null;
   }
 
   function isValueEmpty(value) {
