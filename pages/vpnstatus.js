@@ -48,7 +48,8 @@ function renderVpnStatusPage() {
     removeConfirmOpen: false,
     removeConfirmCountdown: 0,
     removeConfirmReady: false,
-    removeConfirmTimerId: null
+    removeConfirmTimerId: null,
+    debugVisibilityTimer: null
   };
 
   function getWorkflowId(key) {
@@ -871,6 +872,14 @@ function renderVpnStatusPage() {
     return 'sync';
   }
 
+  function isBetaMode() {
+    try {
+      return window.top.location.href.toLowerCase().includes('/beta');
+    } catch (e) {
+      return false;
+    }
+  }
+
   function getCachedAdapterSnapshot() {
     const snapshot = getStoredJson(VPN_SETUP_CACHE_KEY);
     if (!snapshot) return null;
@@ -1185,6 +1194,12 @@ function renderVpnStatusPage() {
       </div>
     `;
 
+    // Update debug checkbox visibility based on beta mode
+    const debugLabel = document.querySelector('.vpnsetup-debug-toggle');
+    if (debugLabel) {
+      debugLabel.style.display = isBetaMode() ? '' : 'none';
+    }
+
     const installBtn = document.getElementById('vpnsetup-install-btn');
     if (installBtn) {
       installBtn.addEventListener('click', () => runVpnAdapterCommand('connect'));
@@ -1263,6 +1278,22 @@ function renderVpnStatusPage() {
   refreshDesiredConfigFromOrgVariables().catch((error) => {
     debugWarn('Failed to refresh desired VPN config values from org variables:', error);
   });
+
+  // Set up timer to check for dynamic title changes
+  if (!state.debugVisibilityTimer) {
+    state.debugVisibilityTimer = setInterval(() => {
+      const debugLabel = document.querySelector('.vpnsetup-debug-toggle');
+      if (debugLabel) {
+        const shouldShow = isBetaMode();
+        const currentDisplay = debugLabel.style.display;
+        const targetDisplay = shouldShow ? '' : 'none';
+        if (currentDisplay !== targetDisplay) {
+          debugLabel.style.display = targetDisplay;
+        }
+      }
+    }, 1000); // Check every second
+  }
+
   render();
 
   // Backfill adapter status if prerequisites are complete and either no snapshot exists
