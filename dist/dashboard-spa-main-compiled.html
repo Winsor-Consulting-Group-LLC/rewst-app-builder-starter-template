@@ -15108,6 +15108,10 @@ function renderPrerequisitesPage() {
           <span id="prereq-progress-fill" class="prereq-progress-fill"></span>
         </div>
         <p id="prereq-cadence-label" class="prereq-cadence-label">Starting checks...</p>
+        <label id="prereq-debug-toggle-label" class="vpnsetup-debug-toggle" for="prereq-debug-toggle-input" style="display:none;">
+          <input id="prereq-debug-toggle-input" type="checkbox">
+          <span>Debug: Simulate multiple computers</span>
+        </label>
       </div>
     </div>
   `, 'card prereq-command-card');
@@ -15339,9 +15343,12 @@ function renderPrerequisitesPage() {
   let latestVpnConnections = null;
   let latestVpnRemoteNetworks = null;
   let latestVpnNameservers = null;
+  let debugSimEnabled = false;
+  let debugVisibilityTimer = null;
 
   const REMEDIATION_CONTEXT_KEY = 'prereqMachineCertRemediationContextV1';
   const REMEDIATION_RETURN_KEY = 'prereqMachineCertRemediationReturnV1';
+  const PREREQ_DEBUG_SIM_KEY = 'prereqDebugSimulationV1';
 
   const workflowIds = window.WORKFLOW_IDS || {};
     // These checks must ALL pass before the Continue button unlocks.
@@ -15368,6 +15375,22 @@ function renderPrerequisitesPage() {
     } catch (error) {
       debugWarn(`Failed to parse session key ${key}:`, error);
       return null;
+    }
+  }
+
+  function setStoredJson(key, value) {
+    try {
+      sessionStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      debugWarn(`Failed to persist session key ${key}:`, error);
+    }
+  }
+
+  function isBetaMode() {
+    try {
+      return window.top.location.href.toLowerCase().includes('/beta');
+    } catch (e) {
+      return false;
     }
   }
 
@@ -16486,6 +16509,78 @@ function renderPrerequisitesPage() {
     await runCompanyOrgVariableCheck('vpn_remote_domain');
   }
 
+  function showComputerPickerModal(configs) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.id = 'prereq-computer-picker-overlay';
+      overlay.className = 'vpnsetup-modal-overlay';
+      overlay.setAttribute('role', 'presentation');
+
+      overlay.innerHTML = `
+        <div
+          id="prereq-computer-picker-modal"
+          class="vpnsetup-remove-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prereq-computer-picker-title"
+          aria-describedby="prereq-computer-picker-desc"
+          tabindex="-1"
+          style="max-width:480px;"
+        >
+          <div class="vpnsetup-remove-modal-header">
+            <span class="material-icons vpnsetup-remove-modal-icon" style="color:var(--rewst-teal);">computer</span>
+            <h4 id="prereq-computer-picker-title" class="vpnsetup-remove-modal-title">Select Your Computer</h4>
+          </div>
+          <p id="prereq-computer-picker-desc" class="vpnsetup-remove-modal-copy">
+            Multiple computers were found for your account. Select the one you're setting up VPN on.
+          </p>
+          <div id="prereq-computer-picker-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            ${configs.map((config, i) => `
+              <button
+                class="btn-secondary prereq-computer-picker-item"
+                data-index="${i}"
+                style="text-align:left;justify-content:flex-start;gap:10px;"
+              >
+                <span class="material-icons">laptop</span>
+                <span>${config.name}</span>
+              </button>
+            `).join('')}
+          </div>
+          <div class="vpnsetup-remove-modal-actions">
+            <button id="prereq-computer-picker-cancel" class="btn-secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      const modal = overlay.querySelector('#prereq-computer-picker-modal');
+      if (modal) modal.focus();
+
+      const cleanup = (result) => {
+        overlay.remove();
+        resolve(result);
+      };
+
+      overlay.querySelectorAll('.prereq-computer-picker-item').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const index = parseInt(btn.dataset.index, 10);
+          cleanup(configs[index] || null);
+        });
+      });
+
+      overlay.querySelector('#prereq-computer-picker-cancel')?.addEventListener('click', () => cleanup(null));
+
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) cleanup(null);
+      });
+
+      modal?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') { event.preventDefault(); cleanup(null); }
+      });
+    });
+  }
+
   async function runCwmConfigurationCheck(options = {}) {
     const continuePipeline = options.continuePipeline === true;
       // Asks a Rewst workflow for the user's CWM (ConnectWise Manage) device configurations.
@@ -16514,6 +16609,36 @@ function renderPrerequisitesPage() {
           () => runEmailVerificationCheck({ continuePipeline: true }),
           { statusType: 'pending', statusText: 'Pending' }
         );
+        return;
+      }
+
+      if (debugSimEnabled) {
+        const fakeConfigs = [
+          { name: 'DESKTOP-DEBUG01', id: 'debug-id-1', deviceIdentifier: 'debug-cwa-1' },
+          { name: 'LAPTOP-DEBUG02', id: 'debug-id-2', deviceIdentifier: 'debug-cwa-2' },
+          { name: 'WORKSTATION-DEBUG03', id: 'debug-id-3', deviceIdentifier: 'debug-cwa-3' }
+        ];
+        setCheckLoading(cwmCheckItem, 'CWM Configuration', 'Debug simulation active — showing computer picker...');
+        const picked = await showComputerPickerModal(fakeConfigs);
+        if (picked) {
+          checkStates.cwm_config = true;
+          checkResultDetails.cwm_config = `Debug simulation — selected: ${picked.name}`;
+          renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
+          selectedConfig = picked;
+          window.selectedConfig = picked;
+        } else {
+          checkStates.cwm_config = false;
+          checkResultDetails.cwm_config = 'Debug simulation — no computer selected';
+          renderCheckResult(
+            cwmCheckItem,
+            false,
+            'CWM Configuration',
+            checkResultDetails.cwm_config,
+            () => runCwmConfigurationCheck({ continuePipeline: true })
+          );
+        }
+        updateButtonState();
+        // Halt pipeline — do not proceed to computer online checks with debug data.
         return;
       }
 
@@ -16599,18 +16724,31 @@ function renderPrerequisitesPage() {
           : `Selected: ${selectedConfig.name}`;
         renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
       } else {
-        selectedConfig = validConfigs[0];
-        window.selectedConfig = selectedConfig;
-        try {
-          sessionStorage.setItem('selectedConfig', JSON.stringify(selectedConfig));
-        } catch (e) {
-          // Ignore storage errors.
+        const picked = await showComputerPickerModal(validConfigs);
+        if (picked) {
+          selectedConfig = picked;
+          window.selectedConfig = selectedConfig;
+          try {
+            sessionStorage.setItem('selectedConfig', JSON.stringify(selectedConfig));
+          } catch (e) {
+            // Ignore storage errors.
+          }
+          checkStates.cwm_config = true;
+          checkResultDetails.cwm_config = cwmResolution.usedFreshExecutionRead
+            ? `Multiple found, selected: ${selectedConfig.name} (refreshed execution output)`
+            : `Multiple found, selected: ${selectedConfig.name}`;
+          renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
+        } else {
+          checkStates.cwm_config = false;
+          checkResultDetails.cwm_config = 'No computer selected';
+          renderCheckResult(
+            cwmCheckItem,
+            false,
+            'CWM Configuration',
+            checkResultDetails.cwm_config,
+            () => runCwmConfigurationCheck({ continuePipeline: true })
+          );
         }
-        checkStates.cwm_config = true;
-        checkResultDetails.cwm_config = cwmResolution.usedFreshExecutionRead
-          ? `Multiple found, selected: ${selectedConfig.name} (refreshed execution output)`
-          : `Multiple found, selected: ${selectedConfig.name}`;
-        renderCheckResult(cwmCheckItem, true, 'CWM Configuration', checkResultDetails.cwm_config);
       }
     } catch (error) {
       checkStates.cwm_config = false;
@@ -16883,6 +17021,10 @@ function renderPrerequisitesPage() {
       }
 
       if (rawValue && typeof rawValue === 'object') {
+        // Single config object returned directly (not wrapped in an array or keyed dict).
+        if (rawValue.name && rawValue.id && rawValue.deviceIdentifier) {
+          return [rawValue];
+        }
         return Object.values(rawValue);
       }
 
@@ -17093,6 +17235,40 @@ function renderPrerequisitesPage() {
     renderComputerPrereqResults(evaluation, !lastAttemptResult.ok ? { attempts: certAttempt } : null);
     if (!lastAttemptResult.ok) clearCachedPrereqs();
     updateButtonState();
+  }
+
+  // ---- Debug toggle wiring ----
+  const savedDebugSim = getStoredJson(PREREQ_DEBUG_SIM_KEY);
+  debugSimEnabled = !!savedDebugSim?.enabled;
+
+  const debugToggleLabel = commandDeck.querySelector('#prereq-debug-toggle-label');
+  const debugToggleInput = commandDeck.querySelector('#prereq-debug-toggle-input');
+
+  if (debugToggleInput) {
+    debugToggleInput.checked = debugSimEnabled;
+    debugToggleInput.addEventListener('change', (event) => {
+      debugSimEnabled = !!event.target.checked;
+      setStoredJson(PREREQ_DEBUG_SIM_KEY, { enabled: debugSimEnabled });
+      if (debugSimEnabled) {
+        RewstDOM.showWarning('Debug simulation enabled. CWM check will show a fake computer picker and halt.');
+      } else {
+        RewstDOM.showInfo('Debug simulation disabled.');
+      }
+    });
+  }
+
+  if (debugToggleLabel) {
+    debugToggleLabel.style.display = isBetaMode() ? '' : 'none';
+  }
+
+  if (!debugVisibilityTimer) {
+    debugVisibilityTimer = setInterval(() => {
+      const label = commandDeck.querySelector('#prereq-debug-toggle-label');
+      if (label) {
+        const target = isBetaMode() ? '' : 'none';
+        if (label.style.display !== target) label.style.display = target;
+      }
+    }, 1000);
   }
 
   // ---- Run workflow and check results ----
@@ -17835,7 +18011,6 @@ function renderVpnStatusPage() {
     if (!isValueEmpty(state.rawVpnConnections) || !isValueEmpty(state.rawObservedVpnConfig)) {
       applyObservedStateForDisplay();
     }
-    render();
 
     const results = await Promise.all(VPN_VARIABLE_DEFS.map(async (def) => {
       try {
