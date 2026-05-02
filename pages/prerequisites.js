@@ -453,25 +453,36 @@ function renderPrerequisitesPage() {
   }
 
   function updatePrereqCommandDeck() {
-      // Recalculates the progress bar percentage and status text based on current checkStates.
-    const totalChecks = Object.keys(checkStates).length;
-    const completedChecks = Object.values(checkStates).filter((state) => state === true).length;
-    const percent = Math.round((completedChecks / totalChecks) * 100);
+      // Company/User/Computer are weighted 25/35/40 to reflect real-world completion time.
+    const categoryWeights = { company: 25, user: 35, computer: 40 };
+    let weightedPercent = 0;
+    let totalChecks = 0;
+    let completedChecks = 0;
+
+    Object.entries(CATEGORY_CHECK_KEYS).forEach(([category, keys]) => {
+      const passed = keys.filter((key) => checkStates[key] === true).length;
+      weightedPercent += (passed / keys.length) * (categoryWeights[category] || 0);
+      totalChecks += keys.length;
+      completedChecks += passed;
+    });
+
+    const percent = Math.round(weightedPercent);
+    const allPassed = completedChecks === totalChecks;
 
     if (progressValueElement) {
-      progressValueElement.textContent = `${completedChecks}/${totalChecks}`;
+      progressValueElement.textContent = `${percent}%`;
     }
 
     if (progressFillElement) {
       progressFillElement.style.width = `${percent}%`;
-      progressFillElement.classList.toggle('is-complete', completedChecks === totalChecks);
+      progressFillElement.classList.toggle('is-complete', allPassed);
     }
 
     if (cadenceLabelElement) {
-      if (completedChecks === 0) {
+      if (percent === 0) {
         cadenceLabelElement.textContent = 'Starting checks...';
-      } else if (completedChecks < totalChecks) {
-        cadenceLabelElement.textContent = `${completedChecks} of ${totalChecks} checks complete.`;
+      } else if (!allPassed) {
+        cadenceLabelElement.textContent = `${percent}% complete.`;
       } else {
         cadenceLabelElement.textContent = "All checks passed. You're ready to continue.";
       }
@@ -916,7 +927,7 @@ function renderPrerequisitesPage() {
     return /timeout/i.test(message);
   }
 
-  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
+  function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null, startedAt = null) {
       // Converts raw workflow status updates into user-facing loading text.
     const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
     const resolvedStep = workflowKey
@@ -930,7 +941,36 @@ function renderPrerequisitesPage() {
     const normalizedStatus = typeof status === 'string' && status.trim()
       ? status.trim().replace(/_/g, ' ').toLowerCase()
       : 'processing';
-    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(WORKFLOW_RESPONSE_MAX_WAIT_MS)}.`;
+    const elapsedMs = startedAt ? Date.now() - startedAt : 0;
+    const remainingMs = Math.max(0, WORKFLOW_RESPONSE_MAX_WAIT_MS - elapsedMs);
+    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
+  }
+
+  function createWorkflowCountdown(element, label, progressLabel, workflowKey = null) {
+    const startedAt = Date.now();
+    let lastStatus = 'processing';
+    let lastTasks = null;
+    let timerId = null;
+
+    const tick = () => updateCheckLoadingText(
+      element, label,
+      formatWorkflowProgressDetails(lastStatus, lastTasks, workflowKey, startedAt),
+      progressLabel
+    );
+
+    timerId = setInterval(tick, 1000);
+
+    return {
+      startedAt,
+      onProgress(status, tasks) {
+        if (status) lastStatus = status;
+        if (Number.isFinite(tasks)) lastTasks = tasks;
+        tick();
+      },
+      stop() {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+      }
+    };
   }
 
   async function runSingleAttempt(task, operationName = 'workflow') {
@@ -1143,19 +1183,19 @@ function renderPrerequisitesPage() {
           return null;
         };
 
-        const runEmailLookupAttempt = async (operationName, loadingStatus = 'Communicating with Rewst') => runSingleAttempt(
-          () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL'), {}, {
-            onProgress: (status, numSuccessfulTasks) => {
-              updateCheckLoadingText(
-                emailVerificationCheckItem,
-                'Email verification',
-                formatWorkflowProgressDetails(status, numSuccessfulTasks),
-                loadingStatus
-              );
-            }
-          }),
-          operationName
-        );
+        const runEmailLookupAttempt = async (operationName, loadingStatus = 'Communicating with Rewst') => {
+          const cd = createWorkflowCountdown(emailVerificationCheckItem, 'Email verification', loadingStatus);
+          try {
+            return await runSingleAttempt(
+              () => rewst.runWorkflowSmart(getWorkflowId('USER_EMAIL'), {}, {
+                onProgress: (status, tasks) => cd.onProgress(status, tasks)
+              }),
+              operationName
+            );
+          } finally {
+            cd.stop();
+          }
+        };
 
         let attemptResult = await runEmailLookupAttempt('Email verification lookup');
         let email = extractUserEmail(attemptResult.result);
@@ -1406,21 +1446,16 @@ function renderPrerequisitesPage() {
 
       const userEmail = await ensureUserEmail();
 
+      const cwmCountdown = createWorkflowCountdown(cwmCheckItem, 'CWM Configuration', 'Communicating with CWM');
       const attemptResult = await runSingleAttempt(
         () => rewst.runWorkflowSmart(getWorkflowId('CWM_CONFIGURATIONS'), {
           user_principal_name: userEmail
         }, {
-          onProgress: (status, numSuccessfulTasks) => {
-            updateCheckLoadingText(
-              cwmCheckItem,
-              'CWM Configuration',
-              formatWorkflowProgressDetails(status, numSuccessfulTasks),
-              'Communicating with CWM'
-            );
-          }
+          onProgress: (status, tasks) => cwmCountdown.onProgress(status, tasks)
         }),
         'User prerequisite: CWM Configuration'
       );
+      cwmCountdown.stop();
 
       const cwmResolution = attemptResult.ok
         ? await resolveCwmConfigurations(attemptResult.result)
@@ -1583,21 +1618,17 @@ function renderPrerequisitesPage() {
           );
         }
 
+        const onlineProgressLabel = attempt > 1 ? `Attempt ${attempt} — checking online status` : 'Communicating with your PC';
+        const onlineCountdown = createWorkflowCountdown(computerOnlineCheckItem, 'Computer Online', onlineProgressLabel);
         const attemptResult = await runSingleAttempt(
           () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_ONLINE'), {
             cwa_computer_id: selectedConfig.deviceIdentifier
           }, {
-            onProgress: (status, numSuccessfulTasks) => {
-              updateCheckLoadingText(
-                computerOnlineCheckItem,
-                'Computer Online',
-                formatWorkflowProgressDetails(status, numSuccessfulTasks),
-                attempt > 1 ? `Attempt ${attempt} — checking online status` : 'Communicating with your PC'
-              );
-            }
+            onProgress: (status, tasks) => onlineCountdown.onProgress(status, tasks)
           }),
           'User prerequisite: Computer Online'
         );
+        onlineCountdown.stop();
 
         let resolvedOnlineResult = attemptResult.result;
         let onlineField = getBooleanFieldValue(
@@ -1945,19 +1976,14 @@ function renderPrerequisitesPage() {
         await sleep(2000);
       }
 
+      const certCountdown = createWorkflowCountdown(validMachineCertCheckItem, 'Valid machine certificate installed', 'Communicating with your PC', 'COMPUTER_PREREQUISITES');
       lastAttemptResult = await runSingleAttempt(
         () => rewst.runWorkflowSmart(getWorkflowId('COMPUTER_PREREQUISITES'), { in_cwa_id: selectedConfig.deviceIdentifier }, {
-          onProgress: (status, numSuccessfulTasks) => {
-            updateCheckLoadingText(
-              validMachineCertCheckItem,
-              'Valid machine certificate installed',
-              formatWorkflowProgressDetails(status, numSuccessfulTasks, 'COMPUTER_PREREQUISITES'),
-              'Communicating with your PC'
-            );
-          }
+          onProgress: (status, tasks) => certCountdown.onProgress(status, tasks)
         }),
         'Computer prerequisite checks'
       );
+      certCountdown.stop();
 
       if (lastAttemptResult.error && !lastAttemptResult.result) break;
 

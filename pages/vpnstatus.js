@@ -40,6 +40,9 @@ function renderVpnStatusPage() {
     activeAction: null,
     progressWorkflowKey: null,
     progressMaxSuccessfulTasks: null,
+    lastProgressStatus: 'processing',
+    workflowStartedAt: null,
+    countdownTimerId: null,
     lastUpdatedAt: null,
     debugSimEnabled: false,
     removeConfirmOpen: false,
@@ -83,6 +86,7 @@ function renderVpnStatusPage() {
   }
 
   function formatWorkflowProgressDetails(status, numSuccessfulTasks, workflowKey = null) {
+    const taskPrefix = Number.isFinite(numSuccessfulTasks) ? `${numSuccessfulTasks} steps complete — ` : '';
     const canResolveSteps = typeof resolveWorkflowStepByTaskCount === 'function';
     const resolvedStep = workflowKey && canResolveSteps
       ? resolveWorkflowStepByTaskCount(workflowKey, numSuccessfulTasks)
@@ -90,22 +94,19 @@ function renderVpnStatusPage() {
     const configuredLabel = resolvedStep?.step?.progressLabel || null;
 
     if (configuredLabel) {
-      const taskSuffix = Number.isFinite(numSuccessfulTasks)
-        ? ` Successful tasks: ${numSuccessfulTasks}.`
-        : '';
-      return `${configuredLabel}.${taskSuffix}`;
+      return `${taskPrefix}${configuredLabel}.`;
     }
 
     const normalizedStatus = typeof status === 'string' && status.trim()
       ? status.trim().replace(/_/g, ' ').toLowerCase()
       : 'processing';
-    const taskSuffix = Number.isFinite(numSuccessfulTasks)
-      ? ` Successful tasks: ${numSuccessfulTasks}.`
-      : '';
-    return `Workflow is still ${normalizedStatus}. Waiting up to ${formatDuration(WORKFLOW_RESPONSE_MAX_WAIT_MS)} for a response.${taskSuffix}`;
+    const elapsedMs = state.workflowStartedAt ? Date.now() - state.workflowStartedAt : 0;
+    const remainingMs = Math.max(0, WORKFLOW_RESPONSE_MAX_WAIT_MS - elapsedMs);
+    return `${taskPrefix}Workflow is ${normalizedStatus}. Waiting up to ${formatDuration(remainingMs)}.`;
   }
 
   function updateWorkflowProgressStatus(status, numSuccessfulTasks, workflowKey = null) {
+    if (status) state.lastProgressStatus = status;
     if (workflowKey && state.progressWorkflowKey !== workflowKey) {
       state.progressWorkflowKey = workflowKey;
       state.progressMaxSuccessfulTasks = null;
@@ -719,6 +720,8 @@ function renderVpnStatusPage() {
     state.activeAction = action;
     state.progressWorkflowKey = null;
     state.progressMaxSuccessfulTasks = null;
+    state.lastProgressStatus = 'processing';
+    state.workflowStartedAt = Date.now();
     state.statusType = 'running';
     state.statusLabel = 'Running';
     state.statusText = statusOverride || (action === 'check'
@@ -727,12 +730,36 @@ function renderVpnStatusPage() {
     if (typeof window.AppUI?.setRefreshButtonBusy === 'function') {
       window.AppUI.setRefreshButtonBusy(true);
     }
+    startCountdownTimer();
   }
 
   function updateStatusTextInPlace(nextText) {
     const statusTextElement = document.getElementById('vpnsetup-status-text');
     if (statusTextElement) {
       statusTextElement.textContent = nextText;
+    }
+  }
+
+  function startCountdownTimer() {
+    stopCountdownTimer();
+    state.countdownTimerId = setInterval(() => {
+      if (!state.inFlight) { stopCountdownTimer(); return; }
+      const text = formatWorkflowProgressDetails(
+        state.lastProgressStatus,
+        state.progressMaxSuccessfulTasks,
+        state.progressWorkflowKey
+      );
+      if (text !== state.statusText) {
+        state.statusText = text;
+        updateStatusTextInPlace(text);
+      }
+    }, 1000);
+  }
+
+  function stopCountdownTimer() {
+    if (state.countdownTimerId) {
+      clearInterval(state.countdownTimerId);
+      state.countdownTimerId = null;
     }
   }
 
@@ -999,6 +1026,7 @@ function renderVpnStatusPage() {
     } finally {
       state.inFlight = false;
       state.activeAction = null;
+      stopCountdownTimer();
       if (typeof window.AppUI?.setRefreshButtonBusy === 'function') {
         window.AppUI.setRefreshButtonBusy(false);
       }
@@ -1037,6 +1065,7 @@ function renderVpnStatusPage() {
     } catch (error) {
       state.inFlight = false;
       state.activeAction = null;
+      stopCountdownTimer();
       state.statusType = 'missing';
       state.statusLabel = 'Not installed';
       state.statusText = error?.message || `VPN adapter ${command} command failed.`;
