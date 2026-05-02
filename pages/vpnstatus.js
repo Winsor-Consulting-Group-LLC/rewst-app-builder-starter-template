@@ -1298,7 +1298,16 @@ function renderVpnStatusPage() {
 
   // Backfill adapter status if prerequisites are complete and either no snapshot exists
   // or the cached snapshot is stale/missing reported networks or nameservers.
-  if (hasCompletePrereqsCache() && (!loadedFromCache || hasMissingCachedReportedDetails())) {
+  // Skip the auto-refresh if the cache shows installed+connected and was updated within 15 minutes.
+  const CACHE_FRESH_MS = 15 * 60 * 1000;
+  const cacheIsFresh = loadedFromCache
+    && state.lastUpdatedAt
+    && (Date.now() - new Date(state.lastUpdatedAt).getTime()) < CACHE_FRESH_MS;
+  const cacheIsHealthy = cacheIsFresh
+    && state.statusType === 'installed'
+    && isAdapterConnected();
+
+  if (hasCompletePrereqsCache() && !cacheIsHealthy && (!loadedFromCache || hasMissingCachedReportedDetails())) {
     refreshAdapterStatusFromPrereq(false, {
       silentOnMissingComputer: true,
       autoTriggered: true
