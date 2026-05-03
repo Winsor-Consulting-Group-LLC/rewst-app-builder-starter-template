@@ -845,7 +845,7 @@ h6 {
   transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.3s ease;
   background: linear-gradient(90deg, var(--rewst-fandango), var(--rewst-teal));
   background-size: 190% 100%;
-  animation: prereq-progress-scan 3.2s linear infinite;
+  animation: prereq-progress-scan 3.2s ease-in-out infinite;
 }
 
 .prereq-progress-fill.is-complete {
@@ -1141,10 +1141,10 @@ h6 {
 }
 
 @keyframes prereq-progress-scan {
-  0% {
+  0%, 100% {
     background-position: 0% 50%;
   }
-  100% {
+  50% {
     background-position: 100% 50%;
   }
 }

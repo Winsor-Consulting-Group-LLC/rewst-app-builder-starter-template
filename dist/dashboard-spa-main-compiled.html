@@ -862,7 +862,7 @@ h6 {
   transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.3s ease;
   background: linear-gradient(90deg, var(--rewst-fandango), var(--rewst-teal));
   background-size: 190% 100%;
-  animation: prereq-progress-scan 3.2s linear infinite;
+  animation: prereq-progress-scan 3.2s ease-in-out infinite;
 }
 
 .prereq-progress-fill.is-complete {
@@ -1158,10 +1158,10 @@ h6 {
 }
 
 @keyframes prereq-progress-scan {
-  0% {
+  0%, 100% {
     background-position: 0% 50%;
   }
-  100% {
+  50% {
     background-position: 100% 50%;
   }
 }
@@ -14494,7 +14494,7 @@ const WORKFLOW_STEPS = {
     {
       minTasks: 10,
       maxTasks: Infinity,
-      progressLabel: 'Parsing response and updating status'
+      progressLabel: 'Parsing response and checking certificate status'
     }
   ],
   MACHINE_CERT_REMEDIATION_APPLY: [
@@ -14521,6 +14521,32 @@ const WORKFLOW_STEPS = {
       maxTasks: Infinity,
       progressLabel: 'Install signed certificate on remote computer',
       detail: 'Runs from task 23 to workflow completion.'
+    }
+  ],
+  VPN_ADAPTER_COMMAND: [
+    {
+      minTasks: 0,
+      maxTasks: 1,
+      progressLabel: 'Setting up the Rewst workflow',
+      detail: 'Runs until successful task 2.'
+    },
+    {
+      minTasks: 2,
+      maxTasks: 6,
+      progressLabel: 'Building the VPN adapter command script',
+      detail: 'Runs until successful task 7.'
+    },
+    {
+      minTasks: 7,
+      maxTasks: 12,
+      progressLabel: 'Sending script to remote computer',
+      detail: 'Runs until successful task 13.'
+    },
+    {
+      minTasks: 13,
+      maxTasks: Infinity,
+      progressLabel: 'Awaiting response from remote computer',
+      detail: 'Runs from task 13 to workflow completion.'
     }
   ]
 };
