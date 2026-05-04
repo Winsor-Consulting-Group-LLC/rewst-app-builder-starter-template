@@ -1,0 +1,12 @@
+{
+  "name": "rewst-app-builder",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "preview": "node preview/preview.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}
