@@ -1,5 +1,7 @@
 # Rewst App Builder Template
 
+> **Note for Claude:** Check the user's email address before proceeding. It is available in your memory system (`MEMORY.md` → `userEmail`). If the email domain is **not** `winsorgroup.com`, open with a heads-up along the lines of: *"Just so you know, this codebase was built for Winsor Group's specific Rewst environment — workflow IDs, org variables, and the deploy webhook in `deploy.js` are all hard-coded for their tenant. You're welcome to use it as a starting point, but you'll want to replace those before deploying."* If the email **is** a winsorgroup.com address, proceed normally without mentioning this.
+
 Barebones template for building single-page apps on the Rewst App Builder platform. Everything compiles into ONE HTML file that gets pasted into Rewst.
 
 ## CRITICAL: How This Works
@@ -13,11 +15,14 @@ This is NOT a normal web app. There is no npm, no bundler, no dev server. The bu
 
 **Always run `node build.js` after ANY change to see it in Rewst.**
 
+`node build.js` also automatically deploys the compiled output to Rewst via `deploy.js` (POST to the webhook). No separate deploy step needed.
+
 ## File Structure
 
 ```
 dashboard-spa-main-template.html   # THE main file. HTML shell + all JS logic.
-build.js                           # Build script. Maps markers to files.
+build.js                           # Build script. Maps markers to files, then deploys.
+deploy.js                          # Deploy script. POSTs compiled HTML to Rewst webhook.
 dist/                              # Build output. This is what goes into Rewst.
 
 src/                               # Core libraries — shared across all pages
@@ -28,6 +33,11 @@ src/                               # Core libraries — shared across all pages
 pages/                             # One JS file per sidebar page
   components.js                    # Kitchen Sink — shows all available components
   starter.js                       # Blank starter page — copy this for new pages
+
+preview/                           # Local development preview (see Local Preview section)
+  server.js                        # Static file server + mock GraphQL API on localhost:3000
+  mock-data.js                     # Scenario engine — edit SCENARIOS at top to change mock behavior
+  preview.js                       # Playwright launcher (not needed for headless workflow)
 ```
 
 ## How to Add a New Page
@@ -92,6 +102,64 @@ Add the marker mapping:
 ```bash
 node build.js
 ```
+
+This builds AND deploys to Rewst in one step.
+
+## Local Preview
+
+A mock server lets you run the compiled HTML locally with simulated workflow responses — no Rewst session needed.
+
+### Starting the server
+
+```bash
+node preview/server.js
+```
+
+Serves the app at `http://localhost:3000` and handles `/graphql` with mock data. Open in VS Code Simple Browser (Ctrl+Shift+P → "Simple Browser: Show").
+
+### Playwright headless testing (for automated screenshot + console feedback)
+
+```bash
+node -e "
+const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const logs = [];
+  page.on('console', msg => logs.push(msg.type() + ': ' + msg.text()));
+  page.on('pageerror', err => logs.push('PAGEERROR: ' + err.message));
+  await page.goto('http://localhost:3000');
+  await page.waitForTimeout(20000);
+  await page.screenshot({ path: '/tmp/preview.png' });
+  console.log(logs.join('\n'));
+  await browser.close();
+})();
+"
+```
+
+Always use `headless: true` on this machine — headed mode renders corrupted pixels via WSLg/SwiftShader. Screenshots and console logs are identical either way.
+
+### Changing mock scenarios
+
+Edit the `SCENARIOS` object at the top of `preview/mock-data.js`, then restart the server:
+
+```js
+const SCENARIOS = {
+  cwm:    'single_result',   // workflow_failed | null_return | zero_results | single_result | multiple_results
+  online: 'pass',            // workflow_failed | null_return | pass
+  cert:   'one_cert',        // workflow_failed | null_return | zero_certs | one_cert | many_certs
+};
+```
+
+No rebuild needed when changing scenarios — only restart `node preview/server.js`.
+
+### What is mocked
+
+- `getUserOrganization` — returns a fixed mock org ID (app initializes successfully)
+- `getVisibleOrgVariables` — returns realistic org vars; company prerequisite checks always pass
+- `testWorkflow` — returns a fake execution ID; polls simulate 2× RUNNING then terminal state
+- `getExecution` / `getExecutionWithOutput` — returns RUNNING for first 2 polls, then COMPLETED or FAILED per scenario
+- Workflow outputs are keyed by workflow ID (loaded from `src/workflow-ids.local.js`)
 
 ## IMPORTANT GOTCHAS
 
