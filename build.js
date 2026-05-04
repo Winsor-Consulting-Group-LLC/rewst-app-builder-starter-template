@@ -76,3 +76,6 @@ console.log(`Output: ${OUTPUT_PATH}`);
 const stats = fs.statSync(OUTPUT_PATH);
 const sizeKB = (stats.size / 1024).toFixed(1);
 console.log(`Size: ${sizeKB} KB`);
+
+// Deploy
+require('./deploy.js');
